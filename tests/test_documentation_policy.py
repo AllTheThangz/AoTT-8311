@@ -10,6 +10,9 @@ DOCS=[
     "docs/BUILD-PROFILES.md",
     "docs/FEATURE-PRUNING-AUDIT.md",
     "docs/MIB-FORMAT.md",
+    "docs/EXTERNAL-REFERENCE-PROJECTS.md",
+    "docs/UPSTREAM-ARCHITECTURE.md",
+    "docs/UPSTREAM-FORKS.md",
 ]
 
 

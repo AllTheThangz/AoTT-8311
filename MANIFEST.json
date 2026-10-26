@@ -332,10 +332,10 @@
       "sha256": "bff003f0235219608a5ae3fac7b50dc9ee0ef9be0a1cf81cf0f12c6e4793462e"
     },
     {
-      "bytes": 372,
+      "bytes": 557,
       "executable": true,
       "path": "usr/sbin/8311-pingd.sh",
-      "sha256": "2107e2755f13fd555138ba8bcabea01c61bcf534e8d22e5ff3db77f2be4dcd9d"
+      "sha256": "0e605513ae325629a1765fa5704631243e8382b769dad2ab6e230025b645c606"
     },
     {
       "bytes": 1578,
@@ -344,10 +344,10 @@
       "sha256": "e9fd1239a8b4d19c15366ca689c09bda6ba925fddf9aa7de206385f7ecc1dba8"
     },
     {
-      "bytes": 1060,
+      "bytes": 1167,
       "executable": true,
       "path": "usr/sbin/8311-rx_los.sh",
-      "sha256": "169e27dfbb5e4d79ed924f589baa2deb72bec3c5fa9775667fd70bbd67a130a3"
+      "sha256": "099ef94d5900853646e7c03cef014e5d0e58f0a2b5d2543532e17885459c2bac"
     },
     {
       "bytes": 6941,

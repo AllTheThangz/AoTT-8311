@@ -90,7 +90,7 @@ recovery remain available in the compact profile.
 
 See [NAND, RAM and CPU allocation](docs/RESOURCE-ALLOCATION.md),
 [offline pruning profiles](docs/BUILD-PROFILES.md), and
-[MIB template format](docs/MIB-FORMAT.md). No complete rootfs,
+[MIB template format](docs/MIB-FORMAT.md). The [external reference comparison](docs/EXTERNAL-REFERENCE-PROJECTS.md), [upstream architecture decision](docs/UPSTREAM-ARCHITECTURE.md), and [newer 8311 fork review](docs/UPSTREAM-FORKS.md) describe what can safely be reused from other firmware projects. No complete rootfs,
 subscriber credentials or vendor binaries are committed to GitHub.
 
 ## Getting started : source only
