@@ -63,3 +63,21 @@ The known v2r1 image fits the volume but provides only 40 KiB headroom,
 so it passes the historical 32 KiB minimum and fails the recommended 64 KiB
 release threshold. Do not treat a passing static check as proof of
 bootability, service continuity, or vendor-component redistribution rights.
+
+## Hardware and lean build scope
+
+Read the separate documentation in GitHub before attempting any
+device image:
+
+- [Exact hardware compatibility](COMPATIBILITY.md)
+- [CPU, RAM and NAND capacity](RESOURCE-ALLOCATION.md)
+- [Runtime asset pruning and build profiles](BUILD-PROFILES.md)
+- [MIB format documentation](MIB-FORMAT.md)
+
+The static vendor MIB readme is removed by offline pruning profiles;
+the MIB data files, firmware runtime integrity contract, interface
+labels and valid hardware controls remain on the stick.
+
+This repository contains the source tools and documentation, never
+the binary-derived offline test images, their proprietary dependencies,
+or subscriber-specific configuration.
