@@ -26,13 +26,13 @@ XGS-PON SFP+ ONUs expose far more operational information than their default int
 
 ## Enhancements over the 8311 Community Version
 
-AoTT-8311 **builds on** the existing [8311 Community Firmware](https://github.com/djGrrr/8311-was-110-firmware-builder) rather than replacing it. The comparison below uses the community **v2.8.3 Basic** release as the reference point. Upstream already includes a LuCI interface, PON/OMCI and VLAN diagnostics, monitoring metrics, firmware uploads, and basic firmware-bank switching. Those are established community features—not AoTT inventions.
+AoTT-8311 **builds on** the existing [8311 Community Firmware](https://github.com/djGrrr/8311-was-110-firmware-builder) rather than replacing it. The comparison below uses the community **v2.8.3 Basic** release as the reference point. Upstream already includes a LuCI interface, PON/OMCI and VLAN diagnostics, monitoring metrics, firmware uploads, and basic firmware-bank switching. Those are established community features, not AoTT inventions.
 
 | Enhancement | What AoTT-8311 v2r1 adds or changes |
 | --- | --- |
 | **Redesigned management experience** | Responsive interface refinements, clearer navigation and explanations, and more readable light/dark styling on top of the community LuCI UI. |
 | **Unified Live Health view** | An authenticated, read-only overview combining optical levels, temperatures, voltage, GEM/allocation details, and Ethernet traffic/error counters. This extends, rather than replaces, the community's existing status and metrics endpoints. |
-| **Security & Access diagnostics** | A dedicated page and structured API identifying risks such as an unset root password, discrepancies in password persistence, and management-access concerns—without returning password hashes or key material. These checks **report** issues; they do not silently fix them. |
+| **Security & Access diagnostics** | A dedicated page and structured API identifying risks such as an unset root password, discrepancies in password persistence, and management-access concerns without returning password hashes or key material. These checks **report** issues; they do not silently fix them. |
 | **Guarded A/B upgrade lifecycle** | Additional bank-integrity receipts and compatibility checks, verified full-volume backups, inactive-bank write verification, a one-shot trial boot, and **separate explicit commit or rollback**. The community firmware already supports upgrades and bank selection; AoTT places stronger verification and recovery gates around them. |
 | **Configuration validation and controlled operations** | More structured server-side checks, revision-aware persistence, and bounded status/background-job handling for sensitive web operations. |
 | **Monitoring-friendly health data** | Structured authenticated health/security information for optional external observability, including Prometheus/Grafana integrations. The external collector, dashboards, and alert-delivery infrastructure are **not included** in this source package. |
@@ -71,7 +71,7 @@ These operations require a compatible complete firmware build and an independent
 
 A **10Gbps Ethernet link is not a promise of 10Gbps Internet service**. Actual throughput, GEM/T-CONT allocations, VLAN assignments, authentication, and service profiles depend on the provider's OLT and subscription.
 
-## Getting started — source only
+## Getting started: source only
 
 Clone and audit the source:
 
