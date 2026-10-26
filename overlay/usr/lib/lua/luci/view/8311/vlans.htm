@@ -1,0 +1,19 @@
+<%+header%>
+<script src="<%=resource%>/jquery-3.7.1.min.js?v=3.7.1"></script>
+<script src="<%=resource%>/view/8311.js?v=aott-8311-v1-r3"></script>
+<h2>OLT VLAN tables and local mapping</h2>
+<p>Read the VLAN information currently provisioned through OMCI. These are inspection results; changing the local Internet or Services VLAN requires the configuration page.</p>
+<div class="aott-section-intro">
+  <strong>Interpretation</strong>
+  <p>The Internet VLAN and Services VLAN can differ. O5.1 registration does not prove that data traffic is mapped correctly. Compare these tables with the selected VLAN settings before changing anything.</p>
+</div>
+<div class="aott-fw-buttons">
+  <button type="button" class="cbi-button" id="vlan-refresh">Refresh VLAN tables</button>
+  <a class="cbi-button" href="<%=url('admin/8311/config')%>#8311-tab-isp">Review VLAN settings</a>
+</div>
+<p id="vlan-report-status" class="aott-report-message" role="status" aria-live="polite">Loading VLAN tables...</p>
+<pre id="vlan-report" class="aott-report-box" role="region" tabindex="0" aria-label="Read-only OLT VLAN and local service mapping tables">Loading...</pre>
+<script>
+$(document).ready(function(){ vlanTables(); });
+</script>
+<%+footer%>

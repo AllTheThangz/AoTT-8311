@@ -1,0 +1,77 @@
+<%+header%>
+<script src="<%=resource%>/view/8311-v2r1.js?v=aott-8311-v2r1"></script>
+
+<h2>Live optics &amp; traffic</h2>
+<p class="aott-r5-intro">Inspect the real ONU counters, optical transceiver, and OLT-provisioned GEM services. Read-only measurements do not change your ISP registration, VLAN rules, or firmware banks.</p>
+<div class="aott-section-intro" role="note">
+  <strong>Interpreting this page</strong>
+  <p><strong>O5.1</strong> means optical association—not a verified Internet route. A <strong>10Gbps Ethernet link</strong> is the physical connection to the router, not the subscribed bandwidth. Traffic rates require two valid samples; historical counter totals are not ongoing loss rates.</p>
+</div>
+
+<section class="aott-r5-controls" aria-label="Telemetry sampling controls">
+  <label for="aott-r5-interval">Live sampling interval</label>
+  <select id="aott-r5-interval" aria-label="Live telemetry sampling interval">
+    <option value="0">Manual only</option>
+    <option value="15000">Every 15 seconds</option>
+    <option value="30000" selected>Every 30 seconds (recommended)</option>
+    <option value="60000">Every 60 seconds</option>
+  </select>
+  <button type="button" class="cbi-button" id="aott-r5-refresh">Refresh now</button>
+  <span id="aott-r5-last-sample" class="aott-r5-muted">No reading yet</span>
+</section>
+<p id="aott-r5-load-status" class="aott-r5-message" aria-live="polite" role="status">Waiting for first reading…</p>
+
+<section aria-labelledby="aott-r5-optics-heading">
+  <h3 id="aott-r5-optics-heading">Optical link &amp; module health</h3>
+  <div class="aott-r5-tiles">
+    <dl class="aott-r5-tile"><dt>PON registration</dt><dd id="aott-r5-pon">—</dd></dl>
+    <dl class="aott-r5-tile"><dt>Ethernet link</dt><dd id="aott-r5-eth">—</dd></dl>
+    <dl class="aott-r5-tile"><dt>Received optical power</dt><dd id="aott-r5-rx-dbm">—</dd><small>dBm</small></dl>
+    <dl class="aott-r5-tile"><dt>Transmitted optical power</dt><dd id="aott-r5-tx-dbm">—</dd><small>dBm</small></dl>
+    <dl class="aott-r5-tile"><dt>Optical module temperature</dt><dd id="aott-r5-optic-temp">—</dd><small>°C</small></dl>
+    <dl class="aott-r5-tile"><dt>CPU thermal readings</dt><dd id="aott-r5-cpu-temp">—</dd><small>°C</small></dl>
+    <dl class="aott-r5-tile"><dt>Module voltage</dt><dd id="aott-r5-voltage">—</dd><small>V</small></dl>
+    <dl class="aott-r5-tile"><dt>Transmitter bias</dt><dd id="aott-r5-tx-bias">—</dd><small>mA</small></dl>
+  </div>
+  <p class="aott-r5-muted">No thresholds are classified as safe or unsafe without a vendor-supported reference. Use the values to establish the device's normal range.</p>
+</section>
+
+<section aria-labelledby="aott-r5-throughput-heading" class="aott-r5-panel">
+  <h3 id="aott-r5-throughput-heading">Current Ethernet transfer rates</h3>
+  <div class="aott-r5-tiles aott-r5-rates">
+    <dl class="aott-r5-tile"><dt>ONU receives from router</dt><dd id="aott-r5-upload">Collecting baseline…</dd><small>Estimate of upload-side MAC traffic, Mbps</small></dl>
+    <dl class="aott-r5-tile"><dt>ONU transmits to router</dt><dd id="aott-r5-download">Collecting baseline…</dd><small>Estimate of download-side MAC traffic, Mbps</small></dl>
+  </div>
+  <p id="aott-r5-rate-notes" class="aott-r5-muted" role="status">Two successive samples are required. Rates are local Ethernet MAC estimates, not an Internet speed test.</p>
+</section>
+
+<section aria-labelledby="aott-r5-gem-heading" class="aott-r5-panel">
+  <h3 id="aott-r5-gem-heading">GEM ports and ISP service mapping</h3>
+  <p>The OLT provisions these GEM/T-CONT relationships. The displayed encryption field is the vendor's label, <strong>not proof of on-wire encryption</strong>; the ONU cannot safely override OLT encryption choices.</p>
+  <div class="aott-r5-scroll" role="region" tabindex="0" aria-label="Live GEM ports">
+    <table class="aott-r5-table" id="aott-r5-gem-table">
+      <thead><tr>
+        <th scope="col">GEM ID</th><th scope="col">Service</th><th scope="col">T-CONT allocation</th>
+        <th scope="col">Direction</th><th scope="col">Encryption label</th>
+        <th scope="col">Upstream frames</th><th scope="col">Downstream frames</th><th scope="col">Key errors</th>
+      </tr></thead>
+      <tbody id="aott-r5-gem-body"><tr><td colspan="8">Waiting for live GEM data…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="aott-r5-errors-heading" class="aott-r5-panel">
+  <h3 id="aott-r5-errors-heading">Ethernet errors, congestion &amp; historical counters</h3>
+  <p>Use the <strong>change per interval</strong> to distinguish a growing problem from an old accumulated total. A zero increase means no additional events during the observed period.</p>
+  <div class="aott-r5-scroll" role="region" tabindex="0" aria-label="MAC counter changes">
+    <table class="aott-r5-table">
+      <thead><tr><th scope="col">Hardware counter</th><th scope="col">Current total</th><th scope="col">Change since last sample</th><th scope="col">Interpretation</th></tr></thead>
+      <tbody id="aott-r5-mac-body"><tr><td colspan="4">Collecting read-only counters…</td></tr></tbody>
+    </table>
+  </div>
+  <p class="aott-r5-muted">Counters can reset on reboot or driver restart. If a counter decreases, the panel resets its baseline instead of displaying a negative rate.</p>
+</section>
+
+<p class="aott-r5-muted">Further detail: <a href="<%=url('admin/8311/pon_status')%>">PON reports</a> · <a href="<%=url('admin/8311/pon_explorer')%>">OMCI Managed Entities</a> · <a href="<%=url('admin/8311/vlans')%>">VLAN diagnostics</a>. The selected refresh interval is saved only in this browser, not to ONU flash.</p>
+
+<%+footer%>

@@ -1,0 +1,90 @@
+<%#
+ Copyright 2008 Steven Barth <steven@midlink.org>
+ Copyright 2008-2018 Jo-Philipp Wich <jo@mein.io>
+ Licensed to the public under the Apache License 2.0.
+-%>
+
+<%+header%>
+
+<h2 name="content">Device overview</h2>
+<p>Check live optical registration, management health and system activity. Use the shortcuts for the next action; nothing on this page changes device configuration.</p>
+<nav class="aott-overview-shortcuts" aria-label="Common device tasks">
+  <a href="<%=url('admin/8311/pon_status')%>"><strong>PON connection</strong><small>Registration, optics and alarms</small></a>
+  <a href="<%=url('admin/8311/health')%>"><strong>Live health &amp; traffic</strong><small>Optics, GEM mappings and current counter rates</small></a>
+  <a href="<%=url('admin/8311/security')%>"><strong>Security &amp; access</strong><small>Passwords, SSH, HTTPS and management warnings</small></a>
+  <a href="<%=url('admin/8311/vlans')%>"><strong>VLAN mapping</strong><small>Internet and service traffic</small></a>
+  <a href="<%=url('admin/8311/config')%>"><strong>Edit settings</strong><small>Review before any save</small></a>
+  <a href="<%=url('admin/8311/firmware')%>"><strong>Firmware &amp; recovery</strong><small>Both banks, verification and uploads</small></a>
+  <a href="<%=url('admin/status/syslog')%>"><strong>System log</strong><small>Events and service messages</small></a>
+  <a href="<%=url('admin/8311/support')%>"><strong>Export diagnostics</strong><small>Sanitized support report</small></a>
+</nav>
+<h3>Live system information</h3>
+
+<div id="view">
+	<div class="spinning"><%:Loading view…%></div>
+</div>
+
+<script type="text/javascript">//<![CDATA[
+function progressbar(query, value, max, byte)
+{
+	var pg = document.querySelector(query),
+	    vn = parseInt(value) || 0,
+	    mn = parseInt(max) || 100,
+	    fv = byte ? String.format('%1024.2mB', value) : value,
+	    fm = byte ? String.format('%1024.2mB', max) : max,
+	    pc = Math.floor((100 / mn) * vn);
+
+	if (pg) {
+		pg.firstElementChild.style.width = pc + '%';
+		pg.setAttribute('title', '%s / %s (%d%%)'.format(fv, fm, pc));
+	}
+}
+
+function renderBox(title, active, childs) {
+	childs = childs || [];
+	childs.unshift(L.itemlist(E('span'), [].slice.call(arguments, 3)));
+
+	return E('div', { class: 'ifacebox' }, [
+		E('div', { class: 'ifacebox-head center ' + (active ? 'active' : '') },
+			E('strong', title)),
+		E('div', { class: 'ifacebox-body left' }, childs)
+	]);
+}
+
+function renderBadge(icon, title) {
+	return E('span', { class: 'ifacebadge' }, [
+		E('img', { src: icon, title: title || '' }),
+		L.itemlist(E('span'), [].slice.call(arguments, 2))
+	]);
+}
+
+//]]></script>
+
+<div class="includes" style="display:none">
+<%-
+	local util = require "luci.util"
+	local fs = require "nixio.fs"
+
+	local incdir = util.libpath() .. "/view/admin_status/index/"
+	if fs.access(incdir) then
+		local _, inc
+		local includes = {}
+		for inc in fs.dir(incdir) do
+			if inc:match("%.htm$") then
+				includes[#includes + 1] = inc:gsub("%.htm$", "")
+			end
+		end
+		for _, inc in luci.util.vspairs(includes) do
+			include("admin_status/index/" .. inc)
+		end
+	end
+-%>
+</div>
+
+<script type="text/javascript">
+	L.require('ui').then(function(ui) {
+		ui.instantiateView('status/index');
+	});
+</script>
+
+<%+footer%>

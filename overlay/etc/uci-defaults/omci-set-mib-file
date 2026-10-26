@@ -1,0 +1,28 @@
+#!/bin/sh
+
+. $IPKG_INSTROOT/lib/pon.sh
+
+choose_mib_file ()
+{
+	case $1 in
+		prx321-hgu* | prx321-gw-*11ax*)
+			echo "prx300_1V.ini"
+			;;
+		prx321-sfu* | prx321-eva*)
+			echo "prx300_2U.ini"
+			;;
+		prx126* | prx120*)
+			echo "prx300_1U.ini"
+			;;
+		lgm* | urx851*)
+			echo "urx800_1V.ini"
+			;;
+	esac
+}
+
+BOARD_NAME=$(pon_board_name)
+MIB_FILE=$(choose_mib_file $BOARD_NAME)
+
+if [ -f "/etc/mibs/$MIB_FILE" ]; then
+	uci set omci.default.mib_file="/etc/mibs/$MIB_FILE"
+fi

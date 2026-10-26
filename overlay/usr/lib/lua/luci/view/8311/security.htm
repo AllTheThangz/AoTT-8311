@@ -1,0 +1,56 @@
+<%+header%>
+<script src="<%=resource%>/view/8311-v2r1.js?v=aott-8311-v2r1"></script>
+
+<h2>Security &amp; access</h2>
+<p class="aott-r5-intro">Read-only checks of login methods, HTTP/HTTPS listeners, management routing and password persistence. Nothing on this page changes access settings. Secret hashes, SSH keys and ISP credentials are never shown.</p>
+<div class="aott-section-intro" role="note">
+  <strong>Safe change sequence</strong>
+  <p>Before turning off passwords, first verify an independent SSH key login and recovery path. Before changing the management address or web listeners, verify alternate access and a timed rollback procedure. Access changes are intentionally not enabled on this page.</p>
+</div>
+<div class="aott-r5-controls">
+  <button class="cbi-button" id="aott-r5-security-refresh" type="button">Refresh security state</button>
+  <span id="aott-r5-security-updated" class="aott-r5-muted">No audit yet</span>
+</div>
+<p id="aott-r5-security-status" class="aott-r5-message" role="status" aria-live="polite">Reading the live security configuration…</p>
+
+<section class="aott-r5-panel" aria-labelledby="aott-r5-security-findings-heading">
+  <h3 id="aott-r5-security-findings-heading">Security findings</h3>
+  <div id="aott-r5-security-findings" class="aott-r5-findings"><p>Waiting for live status…</p></div>
+</section>
+
+<section aria-labelledby="aott-r5-access-heading">
+  <h3 id="aott-r5-access-heading">Access configuration</h3>
+  <div class="aott-r5-tiles">
+    <dl class="aott-r5-tile"><dt>Root password on running system</dt><dd id="aott-r5-root-password">—</dd></dl>
+    <dl class="aott-r5-tile"><dt>Validated password hash in durable boot settings</dt><dd id="aott-r5-root-persistence">—</dd></dl>
+    <dl class="aott-r5-tile"><dt>SSH password login</dt><dd id="aott-r5-ssh-password">—</dd></dl>
+    <dl class="aott-r5-tile"><dt>Root SSH password login</dt><dd id="aott-r5-ssh-root-password">—</dd></dl>
+    <dl class="aott-r5-tile"><dt>Authorized SSH key file</dt><dd id="aott-r5-ssh-keys">—</dd></dl>
+    <dl class="aott-r5-tile"><dt>SSH bound interface</dt><dd id="aott-r5-ssh-interface">—</dd></dl>
+    <dl class="aott-r5-tile"><dt>HTTP redirect to HTTPS</dt><dd id="aott-r5-https-redirect">—</dd></dl>
+    <dl class="aott-r5-tile"><dt>Management IPv4 address</dt><dd id="aott-r5-management-ip">—</dd></dl>
+    <dl class="aott-r5-tile"><dt>Management default gateway</dt><dd id="aott-r5-management-gateway">—</dd></dl>
+  </div>
+</section>
+
+<section class="aott-r5-panel" aria-labelledby="aott-r5-listeners-heading">
+  <h3 id="aott-r5-listeners-heading">Web management listeners</h3>
+  <p>Wildcard bindings can expose management services on multiple addresses. Whether another network can actually reach them also depends on the ONU routing, firewall and upstream UDM rules.</p>
+  <div class="aott-r5-listener-grid">
+    <div><strong>HTTP listeners</strong><pre id="aott-r5-http-listeners" class="aott-r5-listeners">—</pre></div>
+    <div><strong>HTTPS listeners</strong><pre id="aott-r5-https-listeners" class="aott-r5-listeners">—</pre></div>
+  </div>
+</section>
+
+<section class="aott-r5-panel" aria-labelledby="aott-r5-actions-heading">
+  <h3 id="aott-r5-actions-heading">Recommended next actions</h3>
+  <p>Use the existing LuCI administration pages to set a password and review authorized keys. The tool that persists root password hashes must be validated before depending on it; this page does not restore an unknown stored hash.</p>
+  <div class="aott-r5-links">
+    <a class="cbi-button" href="<%=url('admin/system/admin/password')%>">Set administrator password</a>
+    <a class="cbi-button" href="<%=url('admin/system/admin/sshkeys')%>">Review authorized SSH keys</a>
+    <a class="cbi-button" href="<%=url('admin/8311/config')%>#8311-tab-manage">Review management routing</a>
+  </div>
+  <p class="aott-r5-muted">Password changes, SSH key-only enforcement, listener restrictions, and gateway changes require their own audited application workflow and recovery approval. Do not disable working access solely on a dashboard warning.</p>
+</section>
+
+<%+footer%>

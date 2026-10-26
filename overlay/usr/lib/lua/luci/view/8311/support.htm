@@ -1,0 +1,21 @@
+<% local esc = require("8311.tools").html_escape %>
+<%+header%>
+<link rel="stylesheet" href="<%=resource%>/view/8311.css?v=aott-8311-v1-r3" />
+<script src="<%=resource%>/jquery-3.7.1.min.js?v=3.7.1"></script>
+<script src="<%=resource%>/view/8311.js?v=aott-8311-v1-r3"></script>
+<h2>Diagnostic report & support</h2>
+<input id="8311-token" type="hidden" value="<%=esc(token)%>" />
+<p><%:Generate an archive in a background job with a bounded status log. Downloads are tied to this login session and become available only when that job has produced a checked archive.%></p>
+<form id="support-form" onsubmit="return startSupport(this)">
+<label for="support-mode"><%:Export mode%></label>
+<select id="support-mode"><option value="0">Sanitized report (recommended)</option><option value="1">Full private report (sensitive)</option></select>
+<button id="support-start" class="cbi-button"><%:Generate archive%></button>
+</form>
+<p><%:Sanitized export excludes sensitive source files and redacts recognized credentials. Review it before sharing. Full export can contain passwords, optical identity, network settings and logs; share it only with a trusted recipient.%></p>
+<div id="support-message" role="alert"></div>
+<div id="job-panel" data-kind="support"><h3><%:Diagnostic job%></h3><p id="job-state"><%:No diagnostic job selected in this browser.%></p><pre id="job-output" style="white-space:pre-wrap"></pre>
+<button id="job-cancel" type="button" class="cbi-button" style="display:none"><%:Cancel diagnostic job%></button>
+<a id="support-download" class="cbi-button" style="display:none"><%:Download this job's archive%></a>
+</div>
+<p><%:A partial archive is explicitly marked and can help investigate a failed collection. It is never presented as a complete successful run. Reopening this page resumes the selected job's status.%></p>
+<%+footer%>

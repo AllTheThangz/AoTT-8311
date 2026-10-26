@@ -1,0 +1,95 @@
+<%-
+local esc = require("8311.tools").html_escape
+local state = bank_state or {}
+local pending = state.pending == "A" or state.pending == "B"
+local safe = (state.active == "A" or state.active == "B") and
+             (state.committed == "A" or state.committed == "B") and
+             state.boot_contract == true
+local running_trial = state.running_trial == true
+-%>
+<%+header%>
+<link rel="stylesheet" href="<%=resource%>/view/8311.css?v=aott-8311-v1-r3" />
+<script src="<%=resource%>/jquery-3.7.1.min.js?v=3.7.1"></script>
+<script src="<%=resource%>/view/8311.js?v=aott-8311-v1-r3"></script>
+
+<h2>Firmware & recovery</h2>
+<p><strong>AoTT-8311-v2r1</strong> interface | Installed firmware: <strong><%=esc(version.version or "unknown")%></strong> (<%=esc(version.revision or "unknown")%>) | <%=esc(version.variant or "unknown")%> profile.</p>
+<p>Live bank state and checks are shown below. Actions are not submitted until you select them and confirm any operational change. No automatic commit or reboot occurs on page load.</p>
+<input id="8311-token" type="hidden" value="<%=esc(token)%>" />
+<div id="firmware-message" role="alert" aria-live="polite" class="aott-fw-status"><%=esc(bank_error)%></div>
+
+<section class="aott-fw-panel" aria-labelledby="fw-boot-title">
+  <h3 id="fw-boot-title">Firmware banks and boot selection</h3>
+  <div class="aott-fw-summary">
+    <dl class="aott-fw-kpi"><dt>Running bank</dt><dd id="bank-active"><%=esc(state.active or "unknown")%></dd></dl>
+    <dl class="aott-fw-kpi"><dt>Committed firmware bank</dt><dd id="bank-committed"><%=esc(state.committed or "unknown")%></dd></dl>
+    <dl class="aott-fw-kpi"><dt>Next one-time boot</dt><dd id="bank-pending"><%=esc(pending and state.pending or "none")%></dd></dl>
+    <dl class="aott-fw-kpi"><dt>Boot contract</dt><dd id="bank-contract"><%=state.boot_contract == true and "verified" or "unknown"%></dd></dl>
+  </div>
+  <p class="aott-fw-status" id="bank-explanation"><% if not safe then %>Live firmware-bank state is unverified. Bank actions stay locked until a successful refresh.<% elseif pending then %>A one-time boot into bank <%=esc(state.pending)%> is scheduled. The committed bank remains the fallback.<% elseif running_trial then %>This is an uncommitted trial. Another reset returns to the saved bank unless the trial is explicitly kept.<% else %>Running and committed selections match; no trial is scheduled.<% end %></p>
+  <button class="cbi-button aott-fw-refresh" type="button" id="bank-refresh-btn">Refresh live bank state</button>
+  <div class="aott-fw-table-wrap">
+    <table class="table aott-fw-table" aria-label="Firmware bank health">
+      <thead><tr class="tr table-titles"><th scope="col">Bank</th><th scope="col">Image receipt</th><th scope="col">Validity</th><th scope="col">Available actions</th></tr></thead>
+      <tbody>
+      <% for _, name in ipairs({"A","B"}) do local bank = state.banks and state.banks[name] or {} %>
+        <tr class="tr">
+          <th scope="row"><%=name%></th>
+          <td id="receipt-<%=name%>"><%=esc(bank.receipt or "unknown")%></td>
+          <td id="valid-<%=name%>"><%=bank.valid == true and "valid" or bank.valid == false and "invalid" or "unknown"%></td>
+          <td><div class="aott-fw-buttons">
+            <button class="cbi-button firmware-bank" type="button" data-action="verify_bank" data-bank="<%=name%>" <% if not safe then %>disabled<% end %>>Verify bank</button>
+            <button class="cbi-button firmware-bank" type="button" data-action="trial" data-bank="<%=name%>" data-confirm="Schedule a one-time boot of bank <%=name%>? This changes the next reboot selection." <% if not safe or pending or running_trial or name == state.active or not bank.valid then %>disabled<% end %>>Schedule trial</button>
+          </div></td>
+        </tr>
+      <% end %>
+      </tbody>
+    </table>
+  </div>
+  <p>Image receipts are records, not a substitute for a fresh integrity check. Use “Verify bank” to validate the stored kernel, bootcore, rootfs, and required runtime profile.</p>
+  <details><summary>Component sizes and SHA-256 receipts</summary><pre id="bank-receipts" class="aott-fw-report"><%=esc(require("luci.jsonc").stringify(state.banks or {}))%></pre></details>
+  <div class="aott-fw-buttons aott-fw-actions" id="firmware-boot-actions">
+    <button class="cbi-button firmware-bank" type="button" data-action="cancel_trial" data-confirm="Clear the scheduled one-time boot? Stored image contents remain unchanged." <% if not safe or not pending then %>disabled<% end %>>Cancel scheduled trial</button>
+    <button class="cbi-button firmware-bank" type="button" data-action="commit" data-confirm="Commit the currently running trial after verifying PON registration, WAN, SSH and HTTPS?" <% if not safe or not running_trial then %>disabled<% end %>>Commit running trial</button>
+    <button class="cbi-button firmware-bank" type="button" data-action="return_saved" data-confirm="Reboot into the committed firmware bank now? Network access will be interrupted." <% if not safe or (state.active == state.committed and not pending) then %>disabled<% end %>>Return to committed bank</button>
+    <button class="cbi-button firmware-bank" type="button" data-action="reboot" data-confirm="Reboot this ONU now using its current boot selection? Network access will be interrupted." <% if not safe then %>disabled<% end %>>Reboot device</button>
+  </div>
+</section>
+
+<section class="aott-fw-panel" aria-labelledby="fw-upload-title">
+  <h3 id="fw-upload-title">Firmware archive upload</h3>
+  <p>Archives are limited to 24 MiB and scoped to the current authenticated session. Verify the exact filename, byte count and SHA-256 before installation. Installing a selected archive targets the inactive bank and does not automatically reboot or commit.</p>
+  <form id="firmware-upload" class="aott-fw-upload" onsubmit="return uploadFirmware(this)" method="post" enctype="multipart/form-data">
+    <label for="firmware-file">Firmware archive</label>
+    <input id="firmware-file" type="file" accept=".tar,application/x-tar" required />
+    <button type="submit" id="firmware-upload-btn" class="cbi-button">Upload archive</button>
+  </form>
+  <div id="upload-progress" role="status" aria-live="polite" class="aott-fw-status"></div>
+  <div class="aott-fw-table-wrap">
+    <table class="table aott-fw-table" id="upload-table" aria-label="Uploaded firmware archives">
+      <thead><tr class="tr table-titles"><th scope="col">Select</th><th scope="col">Filename</th><th scope="col">Bytes</th><th scope="col">SHA-256</th></tr></thead>
+      <tbody>
+      <% for i, upload in ipairs(uploads or {}) do %>
+        <tr class="tr"><td><input type="radio" name="upload-selection" value="<%=esc(upload.upload_id)%>" data-sha256="<%=esc(upload.sha256)%>" <% if i==1 then %>checked<% end %> /></td><td><%=esc(upload.filename)%></td><td><%=upload.size%></td><td class="aott-fw-artifact"><code><%=esc(upload.sha256)%></code></td></tr>
+      <% end %>
+      </tbody>
+    </table>
+  </div>
+  <p id="upload-empty" class="aott-fw-empty" <% if uploads and #uploads > 0 then %>style="display:none"<% end %>>No uploaded archives in this login session.</p>
+  <div class="aott-fw-buttons aott-fw-actions">
+    <button type="button" class="cbi-button firmware-artifact" data-action="validate" disabled>Preflight selected archive</button>
+    <button type="button" class="cbi-button firmware-artifact" data-action="install" data-confirm="Write the selected archive to the inactive bank and schedule a one-time trial? This is an irreversible flash operation. It does not reboot automatically." disabled>Install selected archive as trial</button>
+    <button type="button" class="cbi-button firmware-artifact" data-action="discard_upload" disabled>Discard selected archive</button>
+  </div>
+  <p>Archive preflight validates structure and hashes, not whether the firmware will boot. Installation verifies the inactive filesystem before marking it valid. Existing committed firmware is preserved.</p>
+</section>
+
+<section class="aott-fw-panel" aria-labelledby="fw-job-title">
+  <h3 id="fw-job-title">Firmware operation log</h3>
+  <div id="job-panel" data-kind="firmware">
+    <p id="job-state" aria-live="polite">No firmware operation selected in this browser session.</p>
+    <pre id="job-output" class="aott-fw-report" aria-label="Firmware job output"></pre>
+  </div>
+  <p>An accepted job continues after navigating away. Its log and bank status remain independently viewable; flashing cannot be cancelled once underway. Reloading this page does not resubmit actions.</p>
+</section>
+<%+footer%>

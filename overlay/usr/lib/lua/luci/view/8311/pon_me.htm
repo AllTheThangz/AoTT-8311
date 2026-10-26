@@ -1,0 +1,18 @@
+<%+header%>
+<script src="<%=resource%>/jquery-3.7.1.min.js?v=3.7.1"></script>
+<script src="<%=resource%>/view/8311.js?v=aott-8311-v1-r3"></script>
+<h2>OMCI Managed Entity Explorer</h2>
+<p>Inspect the Managed Entities (MEs) reported by the optical line terminal. Use search to narrow the list by class, instance or label; select an entry to read its current values. Reads do not change the OLT or local firmware configuration.</p>
+<div class="aott-me-toolbar">
+  <label for="me-filter">Find an entity</label>
+  <input type="search" id="me-filter" placeholder="Try: VLAN, 278, traffic scheduler..." autocomplete="off" aria-controls="me-list" />
+  <button class="cbi-button" type="button" id="me-clear">Clear search</button>
+</div>
+<p class="aott-report-meta" id="me-filter-count" role="status" aria-live="polite">Loading entity count...</p>
+<div class="aott-me-list" id="me-list" role="region" tabindex="0" aria-label="Available OMCI Managed Entities">
+<%= omci %>
+</div>
+<h3 id="me_label">Selected entity</h3>
+<p class="aott-report-message" id="me-status" role="status" aria-live="polite">Select an entity above to view the current OMCI attributes.</p>
+<pre id="me_dump" class="aott-report-box" role="region" aria-label="Selected Managed Entity attributes" tabindex="0" style="display:none"></pre>
+<%+footer%>

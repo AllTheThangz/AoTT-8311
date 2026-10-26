@@ -1,0 +1,4 @@
+#!/bin/sh /etc/rc.common
+# Capture before 8311 startup consumers read persistent configuration.
+START=17
+boot() { /usr/libexec/8311-config-apply --boot-snapshot; }

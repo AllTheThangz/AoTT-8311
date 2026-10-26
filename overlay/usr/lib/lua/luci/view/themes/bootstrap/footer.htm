@@ -1,0 +1,33 @@
+<%#
+ Upstream LuCI Bootstrap template credit: Steven Barth, Jo-Philipp Wich,
+ David Menting. Apache License 2.0.
+-%>
+<% local lang = luci.i18n.context.lang %>
+<footer class="aott-footer">
+  <div class="aott-footer-primary">
+    <strong>AoTT-8311-v2r1</strong>
+    <span class="aott-footer-divider">|</span>
+    Interface revision r1
+    <span class="aott-footer-divider">|</span>
+    Firmware author: <strong>AoTT</strong>
+  </div>
+  <div class="aott-footer-provenance">
+    Firmware baseline: AoTT-v1 (aott-v1)
+    <span class="aott-footer-divider">|</span>
+    Hardware: LL-XS1010 / PRX126-SFP-PON
+    <span class="aott-footer-divider">|</span>
+    Based on v2.8.3-maint5
+  </div>
+  <div class="aott-footer-provenance">
+    Built with <a href="https://github.com/openwrt/luci" rel="noopener noreferrer">LuCI</a>
+    and upstream <a href="https://github.com/djGrrr/8311-was-110-firmware-builder" rel="noopener noreferrer">8311 community components</a>.
+    <% if lang ~= "en" then %> Interface language: <%=striptags(lang)%><% end %>
+  </div>
+  <ul class="breadcrumb pull-right" id="modemenu" style="display:none"></ul>
+</footer>
+</div>
+<% if luci.dispatcher.context.authsession then %>
+<script type="text/javascript">L.require('menu-bootstrap')</script>
+<% end %>
+</body>
+</html>

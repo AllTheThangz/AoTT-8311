@@ -1,0 +1,11 @@
+#!/bin/sh
+# Detached workers must not retain any web-server sockets or request pipes.
+case "$1" in *[!0-9a-f]*|'') exit 1 ;; esac
+[ "$#" -eq 1 ] && [ "${#1}" -eq 32 ] || exit 1
+umask 077
+for descriptor in /proc/$$/fd/*; do
+	descriptor=${descriptor##*/}
+	case "$descriptor" in 0|1|2|*[!0-9]*) continue ;; esac
+	eval "exec $descriptor>&-"
+done
+exec /usr/bin/lua /usr/libexec/8311-job-worker.lua "$1"

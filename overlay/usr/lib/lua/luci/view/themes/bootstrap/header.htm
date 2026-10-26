@@ -1,0 +1,234 @@
+<%#
+ Copyright 2008 Steven Barth <steven@midlink.org>
+ Copyright 2008-2016 Jo-Philipp Wich <jow@openwrt.org>
+ Copyright 2012 David Menting <david@nut-bolt.nl>
+ Licensed to the public under the Apache License 2.0.
+-%>
+
+<%
+	local sys  = require "luci.sys"
+	local util = require "luci.util"
+	local http = require "luci.http"
+	local disp = require "luci.dispatcher"
+
+	local boardinfo = util.ubus("system", "board")
+
+	local node = disp.context.dispatched
+
+	-- send as HTML5
+	http.prepare_content("text/html")
+-%>
+<!DOCTYPE html>
+<html lang="<%=luci.i18n.context.lang%>">
+	<head>
+		<meta charset="utf-8">
+		<title><%=striptags( (boardinfo.hostname or "?") .. ( (node and node.title) and ' - ' .. translate(node.title) or '')) %> - AoTT-8311</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script type="text/javascript">
+(function() {
+    var key = 'aott-8311-theme', theme = 'dark';
+    try {
+        var saved = window.localStorage.getItem(key);
+        if (saved === 'dark' || saved === 'light') theme = saved;
+    } catch (ignored) {}
+    document.documentElement.setAttribute('data-aott-theme', theme);
+    document.addEventListener('DOMContentLoaded', function() {
+        var button = document.getElementById('aott-theme-toggle');
+        if (!button) return;
+        function sync() {
+            var dark = document.documentElement.getAttribute('data-aott-theme') === 'dark';
+            button.textContent = dark ? 'Theme: Dark' : 'Theme: Light';
+            button.setAttribute('aria-pressed', String(dark));
+            button.setAttribute('aria-label', dark ? 'Dark theme is active; switch to light' : 'Light theme is active; switch to dark');
+            button.setAttribute('title', dark ? 'Switch to light theme' : 'Switch to dark theme');
+        }
+        button.addEventListener('click', function() {
+            var next = document.documentElement.getAttribute('data-aott-theme') === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-aott-theme', next);
+            try { window.localStorage.setItem(key, next); } catch (ignored) {}
+            sync();
+        });
+        sync();
+
+        var menuButton = document.getElementById('aott-nav-toggle');
+        var nav = document.getElementById('aott-site-nav');
+        if (menuButton && nav) {
+            function setOpen(open) {
+                document.documentElement.setAttribute('data-aott-nav', open ? 'open' : 'closed');
+                menuButton.setAttribute('aria-expanded', String(open));
+                menuButton.textContent = open ? 'Close menu' : 'Menu';
+            }
+            menuButton.addEventListener('click', function() {
+                setOpen(document.documentElement.getAttribute('data-aott-nav') !== 'open');
+            });
+            nav.querySelectorAll('details').forEach(function(item) {
+                item.addEventListener('toggle', function() {
+                    if (item.open) nav.querySelectorAll('details').forEach(function(other) {
+                        if (other !== item) other.open = false;
+                    });
+                });
+            });
+            document.addEventListener('keydown', function(event) {
+                if (event.key !== 'Escape') return;
+                var opened = nav.querySelector('details[open]');
+                if (opened) { opened.open = false; opened.querySelector('summary').focus(); }
+                else if (document.documentElement.getAttribute('data-aott-nav') === 'open') {
+                    setOpen(false); menuButton.focus();
+                }
+            });
+            document.addEventListener('click', function(event) {
+                if (!nav.contains(event.target) && event.target !== menuButton) {
+                    nav.querySelectorAll('details[open]').forEach(function(node) { node.open = false; });
+                    setOpen(false);
+                }
+            });
+            setOpen(false);
+        }
+
+        var ponBadge = document.getElementById('aott-pon-health');
+        if (ponBadge) {
+            var previous = '';
+            function getHealth() {
+                if (document.visibilityState === 'hidden') return;
+                fetch('<%=url("admin/8311/gpon_status")%>', {credentials:'same-origin',cache:'no-store'})
+                    .then(function(r) { if (!r.ok) throw Error('PON status unavailable'); return r.json(); })
+                    .then(function(data) {
+                        var status = typeof data.status === 'string' ? data.status : '';
+                        var match = status.match(/^O[0-9](?:\.[0-9])?/);
+                        var link = (typeof data.eth_speed === 'string' && /^10000\s+Mbps/.test(data.eth_speed)) ? '10G link' : 'Ethernet status unknown';
+                        var good = status.indexOf('O5.1') === 0 && link === '10G link';
+                        var label = match ? ('PON ' + match[0] + ' · ' + link) : 'PON status unavailable';
+                        ponBadge.setAttribute('data-health', good ? 'good' : 'caution');
+                        ponBadge.setAttribute('title', 'Optical registration and Ethernet link, not Internet throughput');
+                        if (label !== previous) { ponBadge.textContent = label; previous = label; }
+                    })
+                    .catch(function() {
+                        ponBadge.setAttribute('data-health','unknown');
+                        if (previous !== 'Optical status unavailable') { ponBadge.textContent = 'Optical status unavailable'; previous='Optical status unavailable'; }
+                    });
+            }
+            getHealth();
+            setInterval(getHealth, 60000);
+        }
+    });
+})();
+</script>
+		<link rel="stylesheet" href="<%=media%>/cascade.css?v=git-22.045.73925-36e5c1c">
+		<link rel="stylesheet" media="only screen and (max-device-width: 854px)" href="<%=media%>/mobile.css?v=aott-8311-v1-r2" type="text/css" />
+		<link rel="shortcut icon" href="<%=media%>/favicon.png">
+		<link rel="stylesheet" href="<%=media%>/aott-theme.css?v=aott-8311-v1-r4">
+        <link rel="stylesheet" href="<%=media%>/aott-v2r1.css?v=aott-8311-v2r1">
+		<% if node and node.css then %>
+			<link rel="stylesheet" href="<%=resource%>/<%=node.css%>">
+		<% end -%>
+		<% if css then %>
+			<style title="text/css"><%= css %></style>
+		<% end -%>
+		<script src="<%=url('admin/translations', luci.i18n.context.lang)%>?v=git-22.045.73925-36e5c1c"></script>
+		<script src="<%=resource%>/cbi.js?v=git-22.045.73925-36e5c1c"></script>
+	</head>
+
+	<body class="lang_<%=luci.i18n.context.lang%> <% if node then %><%= striptags( node.title ) %><%- end %>" data-page="<%= pcdata(table.concat(disp.context.requestpath, "-")) %>">
+
+        <%
+            local aott_path = table.concat(disp.context.requestpath or {}, "/")
+            local function nav_active(path)
+                return aott_path == path and "is-current" or ""
+            end
+            local function nav_aria(path)
+                return aott_path == path and ' aria-current="page"' or ""
+            end
+            local function nav_group(paths)
+                for _, prefix in ipairs(paths) do
+                    if aott_path == prefix or aott_path:sub(1, #prefix + 1) == prefix .. "/" then
+                        return "is-current"
+                    end
+                end
+                return ""
+            end
+        %>
+        <a class="aott-skip-link" href="#maincontent">Skip to main content</a>
+        <header class="aott-app-header">
+            <div class="aott-header-main">
+                <div class="aott-header-container">
+                    <a class="aott-brand" href="<%=url('admin/status/overview')%>" aria-label="AoTT 8311 dashboard">
+                        <strong>AoTT</strong><span>8311</span>
+                    </a>
+                    <span class="aott-header-device"><%=striptags(boardinfo.hostname or "8311 ONU")%></span>
+                    <div class="aott-header-tools">
+                        <% if disp.context.authsession then %>
+                        <span id="aott-pon-health" class="aott-pon-health" data-health="unknown" role="status" aria-live="polite" title="Optical registration and Ethernet link">Checking optical link</span>
+                        <% end %>
+                        <button type="button" id="aott-theme-toggle" class="aott-theme-toggle" aria-pressed="true">Theme: Dark</button>
+                        <% if disp.context.authsession then %>
+                        <button type="button" id="aott-nav-toggle" class="aott-nav-toggle" aria-controls="aott-site-nav" aria-expanded="false">Menu</button>
+                        <% end %>
+                        <div id="indicators" class="aott-legacy-indicators"></div><ul class="nav" id="topmenu" hidden aria-hidden="true"></ul>
+                    </div>
+                </div>
+            </div>
+            <% if disp.context.authsession then %>
+            <nav id="aott-site-nav" class="aott-site-nav" aria-label="Primary navigation">
+                <div class="aott-nav-content">
+                    <a class="aott-nav-link <%=nav_active('admin/status/overview')%>"<%=nav_aria('admin/status/overview')%> href="<%=url('admin/status/overview')%>">Overview</a>
+                    <a class="aott-nav-link <%=nav_active('admin/8311/pon_status')%>"<%=nav_aria('admin/8311/pon_status')%> href="<%=url('admin/8311/pon_status')%>">PON status</a>
+                    <a class="aott-nav-link <%=nav_active('admin/8311/config')%>"<%=nav_aria('admin/8311/config')%> href="<%=url('admin/8311/config')%>">Configuration</a>
+                    <a class="aott-nav-link <%=nav_active('admin/8311/firmware')%>"<%=nav_aria('admin/8311/firmware')%> href="<%=url('admin/8311/firmware')%>">Firmware</a>
+
+                    <details class="aott-nav-group <%=nav_group({'admin/8311/health','admin/8311/pon_explorer','admin/8311/vlans','admin/status/routes','admin/status/realtime'})%>">
+                        <summary>Explore &amp; traffic</summary>
+                        <div class="aott-nav-submenu">
+                            <a href="<%=url('admin/8311/health')%>"<%=nav_aria('admin/8311/health')%>><strong>Live health &amp; traffic</strong><small>Optics, GEM, Ethernet counters</small></a>
+                            <a href="<%=url('admin/8311/pon_explorer')%>"<%=nav_aria('admin/8311/pon_explorer')%>><strong>Managed Entities</strong><small>OLT-provisioned OMCI data</small></a>
+                            <a href="<%=url('admin/8311/vlans')%>"<%=nav_aria('admin/8311/vlans')%>><strong>VLAN tables</strong><small>Inspect active service mappings</small></a>
+                            <a href="<%=url('admin/status/routes')%>"<%=nav_aria('admin/status/routes')%>><strong>IP routes</strong><small>Routes and next hops</small></a>
+                            <a href="<%=url('admin/status/realtime/bandwidth')%>"<%=nav_aria('admin/status/realtime/bandwidth')%>><strong>Live traffic</strong><small>Ethernet throughput graphs</small></a>
+                            <a href="<%=url('admin/status/realtime/connections')%>"<%=nav_aria('admin/status/realtime/connections')%>><strong>Connection activity</strong><small>Network flow statistics</small></a>
+                            <a href="<%=url('admin/status/realtime/load')%>"<%=nav_aria('admin/status/realtime/load')%>><strong>System load</strong><small>CPU and memory trends</small></a>
+                        </div>
+                    </details>
+
+                    <details class="aott-nav-group <%=nav_group({'admin/status/syslog','admin/status/dmesg','admin/8311/support'})%>">
+                        <summary>Logs &amp; diagnostics</summary>
+                        <div class="aott-nav-submenu">
+                            <a href="<%=url('admin/status/syslog')%>"<%=nav_aria('admin/status/syslog')%>><strong>System log</strong><small>Services and events</small></a>
+                            <a href="<%=url('admin/status/dmesg')%>"<%=nav_aria('admin/status/dmesg')%>><strong>Kernel log</strong><small>Drivers and boot messages</small></a>
+                            <a href="<%=url('admin/8311/support')%>"<%=nav_aria('admin/8311/support')%>><strong>Export diagnostics</strong><small>Generate a support archive</small></a>
+                        </div>
+                    </details>
+
+                    <details class="aott-nav-group <%=nav_group({'admin/system','admin/8311/config','admin/8311/security'})%>">
+                        <summary>Device &amp; access</summary>
+                        <div class="aott-nav-submenu">
+                            <a href="<%=url('admin/8311/security')%>"<%=nav_aria('admin/8311/security')%>><strong>Security &amp; access</strong><small>Credential, SSH, HTTPS and routing checks</small></a>
+                            <a href="<%=url('admin/8311/config')%>#8311-tab-manage"><strong>Management IP</strong><small>Address, gateway and DNS</small></a>
+                            <a href="<%=url('admin/8311/config')%>#8311-tab-device"><strong>Startup &amp; system</strong><small>Boot, time and interfaces</small></a>
+                            <a href="<%=url('admin/system/admin/password')%>"<%=nav_aria('admin/system/admin/password')%>><strong>Root password</strong><small>Administrator authentication</small></a>
+                            <a href="<%=url('admin/system/admin/sshkeys')%>"<%=nav_aria('admin/system/admin/sshkeys')%>><strong>SSH keys</strong><small>Authorized remote access</small></a>
+                            <a href="<%=url('admin/system/reboot')%>"<%=nav_aria('admin/system/reboot')%>><strong>Reboot device</strong><small>Interrupts the optical link</small></a>
+                            <a href="<%=url('admin/logout')%>" class="aott-nav-signout"><strong>Sign out</strong><small>End this browser session</small></a>
+                        </div>
+                    </details>
+                </div>
+            </nav>
+            <% end %>
+        </header>
+
+		<div id="maincontent" class="container" role="main">
+			<%- if luci.sys.process.info("uid") == 0 and luci.sys.user.getuser("root") and not luci.sys.user.getpasswd("root") then -%>
+				<div class="alert-message warning">
+					<h4><%:No password set!%></h4>
+					<p>The root password is empty. Management and RPC login can accept a blank password from networks that can reach this device.</p>
+                    <p><a class="btn aott-security-cta" href="<%=url('admin/system/admin/password')%>">Set an administrator password now</a></p>
+
+				</div>
+			<%- end -%>
+
+			<noscript>
+				<div class="alert-message warning">
+					<h4><%:JavaScript required!%></h4>
+					<p><%:You must enable JavaScript in your browser or LuCI will not work properly.%></p>
+				</div>
+			</noscript>
+
+			<div id="tabmenu" style="display:none"></div>

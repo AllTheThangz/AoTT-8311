@@ -1,0 +1,27 @@
+#!/bin/sh
+
+pon_adapter_modules=''
+
+pon_adapter_module () {
+    pon_adapter_modules="$pon_adapter_modules $1"
+}
+
+# The modules are loaded in the reverse order than seen in the file.
+# libpon has to be loaded before libponnet to make sure the settings are first
+# done in the PON FW and later in the Ethernet driver as some settings depend
+# on this order
+pon_adapter_module libponimg
+pon_adapter_module libponnet
+pon_adapter_module libpon
+
+uci set omci.pon_adapter=omci
+
+# The -e check does not support pattern
+for module in $pon_adapter_modules; do
+    if [ -e "/usr/lib/${module}.so" ] ||
+       [ -e "/usr/lib/${module}.so.0" ] ||
+       [ -e "/usr/lib64/${module}.so" ] ||
+       [ -e "/usr/lib64/${module}.so.0" ]; then
+        uci add_list "omci.pon_adapter.modules=${module}"
+    fi
+done

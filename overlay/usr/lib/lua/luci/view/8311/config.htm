@@ -1,0 +1,150 @@
+<%-
+local tools = require "8311.tools"
+local esc = tools.html_escape
+local nl2br = tools.nl2br
+local group_info = {
+    gpon_sn = {"Identity and provisioning", "Serial, vendor, model, and hardware data reported to the OLT."},
+    sw_verA = {"Reported software images", "OMCI reports these strings to the OLT. They are not the actual firmware banks or flash controls."},
+    pon_mode = {"PON registration and compatibility", "Optical mode, OMCI compatibility, and provider authentication."},
+    mib_file = {"Managed Information Base profile", "OMCI profile and UNI slot representation. Unsupported profiles can disrupt provisioning."},
+    iphost_mac = {"OMCI IP-host identity", "Fields advertised in the OMCI IP Host Managed Entity."},
+    fix_vlans = {"Service traffic translation", "Preserve working VLAN mappings unless the OLT or provider requires specific changes."},
+    ipaddr = {"Management IP and routing", "Where the browser, SSH and management traffic reach the ONU."},
+    pingd = {"Management reachability helpers", "Background probes and address learning for host/router management."},
+    lang = {"Web interface", "User-facing language and ordinary device options."},
+    bootdelay = {"Bootloader and SFP signals", "Advanced settings; some signals share physical SFP pins."},
+    root_pwhash = {"Authentication and Ethernet link", "Credential hash and host link overrides. Use the dedicated password page whenever possible."},
+    hostname = {"System identity and time", "Hostname, local time zone, and NTP time synchronization."},
+    persist_root = {"Debug-only persistence", "Requires boot configuration coordination. Not recommended for normal operations."},
+    sfp_vendor = {"SFP EEPROM presentation", "Information presented to the router, not the OLT authentication profile."}
+}
+local risk_notes = {
+    gpon_sn = "Service impact: an incorrect PON serial prevents optical registration.",
+    vendor_id = "Service impact: the OLT may reject an unexpected vendor ID.",
+    pon_mode = "Service impact: changing XGS-PON mode may disconnect the provider link.",
+    reg_id_hex = "Sensitive credential: do not share, log, or paste this value into support discussions.",
+    lpwd = "Sensitive credential: keep the LOID password private.",
+    mib_file = "Service impact: changing MIB profiles can alter GEM, UNI, and VLAN provisioning.",
+    internet_vlan = "Traffic impact: an incorrect Internet VLAN may stop Internet data while O5.1 remains associated.",
+    services_vlan = "Traffic impact: incorrect service VLAN mapping can disrupt ancillary services.",
+    ipaddr = "Management impact: reconnect using the new IPv4 address after changes take effect.",
+    netmask = "Management impact: an incorrect mask can prevent reaching the ONU.",
+    gateway = "Management impact: incorrect gateway routing can block remote access.",
+    bootdelay = "Recovery impact: a zero-second boot delay can prevent interactive U-Boot recovery.",
+    console_en = "Hardware impact: serial output and TX_FAULT share an SFP signal.",
+    dying_gasp_en = "Hardware impact: this feature can conflict with serial input.",
+    root_pwhash = "Sensitive credential hash: use the Root password page for normal password changes.",
+    ethtool_speed = "Service impact: a wrong Ethernet speed may disconnect the 10G host link.",
+    persist_root = "High risk: requires a compatible boot-command change. Leave disabled for production."
+}
+-%>
+<%+header%>
+<link rel="stylesheet" href="<%=resource%>/view/8311.css?v=aott-8311-v1-r3" />
+<script src="<%=resource%>/jquery-3.7.1.min.js?v=3.7.1"></script>
+<script src="<%=resource%>/view/8311.js?v=aott-8311-v1-r3"></script>
+<h2>Connection and device settings</h2>
+<p>Find settings by what they control, rather than by internal variable names. Each change is reviewed and checked against the saved configuration before it is written.</p>
+<div class="aott-section-intro" role="note">
+  <strong>Safe workflow: Edit → Review changes → Confirm save.</strong>
+  <p>Most values take effect on the next device startup. Saving does not automatically restart the ONU, OMCI, or networking, although some running services can read updated values. Service-affecting settings are flagged below.</p>
+</div>
+<details class="aott-config-comparison">
+<summary><%:Compare last-startup values with saved settings%> (<%= #pending %> <%:differences%>)</summary>
+<% if not boot_known then %>
+<p><%:The startup snapshot is unavailable for this boot. Running values cannot be inferred from the saved environment.%></p>
+<% else %>
+<p><%:The startup column records the settings available before startup services read them. It does not certify that every setting was successfully applied or that no live service changed state later.%></p>
+<table class="table"><tr class="tr table-titles"><th><%:Setting%></th><th><%:At startup%></th><th><%:Saved for startup%></th></tr>
+<% for _, row in ipairs(pending) do %><tr class="tr"><td><%=esc(row.name)%></td><td><%=esc(row.running)%></td><td><%=esc(row.saved)%></td></tr><% end %>
+</table>
+<% end %>
+</details>
+<p class="aott-hint aott-config-revision">Saved configuration revision: <code><%=esc(revision)%></code>. This guards against another session changing values while you review.</p>
+<div id="config-message" role="status" aria-live="polite"></div>
+<ul class="cbi-tabmenu aott-config-tabs" id="aott-config-tabs" role="tablist" aria-label="Setting categories">
+<% for i, cat in ipairs(fwenvs) do %>
+<li role="presentation" class="cbi-tab<% if i > 1 then %>-disabled<% end %>" data-tab="<%=esc(cat.id)%>"><a id="aott-tab-<%=esc(cat.id)%>" role="tab" aria-selected="<%=i == 1 and "true" or "false"%>" aria-controls="8311-tab-<%=esc(cat.id)%>" tabindex="<%=i == 1 and "0" or "-1"%>" href="#8311-tab-<%=esc(cat.id)%>" data-8311-tab="<%=esc(cat.id)%>"><%=esc(cat.category)%></a></li>
+<% end %>
+</ul>
+<form id="8311-config" action="save" onsubmit="return saveConfig(this)" method="post" novalidate>
+<input type="hidden" name="token" value="<%=esc(token)%>" />
+<input type="hidden" name="complete" value="8311-v1" />
+<input type="hidden" name="revision" value="<%=esc(revision)%>" />
+<input type="hidden" name="mode" value="preview" />
+<div class="cbi-section-node cbi-section-node-tabbed" data-initialized="true">
+<% for i, cat in ipairs(fwenvs) do %>
+<div id="8311-tab-<%=esc(cat.id)%>" class="aott-config-panel" role="tabpanel" aria-labelledby="aott-tab-<%=esc(cat.id)%>" data-tab="<%=esc(cat.id)%>" <% if i == 1 then %>data-tab-active="true"<% else %>hidden<% end %>>
+<% if cat.id == "pon" then %>
+<div class="aott-section-intro"><strong>PON identity and OLT provisioning</strong><p>These values describe the ONU to the provider's optical line terminal (OLT). Changes to authentication, MIB or PON mode can prevent registration. Verify the current working profile before modifying them.</p></div>
+<% elseif cat.id == "isp" then %>
+<div class="aott-section-intro"><strong>Internet and services VLANs</strong><p>Control how OLT-provisioned VLANs map locally. The Internet VLAN and services VLAN are different fields. Incorrect mapping can interrupt traffic even while PON registration stays O5.1.</p></div>
+<% elseif cat.id == "manage" then %>
+<div class="aott-section-intro"><strong>Local management access</strong><p>Configure the ONU admin IP, subnet, DNS, and keepalive. These do not change the optical service profile; incorrect addresses can block access to this interface after restart.</p></div>
+<% elseif cat.id == "device" then %>
+<div class="aott-section-intro"><strong>Boot and system options</strong><p>Use the separate <a href="<%=url('admin/system/admin/password')%>">Root password</a> page for routine password changes. Bootloader/UART and link overrides are advanced options; leave them unchanged unless troubleshooting.</p></div>
+<% elseif cat.id == "sfp" then %>
+<div class="aott-section-intro"><strong>Host-visible SFP EEPROM identity</strong><p>These values are shown to the router that hosts the stick. They are distinct from the PON serial number and OMCI identity used by the OLT for optical authentication.</p></div>
+<% end %>
+<% for _, item in ipairs(cat.items) do
+local input_id = "widget.cbid.system.poncfg." .. item.id
+local value = item.value or ""
+local checkbox = item.type == "checkbox" or item.type == "checkbox_onoff"
+local stored_invalid = item.stored_invalid == true
+if checkbox then
+local supported = value == "" or (item.type == "checkbox_onoff" and (value == "on" or value == "off")) or (item.type == "checkbox" and (value == "0" or value == "1"))
+stored_invalid = stored_invalid or not supported
+if not stored_invalid then value = (value == "1" or value == "on" or (value == "" and item.default)) and "1" or "0" end
+elseif (item.type == "select" or item.type == "select_named") and value ~= "" then
+local supported = false
+for _, option in ipairs(item.options) do if (type(option) == "table" and option.value or option) == value then supported = true end end
+stored_invalid = stored_invalid or not supported
+end
+local group = group_info[item.id]
+%>
+<% if group then %><div class="aott-field-group"><h3><%=esc(group[1])%></h3><p><%=esc(group[2])%></p></div><% end %>
+<div class="cbi-value<% if item.id == 'internet_vlan' or item.id == 'services_vlan' then %> vlan-field<% end %>">
+<label class="cbi-value-title" for="<%=esc(input_id)%>"><%=esc(item.name)%></label>
+<div class="cbi-value-field">
+<% if checkbox then %>
+<select id="<%=esc(input_id)%>" name="<%=esc(item.id)%>" data-cat-id="<%=esc(cat.id)%>" aria-describedby="aott-help-<%=esc(item.id)%>" <% if stored_invalid then %>aria-invalid="true"<% end %>>
+<% if stored_invalid then %><option value="__8311_invalid_saved__" data-invalid-saved="true" selected><%:Unsupported saved value%>: <%=esc(value)%></option><% end %>
+<option value="0" <% if not stored_invalid and value == "0" then %>selected<% end %>><%:Disabled%></option><option value="1" <% if not stored_invalid and value == "1" then %>selected<% end %>><%:Enabled%></option></select>
+<% elseif item.type == "select" or item.type == "select_named" then %>
+<select id="<%=esc(input_id)%>" name="<%=esc(item.id)%>" data-cat-id="<%=esc(cat.id)%>" aria-describedby="aott-help-<%=esc(item.id)%>" <% if stored_invalid then %>aria-invalid="true"<% end %>>
+<% if stored_invalid then %><option value="__8311_invalid_saved__" data-invalid-saved="true" selected><%:Unsupported saved value%>: <%=esc(value)%></option><% end %>
+<% for _, option in ipairs(item.options) do
+local named = type(option) == "table"
+local opt = named and option.value or option
+local label = named and option.name or option
+%><option value="<%=esc(opt)%>" <% if not stored_invalid and (opt == value or (value == "" and opt == item.default)) then %>selected<% end %>><%=esc(label)%></option><% end %>
+</select>
+<% else %>
+<input id="<%=esc(input_id)%>" name="<%=esc(item.id)%>" type="<%= item.secret and 'password' or item.type %>" value="<%=esc(value)%>" data-cat-id="<%=esc(cat.id)%>" autocomplete="off" aria-describedby="aott-help-<%=esc(item.id)%>"
+<% if item.required then %>required<% end %> <% if item.maxlength then %>maxlength="<%=esc(item.maxlength)%>"<% end %>
+<% if item.min then %>min="<%=esc(item.min)%>"<% end %> <% if item.max then %>max="<%=esc(item.max)%>"<% end %>
+<% if item.default ~= nil then %>placeholder="<%=esc(item.default)%>"<% end %>
+<% if item.pattern then %>pattern="<%=esc(item.pattern)%>"<% end %> />
+<% if item.secret then %><button type="button" class="cbi-button" onclick="toggleSecret('<%=esc(input_id)%>',this)"><%:Reveal%></button><% end %>
+<% end %>
+<div class="cbi-value-error error" data-error-for="<%=esc(item.id)%>" <% if not stored_invalid then %>style="display:none"<% end %>><% if stored_invalid then %><%=esc(item.stored_error or "The saved value is unsupported. Choose an explicit supported value before reviewing or saving any settings.")%><% end %></div>
+<div id="aott-help-<%=esc(item.id)%>" class="cbi-value-description"><%=nl2br(esc(item.description))%></div>
+<% if risk_notes[item.id] then %><div class="aott-field-warning" role="note"><%=esc(risk_notes[item.id])%></div><% end %>
+<% if item.id == "fix_vlans" then %><button id="edit-hook-script-btn" type="button" class="cbi-button"><%:Edit privileged VLAN hook%></button><% end %>
+</div></div>
+<% end %></div><% end %>
+</div>
+<div class="aott-config-actions"><span class="aott-hint">Step 1 of 2: Validate every field and review the proposed changes before saving.</span> <button id="save-btn" type="submit" class="cbi-button cbi-button-save">Review changes</button></div>
+</form>
+<div id="config-review" role="region" aria-label="Reviewed configuration changes" style="display:none">
+<h3>Step 2: Confirm reviewed changes</h3><div id="config-diff"></div>
+<p><%:Saving writes settings sequentially with readback. If storage fails, the response identifies verified writes and asks you to reload the durable state.%></p>
+<button id="config-confirm" type="button" class="cbi-button cbi-button-save">Confirm and save reviewed changes</button>
+</div>
+<div id="hook-script-modal" style="display:none">
+<div id="hook-script-overlay"></div><div id="hook-script-box">
+<p><%:Advanced customization: this script runs with root privileges. The editor checks shell syntax without executing it. A bounded previous copy is kept when replacing or deleting the hook.%></p>
+<div id="hook-script-message" role="alert"></div>
+<textarea id="hook-script-textarea" style="width:100%;min-height:20em" maxlength="16384" spellcheck="false" readonly></textarea>
+<div id="hook-script-buttons"><button id="hook-script-save-btn" type="button" class="cbi-button cbi-button-save" disabled><%:Save hook%></button><button id="hook-script-cancel-btn" type="button" class="cbi-button"><%:Close%></button></div>
+</div></div>
+<%+footer%>

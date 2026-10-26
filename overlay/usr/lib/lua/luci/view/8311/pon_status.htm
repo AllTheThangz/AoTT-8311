@@ -1,0 +1,47 @@
+<%
+local tools = require "8311.tools"
+local esc = tools.html_escape
+local groups = {
+  {label="Connection & optical", ids={"status","cap","alarms","optical","optical_info"}},
+  {label="Ethernet & GEM traffic", ids={"lan","gem","gem_stats","gem_ds","gem_us","eth_ds","eth_us","alloc_stats"}},
+  {label="Signal & error diagnostics", ids={"fec","gtc","power_save","psm","ploam_ds","ploam_us","debug_burst"}},
+  {label="Datapath & QoS (advanced)", ids={"cqm","cqm_map","datapath_ports","datapath_qos","pp4_buffers","pp4_pps","pp4_stats","pp4_tree","pp4_qstats"}}
+}
+local by_id = {}
+for _,p in ipairs(pages) do by_id[p.id]=p end
+-%>
+<%+header%>
+<script src="<%=resource%>/jquery-3.7.1.min.js?v=3.7.1"></script>
+<script src="<%=resource%>/view/8311.js?v=aott-8311-v1-r3"></script>
+<h2>PON connection and optical status</h2>
+<p>Inspect what the OLT and optical transceiver report. These read-only views do not change registration or VLAN configuration. A successful O5.1 state confirms optical association, not end-to-end Internet connectivity.</p>
+<div class="aott-section-intro"><strong>Choose a report</strong><p>Start with Registration or Optical. Advanced GEM, counters, and QoS pages are organized below so the full 29-report list does not overwhelm navigation.</p></div>
+
+<div class="aott-pon-toolbar" role="group" aria-label="Frequently used PON reports">
+  <button type="button" class="cbi-button aott-pon-quick" data-pon-status-tab="status" aria-pressed="true">Registration</button>
+  <button type="button" class="cbi-button aott-pon-quick" data-pon-status-tab="optical" aria-pressed="false">Optical</button>
+  <button type="button" class="cbi-button aott-pon-quick" data-pon-status-tab="alarms" aria-pressed="false">Alarms</button>
+  <button type="button" class="cbi-button aott-pon-quick" data-pon-status-tab="gem" aria-pressed="false">GEM ports</button>
+  <button type="button" class="cbi-button aott-pon-quick" data-pon-status-tab="fec" aria-pressed="false">FEC errors</button>
+</div>
+<div class="aott-pon-toolbar">
+  <label for="pon-status-picker">Detailed report</label>
+  <select id="pon-status-picker" aria-label="Select one of the PON status reports">
+  <% for _, group in ipairs(groups) do %>
+  <optgroup label="<%=esc(group.label)%>">
+  <% for _, id in ipairs(group.ids) do local p = by_id[id] if p then %>
+    <option value="<%=esc(p.id)%>" <% if id == "status" then %>selected<% end %>><%=esc(p.label)%></option>
+  <% end end %>
+  </optgroup>
+  <% end %>
+  </select>
+  <button type="button" class="cbi-button" id="pon-status-refresh">Refresh current report</button>
+</div>
+<h3 class="aott-report-title" id="pon-report-title">Registration status</h3>
+<p id="pon-report-status" role="status" aria-live="polite" class="aott-report-message">Loading registration details...</p>
+<pre id="pon-report" class="aott-report-box" role="region" aria-label="Read-only PON diagnostic report" tabindex="0">Loading...</pre>
+<p class="aott-hint">For OLT-provisioned Managed Entity details, open <a href="<%=url('admin/8311/pon_explorer')%>">Managed Entities</a>. For local VLAN mappings, open <a href="<%=url('admin/8311/vlans')%>">VLAN tables</a>.</p>
+<script>
+$(document).ready(function(){ switchTabPonStatus('status'); });
+</script>
+<%+footer%>

@@ -1,0 +1,402 @@
+{
+  "firmware_binaries_included": false,
+  "overlay_files": [
+    {
+      "bytes": 164,
+      "executable": true,
+      "path": "etc/init.d/8311-config-state",
+      "sha256": "161a2636aa1a984b1a00abc01e7ee0da341cfaba4f156d22d134b442c8eaefd2"
+    },
+    {
+      "bytes": 251,
+      "executable": true,
+      "path": "etc/init.d/8311-pingd",
+      "sha256": "dc870b8f05d0827bd3f3af4a37288381519fe051a087724496cfe175c072164e"
+    },
+    {
+      "bytes": 251,
+      "executable": true,
+      "path": "etc/init.d/8311-rarpd",
+      "sha256": "9e24d4589628d60e66a8594da05fb621618c984a02a52c6627c9224b4e78f6b7"
+    },
+    {
+      "bytes": 252,
+      "executable": true,
+      "path": "etc/init.d/8311-rx-los",
+      "sha256": "754e30fbedd01a8073b34941f537a7e9d1f3883a2344b81ba9d463e959841c8b"
+    },
+    {
+      "bytes": 252,
+      "executable": true,
+      "path": "etc/init.d/8311-vlansd",
+      "sha256": "c7d1023c0788fdb96645c96d47b006c385f2cfbb6dfe1cd1ded795c860e53f8d"
+    },
+    {
+      "bytes": 770,
+      "executable": true,
+      "path": "etc/init.d/_8311-netinit.sh",
+      "sha256": "ce0c3e20f5b464314884ef69f07749c3bbf1734709a2ca84263d6ae958263e17"
+    },
+    {
+      "bytes": 3154,
+      "executable": true,
+      "path": "etc/init.d/_8311-poninit.sh",
+      "sha256": "563b085da82448f8b76fb51d5b93cbf406e3aa9686599f3b9cebb60c41e3b40f"
+    },
+    {
+      "bytes": 2785,
+      "executable": true,
+      "path": "etc/init.d/_8311-sysinit.sh",
+      "sha256": "0d29c034e638ff63e89cf05217f80a9a7a244b6b86cb3d58278823d3585da58b"
+    },
+    {
+      "bytes": 70,
+      "executable": true,
+      "path": "etc/uci-defaults/gem-omci",
+      "sha256": "d0c705f451570765e4a16d21760cbea8bcf0b1d28ac4778a2f022ac62f6762b8"
+    },
+    {
+      "bytes": 794,
+      "executable": true,
+      "path": "etc/uci-defaults/omci-pon-adapter",
+      "sha256": "04fb113a882853b0b45e11558c65f16d6181eb8f409f4f8244ea40a8e46b0ffd"
+    },
+    {
+      "bytes": 468,
+      "executable": true,
+      "path": "etc/uci-defaults/omci-set-mib-file",
+      "sha256": "b8b49546120c461a821f03084d39b5f81f5456dafa84b0192903979b65e6b213"
+    },
+    {
+      "bytes": 4513,
+      "executable": true,
+      "path": "etc/uci-defaults/zzz-8311",
+      "sha256": "d7eaadfcae892692f90788ab956dd1490d1a59cb11c0fb1eb322c65a9ace02bb"
+    },
+    {
+      "bytes": 2161,
+      "executable": false,
+      "path": "lib/8311-env-lock.sh",
+      "sha256": "d097d963b0de9c28ccf578b0788c70e12d16a92c5c7506edcf5268881b4a51e6"
+    },
+    {
+      "bytes": 2100,
+      "executable": false,
+      "path": "lib/8311-omci-lib.sh",
+      "sha256": "241b4ca7840e3d9698498d23f70b97eb73f99df99cc52eb8abbbb43e9d223206"
+    },
+    {
+      "bytes": 19396,
+      "executable": false,
+      "path": "lib/8311-upgrade-lib.sh",
+      "sha256": "7cf285d5b9b4c78e83e1dffd600f143ef793bfef3763e9d68f287a6cdaedfdc7"
+    },
+    {
+      "bytes": 6936,
+      "executable": false,
+      "path": "lib/8311-vlans-lib.sh",
+      "sha256": "bf0c6af138377116b67a291350dc30ae76db45112c360699bba97f98428487f0"
+    },
+    {
+      "bytes": 15216,
+      "executable": false,
+      "path": "lib/8311.sh",
+      "sha256": "d575829e3350b24ca9bd240e063a670bf685d7419ab8f5aeb8709f07c06b74ff"
+    },
+    {
+      "bytes": 1087,
+      "executable": false,
+      "path": "lib/8311_backend.sh",
+      "sha256": "1848a705746075602ee74901ad5bff4b184984a86af5bb5f8ce5da754ac54744"
+    },
+    {
+      "bytes": 15197,
+      "executable": false,
+      "path": "usr/lib/lua/8311/config.lua",
+      "sha256": "c1b4cac616a209a9ea5eb6bc89fe51e3221d9ea886a58e35a301208f8feb78d5"
+    },
+    {
+      "bytes": 10131,
+      "executable": false,
+      "path": "usr/lib/lua/8311/health.lua",
+      "sha256": "db6cc606f99cb2ef342b5d2fd10afed2a93d8931a64299143c8d75c213e65080"
+    },
+    {
+      "bytes": 3008,
+      "executable": false,
+      "path": "usr/lib/lua/8311/hook.lua",
+      "sha256": "6e466e3e6f66a552127d71907f8d4489ba7601f38fc4685d8cbed022f4a78c95"
+    },
+    {
+      "bytes": 18683,
+      "executable": false,
+      "path": "usr/lib/lua/8311/jobs.lua",
+      "sha256": "df4ce4e81190c72891870a7b0060dc9684775c3f0c377e654b31dd25f14e2307"
+    },
+    {
+      "bytes": 5472,
+      "executable": false,
+      "path": "usr/lib/lua/8311/tools.lua",
+      "sha256": "792795d6ae10c23254a16b727027dbf464bf82c53fcf9375a6217a02335617fe"
+    },
+    {
+      "bytes": 7186,
+      "executable": false,
+      "path": "usr/lib/lua/8311/uploads.lua",
+      "sha256": "4f1534db7215b38451dfbde68fd021604fbc87260c0e1482d1597b2ce8b33b89"
+    },
+    {
+      "bytes": 84,
+      "executable": false,
+      "path": "usr/lib/lua/8311/version.lua",
+      "sha256": "ecc9ae4d7456f998ca8285afaeade7429fc48f4972212eb8a197b3d88eefa716"
+    },
+    {
+      "bytes": 3440,
+      "executable": false,
+      "path": "usr/lib/lua/8311/webutil.lua",
+      "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
+    },
+    {
+      "bytes": 43343,
+      "executable": false,
+      "path": "usr/lib/lua/luci/controller/8311.lua",
+      "sha256": "726d22c3ed34f02c41bd36ccf5d6e3ae75dbfb358edb1dc83554babae0727370"
+    },
+    {
+      "bytes": 13773,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/8311/config.htm",
+      "sha256": "1b7da17a66dec5b530ef190238b1d941c820129b61ff90f4077aaaeec429b519"
+    },
+    {
+      "bytes": 8607,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/8311/firmware.htm",
+      "sha256": "2bdb2e70eacff83eaac8a6952d511da2f413e8b777697aa8a1c72cbffda24d8d"
+    },
+    {
+      "bytes": 5697,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/8311/health.htm",
+      "sha256": "beae03db4e4903533659c9969dc6dedf8628988f90a824b53c452f671f85f0e5"
+    },
+    {
+      "bytes": 1309,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/8311/pon_me.htm",
+      "sha256": "6885adda33366b46e3a4c73458b5de3f68b83d4adc2ceba76e3620b4122f22f5"
+    },
+    {
+      "bytes": 3246,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/8311/pon_status.htm",
+      "sha256": "5a92db3e0de4e82a82581a8b286d48fdd2de0f54e7c43624218e79090c4d6e21"
+    },
+    {
+      "bytes": 4126,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/8311/security.htm",
+      "sha256": "e5a701f2644f7510ad35f66ca35f54647946127ec4137c5a02723d2e89a0da42"
+    },
+    {
+      "bytes": 1843,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/8311/support.htm",
+      "sha256": "46578014d45489b1dde0d3b92d9432b0cf0a56365f14251a96de2c04c7c8f084"
+    },
+    {
+      "bytes": 1224,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/8311/vlans.htm",
+      "sha256": "b74afee849151eb20722a20638d85e3623462771702d7048965d7031930c4638"
+    },
+    {
+      "bytes": 3246,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/admin_status/index.htm",
+      "sha256": "72843c6d57dab230dab7fffabc776fb995f4fa38267c2121e9b18b84d2a565cc"
+    },
+    {
+      "bytes": 1282,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/themes/bootstrap/footer.htm",
+      "sha256": "13043f76fdf1c2f1f025d18151265462af61a3726222a21144c040f554d6c9a3"
+    },
+    {
+      "bytes": 14804,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/themes/bootstrap/header.htm",
+      "sha256": "d01722638150e8e0fd453da660c7520d829aafbb55d50437c39a643ebeeb8eb2"
+    },
+    {
+      "bytes": 220,
+      "executable": true,
+      "path": "usr/libexec/8311-config-apply",
+      "sha256": "ab3c8f242b3508f212fb95339e17b4ecc8dd40d8679a699e11887a20eb2b7d6b"
+    },
+    {
+      "bytes": 1186,
+      "executable": true,
+      "path": "usr/libexec/8311-config-apply.lua",
+      "sha256": "1bfe6cb1c1d729f21379205c08be09e45373fc2c1a493cde8fa7a37ebe7686ef"
+    },
+    {
+      "bytes": 1237,
+      "executable": true,
+      "path": "usr/libexec/8311-hook-save",
+      "sha256": "cca956df52b293d7b413108e9287ffe7487575fd54c328fad620f729dc8a30f6"
+    },
+    {
+      "bytes": 315,
+      "executable": true,
+      "path": "usr/libexec/8311-hook-save.lua",
+      "sha256": "a6580f548b359efd1f00eebc94deb7c8c23eeafed65ae0623bc4dfaeea86ba5f"
+    },
+    {
+      "bytes": 398,
+      "executable": true,
+      "path": "usr/libexec/8311-job-worker",
+      "sha256": "0dd4833178377e4a700a76cdb93fc34f06c3f374257bd243d6acd753a5357fd8"
+    },
+    {
+      "bytes": 77,
+      "executable": true,
+      "path": "usr/libexec/8311-job-worker.lua",
+      "sha256": "c981845f4bbaee996b8f15d6289babca5a94f51af457d8e569ece0264db5e3aa"
+    },
+    {
+      "bytes": 10220,
+      "executable": true,
+      "path": "usr/libexec/8311-mib-edit.lua",
+      "sha256": "c8e7baefc848c3796d610f92cafefe4a0c87e83870e7b688474d21bc58ba6f17"
+    },
+    {
+      "bytes": 136,
+      "executable": true,
+      "path": "usr/libexec/8311-root-hash-valid",
+      "sha256": "31a705c9f8a62adc84c0d45df62074f6786228daeaf96e9db939a1ebe37d6817"
+    },
+    {
+      "bytes": 3064,
+      "executable": true,
+      "path": "usr/libexec/8311-squashfs-check.lua",
+      "sha256": "766232b61eaab3f003695baf939c06b999dc6c2f6e0e44a673cb41c248b01c95"
+    },
+    {
+      "bytes": 4047,
+      "executable": true,
+      "path": "usr/libexec/8311-stage-upgrade.lua",
+      "sha256": "97ed004891fe4594747e4125d47aee34c30882df34e23004c0d54e0d101259f8"
+    },
+    {
+      "bytes": 1606,
+      "executable": true,
+      "path": "usr/sbin/8311-bank-check.sh",
+      "sha256": "276e5bdbc78455a14f12791f96d40ca86ae0bb7569e25b74ce8f2ac20649a182"
+    },
+    {
+      "bytes": 7922,
+      "executable": true,
+      "path": "usr/sbin/8311-bankctl.sh",
+      "sha256": "081b8ea46d1f395fbd5d11be09937013d157689e4fdb144fb8470ea17b069346"
+    },
+    {
+      "bytes": 10419,
+      "executable": true,
+      "path": "usr/sbin/8311-detect-config.sh",
+      "sha256": "d9f8fd59e0ceb403049bde577151e4e6446afa951250436bfcf4c54ce3b58568"
+    },
+    {
+      "bytes": 7283,
+      "executable": true,
+      "path": "usr/sbin/8311-extvlan-decode.sh",
+      "sha256": "94729cc57e44bafc4c4883d075b5e453e668c1f61d77cda4865e65073dcbf2e9"
+    },
+    {
+      "bytes": 10621,
+      "executable": true,
+      "path": "usr/sbin/8311-firmware-upgrade.sh",
+      "sha256": "614f884c8bffc412e4ad7037977c09a493283d24ecae03e4ff716ddb6147ec0d"
+    },
+    {
+      "bytes": 6575,
+      "executable": true,
+      "path": "usr/sbin/8311-fix-vlans.sh",
+      "sha256": "6fc66f886894ccb1f47f4fce974674769626eaf86c76cbb67b6f3847a2f4a683"
+    },
+    {
+      "bytes": 1364,
+      "executable": true,
+      "path": "usr/sbin/8311-persist-root-password.sh",
+      "sha256": "bff003f0235219608a5ae3fac7b50dc9ee0ef9be0a1cf81cf0f12c6e4793462e"
+    },
+    {
+      "bytes": 372,
+      "executable": true,
+      "path": "usr/sbin/8311-pingd.sh",
+      "sha256": "2107e2755f13fd555138ba8bcabea01c61bcf534e8d22e5ff3db77f2be4dcd9d"
+    },
+    {
+      "bytes": 1578,
+      "executable": true,
+      "path": "usr/sbin/8311-rarpd.sh",
+      "sha256": "e9fd1239a8b4d19c15366ca689c09bda6ba925fddf9aa7de206385f7ecc1dba8"
+    },
+    {
+      "bytes": 1060,
+      "executable": true,
+      "path": "usr/sbin/8311-rx_los.sh",
+      "sha256": "169e27dfbb5e4d79ed924f589baa2deb72bec3c5fa9775667fd70bbd67a130a3"
+    },
+    {
+      "bytes": 6941,
+      "executable": true,
+      "path": "usr/sbin/8311-support.sh",
+      "sha256": "a57fef010e80d0991c472b0fd101635d924a3f4d13c583331caf1daf4d31b9c3"
+    },
+    {
+      "bytes": 474,
+      "executable": true,
+      "path": "usr/sbin/8311-tc-filter-dump.sh",
+      "sha256": "584c7f0fbd6b2d6d716ca0d006c800c645330dc87e99948c8f5ac511e6982a93"
+    },
+    {
+      "bytes": 918,
+      "executable": true,
+      "path": "usr/sbin/8311-vlansd.sh",
+      "sha256": "93697dd306f2a50f4804d35d4af350c090fe8741aa90d345c7be17c268d42f7a"
+    },
+    {
+      "bytes": 32635,
+      "executable": false,
+      "path": "www/luci-static/bootstrap/aott-theme.css",
+      "sha256": "c157c107adf8dfbaf82b483e1939700ca0a7f37319a163ff9a2be8fc82b915b9"
+    },
+    {
+      "bytes": 5783,
+      "executable": false,
+      "path": "www/luci-static/bootstrap/aott-v2r1.css",
+      "sha256": "5e03825440490baf77fc9d3a498a39b6e1efa8ea95db3886b206888f40753b6c"
+    },
+    {
+      "bytes": 13529,
+      "executable": false,
+      "path": "www/luci-static/resources/view/8311-v2r1.js",
+      "sha256": "0dacc1bed3bb683f2b07a5832589ff8060b042efe7080a4f9c709b0b8d2bc9d8"
+    },
+    {
+      "bytes": 32724,
+      "executable": false,
+      "path": "www/luci-static/resources/view/8311.js",
+      "sha256": "fd049cf2deff8937b1680a24e8932477f0a3c9e70a13765f831871ad3c5c197a"
+    }
+  ],
+  "product": "AoTT-8311",
+  "release": "AoTT-8311-v2r1",
+  "revision": "r1",
+  "schema": 1,
+  "secrets_included": false,
+  "source_only": true,
+  "version": "v2"
+}

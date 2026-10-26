@@ -1,0 +1,6 @@
+#!/bin/sh
+exec lua - "$1" <<'LUA'
+local cfg=require "8311.config"
+local value=arg[1] or ""
+os.exit(cfg.root_hash(value) and 0 or 1)
+LUA

@@ -1,0 +1,27 @@
+name: AoTT Source Safety Checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out this source-only repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate source file allowlist, hashes and secrets
+        run: python3 tools/verify_release.py .
+      - name: Run negative security tests
+        run: python3 -m unittest discover -s tests -v
+      - name: Check shell syntax
+        run: |
+          find overlay -type f -name '*.sh' -print0 |
+          while IFS= read -r -d '' file; do
+            sh -n "$file"
+          done

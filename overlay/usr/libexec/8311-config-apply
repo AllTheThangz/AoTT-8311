@@ -1,0 +1,7 @@
+#!/bin/sh
+# Keep the revision comparison and every verified setter under one flock.
+set -f
+umask 077
+. /lib/8311-env-lock.sh || exit 1
+lock_environment || exit 1
+exec /usr/bin/lua /usr/libexec/8311-config-apply.lua "$@"
