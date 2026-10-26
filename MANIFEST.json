@@ -32,10 +32,10 @@
       "sha256": "c7d1023c0788fdb96645c96d47b006c385f2cfbb6dfe1cd1ded795c860e53f8d"
     },
     {
-      "bytes": 770,
+      "bytes": 946,
       "executable": true,
       "path": "etc/init.d/_8311-netinit.sh",
-      "sha256": "ce0c3e20f5b464314884ef69f07749c3bbf1734709a2ca84263d6ae958263e17"
+      "sha256": "e3cdd9a12c2f535afd32a0453c81216118690f0526b68fbdc7fb236fc7cf6e6e"
     },
     {
       "bytes": 3154,
@@ -44,10 +44,10 @@
       "sha256": "563b085da82448f8b76fb51d5b93cbf406e3aa9686599f3b9cebb60c41e3b40f"
     },
     {
-      "bytes": 2785,
+      "bytes": 3901,
       "executable": true,
       "path": "etc/init.d/_8311-sysinit.sh",
-      "sha256": "0d29c034e638ff63e89cf05217f80a9a7a244b6b86cb3d58278823d3585da58b"
+      "sha256": "baeec7644dc4e0791ff4ebc9c1adf1208069a278fced0c921add0d929b486fdc"
     },
     {
       "bytes": 70,
@@ -68,10 +68,10 @@
       "sha256": "b8b49546120c461a821f03084d39b5f81f5456dafa84b0192903979b65e6b213"
     },
     {
-      "bytes": 4513,
+      "bytes": 4701,
       "executable": true,
       "path": "etc/uci-defaults/zzz-8311",
-      "sha256": "d7eaadfcae892692f90788ab956dd1490d1a59cb11c0fb1eb322c65a9ace02bb"
+      "sha256": "c842f1c642a8aa9f38192ab4ceb1ad0429904c7f64e99e7ec8198062b299257a"
     },
     {
       "bytes": 2161,
@@ -98,10 +98,10 @@
       "sha256": "bf0c6af138377116b67a291350dc30ae76db45112c360699bba97f98428487f0"
     },
     {
-      "bytes": 15216,
+      "bytes": 15555,
       "executable": false,
       "path": "lib/8311.sh",
-      "sha256": "d575829e3350b24ca9bd240e063a670bf685d7419ab8f5aeb8709f07c06b74ff"
+      "sha256": "dac2671b0764e526328ad80459bb751c206b0807507c95fb669252de8ff74fb4"
     },
     {
       "bytes": 1087,
@@ -110,10 +110,10 @@
       "sha256": "1848a705746075602ee74901ad5bff4b184984a86af5bb5f8ce5da754ac54744"
     },
     {
-      "bytes": 15197,
+      "bytes": 16099,
       "executable": false,
       "path": "usr/lib/lua/8311/config.lua",
-      "sha256": "c1b4cac616a209a9ea5eb6bc89fe51e3221d9ea886a58e35a301208f8feb78d5"
+      "sha256": "b766dc48a9df36d9d54758c1fd050c5cc7d394c47de01e7813f814ae3936c3d6"
     },
     {
       "bytes": 10131,
@@ -158,10 +158,10 @@
       "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
     },
     {
-      "bytes": 43343,
+      "bytes": 43346,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "726d22c3ed34f02c41bd36ccf5d6e3ae75dbfb358edb1dc83554babae0727370"
+      "sha256": "46c88365b27e1fdf8d16bbbfc7500a31ac15263d0c9334afd44b8ba1c8cd379e"
     },
     {
       "bytes": 13773,

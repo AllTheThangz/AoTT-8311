@@ -11,17 +11,31 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out this source-only repository
+      - name: Check out source-only repository
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Validate source file allowlist, hashes and secrets
+      - name: Verify manifest and scan for secrets
         run: python3 tools/verify_release.py .
-      - name: Run negative security tests
+      - name: Run isolated Python security, gateway and boot tests
         run: python3 -m unittest discover -s tests -v
-      - name: Check shell syntax
+      - name: Check POSIX and BusyBox-style shell parsing
+        shell: bash
         run: |
-          find overlay -type f -name '*.sh' -print0 |
+          set -euo pipefail
           while IFS= read -r -d '' file; do
-            sh -n "$file"
-          done
+            if head -n 1 "$file" | grep -q '^#!/bin/sh'; then
+              sh -n "$file"
+            fi
+          done < <(find overlay -type f -print0)
+      - name: Install Lua 5.1 for compatibility checks
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lua5.1
+      - name: Validate Lua 5.1 code and gateway regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          find overlay -type f -name '*.lua' -print0 | xargs -0 -r -n1 luac5.1 -p
+          luac5.1 -p tests/gateway_config.lua
+          lua5.1 tests/gateway_config.lua overlay/usr/lib/lua/8311/config.lua

@@ -19,8 +19,10 @@ boot() {
 	# LCT Netmask
 	set_8311_netmask "$(get_8311_netmask)"
 
-	# LCT Gateway
-	set_8311_gateway "$(get_8311_gateway)"
+	# LCT Gateway: leave absent when not configured. Older self-address
+	# sentinel settings are also treated as no route by get_8311_gateway.
+	LCT_GATEWAY=$(get_8311_gateway)
+	[ -n "$LCT_GATEWAY" ] && set_8311_gateway "$LCT_GATEWAY"
 
 	# LCT MAC
 	set_8311_lct_mac "$(get_8311_lct_mac)"

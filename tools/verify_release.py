@@ -128,6 +128,10 @@ def check(root):
         if not p.is_file():continue
         if hashlib.sha256(p.read_bytes()).hexdigest()!=entry["sha256"]:
             findings.append((entry["path"],"overlay manifest SHA mismatch"))
+        if p.stat().st_size != entry["bytes"]:
+            findings.append((entry["path"],"overlay manifest size mismatch"))
+        if bool(p.stat().st_mode & 0o111) != entry["executable"]:
+            findings.append((entry["path"],"overlay manifest executable-mode mismatch"))
     return count, findings
 
 def main():

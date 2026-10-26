@@ -346,9 +346,18 @@ set_8311_netmask() {
 }
 
 get_8311_gateway() {
-	[ -f "/tmp/8311-gateway" ] || { fwenv_get_8311 "gateway" | ipv4 || get_8311_ipaddr; } > "/tmp/8311-gateway"
-
-	cat "/tmp/8311-gateway"
+	local gateway ipaddr
+	# An unset gateway means no default route, never a route through our own IP.
+	# Older 8311 builds used the local address as an implicit "no gateway" value.
+	if [ ! -f "/tmp/8311-gateway" ]; then
+		{ fwenv_get_8311 "gateway" | ipv4 || :; } > "/tmp/8311-gateway" || return 1
+	fi
+	gateway=$(cat "/tmp/8311-gateway") || return 1
+	ipaddr=$(get_8311_ipaddr) || return 1
+	case "$gateway" in
+		""|"$ipaddr") return 0 ;;
+		*) printf '%s\n' "$gateway" ;;
+	esac
 }
 
 set_8311_gateway() {

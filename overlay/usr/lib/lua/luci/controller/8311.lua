@@ -622,11 +622,11 @@ function fwenvs_8311()
 				},{
 					id="gateway",
 					name=translate("Management default gateway"),
-					description=translate("Optional gateway for management-plane routes. Leaving it blank uses no separately configured default gateway; changing it may affect remote management."),
+					description=translate("Optional management default gateway. Leave blank for no default route. The ONU's own address is not a valid next hop; older self-gateway settings are interpreted as unset at startup. Changing routing may end this session."),
 					maxlength=15,
 					pattern=ipv4_regex,
 					type="text",
-					default="192.168.11.1" -- snapshot replaces this with the saved management IP
+					default=""
 				},{
 					id="dns_server",
 					name=translate("Management DNS resolver"),
