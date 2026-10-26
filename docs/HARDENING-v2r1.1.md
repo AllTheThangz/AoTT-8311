@@ -1,4 +1,4 @@
-# AoTT-8311 v2r1.1 — Security and management reliability
+# AoTT-8311 v2r1.1: Security and management reliability
 
 **Status:** Source changes and offline regression tests only. Not a firmware image.
 **Production behavior:** The v2r1 firmware and committed bank are unchanged.
@@ -40,6 +40,17 @@
   credential success, readback mismatch, write failure, and missing hash.
 - CI now runs Lua 5.1 syntax and behavioral tests in addition to Python,
   source security scanning and shell syntax checks.
+- Overview and realtime-graph dark/light contrast has been corrected for
+  network cards, progress bar labels, axes, grid lines, and RX/TX traces.
+  Theme-specific text and background colors are regression-tested against
+  WCAG AA 4.5:1 text contrast and 3:1 graphical-element contrast.
+- Browser CSS URLs now include a new version marker to invalidate stale
+  stylesheets after an upgrade.
+- A read-only offline upgrade-archive qualification tool checks five-member
+  tar layout, declared component hashes, SquashFS v4/XZ structure, zero
+  padding, configured UBI capacity and the reserved size budget.
+- The vendor web-service binary inventory and pending security patch-level
+  review are documented in [SECURITY-WEBSTACK-AUDIT.md](SECURITY-WEBSTACK-AUDIT.md).
 
 ## Security and upgrade boundaries
 
@@ -65,6 +76,14 @@ release build, independent of local filesystem free space.
 2. Review third-party redistribution rights and obtain a clean, compatible
    factory firmware base with the correct kernel and PON/OMCI ABI.
 3. Check source and generated rootfs size against each target UBI volume.
+   First, verify the offline image before any installation attempt:
+
+       python3 tools/qualify_offline_image.py --archive /path/to/upgrade.tar --volume-bytes 6221824 --min-headroom 65536
+
+   The volume capacity above is the known LL-XS1010 layout example, not a
+   substitute for measuring the actual target. The historical v2r1 image
+   leaves 40,960 bytes in that volume and therefore needs more optimization
+   to meet a 65,536-byte preferred headroom target.
 4. Compare old/new management-gateway behavior in isolated network fixtures
    and confirm reconnection and rollback after an intentional address change.
 5. Test root password setup and persistence with a **known** device-specific

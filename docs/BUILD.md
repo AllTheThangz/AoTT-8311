@@ -38,3 +38,28 @@ provisioning data.
 
 The source overlay helper never writes to a running device, runs UCI,
 updates the boot environment, or performs an installation.
+
+## Read-only firmware archive preflight
+
+A compatible vendor-generated firmware archive can be inspected offline without
+extracting its contents or contacting any ONU:
+
+    python3 tools/qualify_offline_image.py \
+      --archive /path/to/firmware-upgrade.tar \
+      --volume-bytes 6221824 \
+      --min-headroom 65536
+
+Use the target device's actual UBI rootfs volume capacity in bytes. The
+6,221,824-byte value above describes the existing LL-XS1010 bank layout; it
+is not guaranteed for other hardware or firmware profiles.
+
+The checker requires a five-member archive, matching component SHA-256 values,
+valid SquashFS v4/XZ metadata, zero-filled image padding, and image size
+within the target volume. It does not decompress or execute firmware. Its
+default minimum headroom is 32 KiB with a warning below the preferred 64 KiB.
+New releases should use 64 KiB or a platform-qualified alternative reserve.
+
+The known v2r1 image fits the volume but provides only 40 KiB headroom,
+so it passes the historical 32 KiB minimum and fails the recommended 64 KiB
+release threshold. Do not treat a passing static check as proof of
+bootability, service continuity, or vendor-component redistribution rights.
