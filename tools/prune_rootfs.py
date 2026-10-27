@@ -26,6 +26,11 @@ PRX126_COMPACT = (
     "usr/bin/nano",
     "www/luci-static/resources/view/status/include/50_dsl.js",
     "www/luci-static/resources/view/status/include/60_wifi.js",
+    # The standalone wireless status view is guarded by an absent
+    # wireless UCI device. Its SVG assets have no other source consumers.
+    "www/luci-static/resources/view/status/wireless.js",
+    "www/luci-static/resources/wireless.svg",
+    "www/luci-static/resources/wifirate.svg",
 )
 # Experimental only. No full device compatibility or runtime profile is
 # established by this offline exclusion, even if one observed running device
@@ -110,6 +115,23 @@ def profile_plan(root: Path, profile: str, acknowledge: bool = False):
     verify_family(root)
     require(profile!="experimental-no-libssl" or acknowledge,
             "Experimental libssl removal requires an explicit risk acknowledgement")
+    if profile!="documentation-free":
+        menu_path=root/"usr/share/luci/menu.d/luci-mod-status.json"
+        require(menu_path.is_file() and not menu_path.is_symlink(),
+                "Cannot verify conditional wireless status route")
+        menu=json.loads(menu_path.read_text())
+        wireless=menu.get("admin/status/realtime/wireless")
+        require(isinstance(wireless,dict) and
+                wireless.get("action",{}).get("path")=="status/wireless" and
+                wireless.get("depends",{}).get("uci",{}).get("wireless",{}).get("@wifi-device") is True,
+                "Wireless status view is not safely hidden by a conditional menu route")
+        require(not (root/"etc/config/wireless").exists(),
+                "Source contains wireless configuration; PRX126 compact profile is not applicable")
+        view=root/"www/luci-static/resources/view/status/wireless.js"
+        require(view.is_file() and
+                "wireless.svg" in view.read_text() and
+                "wifirate.svg" in view.read_text(),
+                "Wireless status SVG dependency assumptions changed")
     removals=[]
     for rel in PROFILES[profile]:
         require(rel not in PROTECTED,"Cannot remove protected runtime dependency")

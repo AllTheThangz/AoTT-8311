@@ -8,10 +8,12 @@ bootloader policies may vary by hardware revision or firmware release.
 
 - The kernel discovers VPE topology \`{2,2}\`, with four logical CPU IDs.
 - Only CPU0 is online. The other logical CPUs 1, 2 and 3 are offline.
-- The boot log explicitly says Linux is not designated to run on CPUs
-  1, 2 and 3 by the device-tree boot configuration.
-- Attempts to start those CPUs then fail. The same pattern appears in
-  publicly documented PRX126 vendor boot logs.
+- The captured kernel boot log detects four VPEs but reports that CPU1,
+  CPU2 and CPU3 failed to start. It does not by itself establish whether
+  those contexts are intentionally firmware-managed or incorrectly
+  brought up. Related PRX126 vendor boot logs show similar behavior.
+- Investigating the actual device-tree, bootcore SMP handshake and
+  vendor kernel behavior requires a nonproduction hardware platform.
 - The available Linux CPU runs at a reported 400 MHz.
 - MaxLinear advertises wire-speed packet switching in dedicated silicon,
   independent of application CPU processing.

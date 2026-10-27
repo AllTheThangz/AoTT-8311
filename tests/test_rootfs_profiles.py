@@ -45,6 +45,12 @@ def fixture(root: Path):
        "www/luci-static/resources/view/status/include/50_dsl.js":b"legacy_dsl\n",
        "www/luci-static/resources/view/status/include/60_wifi.js":b"legacy_wireless\n",
        "www/luci-static/resources/view/status/include/15_pon.js":b"pon\n",
+       "www/luci-static/resources/view/status/wireless.js":b"this.loadSVG(L.resource('wireless.svg')); this.loadSVG(L.resource('wifirate.svg'));\n",
+       "www/luci-static/resources/wireless.svg":b"<svg/>\n",
+       "www/luci-static/resources/wifirate.svg":b"<svg/>\n",
+       "usr/share/luci/menu.d/luci-mod-status.json": (
+           b'{"admin/status/realtime/wireless":{"action":{"type":"view","path":"status/wireless"},'
+           b'"depends":{"uci":{"wireless":{"@wifi-device":true}}}}}\n'),
     }
     for path,data in files.items():
         p=root/path
@@ -77,7 +83,10 @@ class ProfileSafetyTests(unittest.TestCase):
         self.assertFalse(report["hardware_qualified"])
         for path in ("usr/bin/nano","etc/mibs/readme",
                      "www/luci-static/resources/view/status/include/50_dsl.js",
-                     "www/luci-static/resources/view/status/include/60_wifi.js"):
+                     "www/luci-static/resources/view/status/include/60_wifi.js",
+                     "www/luci-static/resources/view/status/wireless.js",
+                     "www/luci-static/resources/wireless.svg",
+                     "www/luci-static/resources/wifirate.svg"):
             self.assertFalse((staged/path).exists(),path)
             self.assertTrue((self.root/path).exists(),path)
         for required in m.PROTECTED:
@@ -151,6 +160,28 @@ class ProfileSafetyTests(unittest.TestCase):
         link.symlink_to(self.root,target_is_directory=True)
         with self.assertRaisesRegex(m.ProfileError,"cannot be a symlink"):
             m.profile_plan(link,"prx126-compact")
+
+    def test_wifi_menu_route_must_remain_conditional(self):
+        import json
+        menu=self.root/"usr/share/luci/menu.d/luci-mod-status.json"
+        obj=json.loads(menu.read_text())
+        obj["admin/status/realtime/wireless"]["depends"]["uci"]["wireless"].pop("@wifi-device")
+        menu.write_text(json.dumps(obj))
+        with self.assertRaisesRegex(m.ProfileError,"conditional"):
+            m.profile_plan(self.root,"prx126-compact")
+
+    def test_wireless_configuration_disables_compact_profile(self):
+        conf=self.root/"etc/config/wireless"
+        conf.parent.mkdir(parents=True,exist_ok=True)
+        conf.write_text("config wifi-device\n")
+        with self.assertRaisesRegex(m.ProfileError,"wireless configuration"):
+            m.profile_plan(self.root,"prx126-compact")
+
+    def test_changed_wireless_svg_import_prevents_removal(self):
+        view=self.root/"www/luci-static/resources/view/status/wireless.js"
+        view.write_text("load an unknown replacement")
+        with self.assertRaisesRegex(m.ProfileError,"SVG dependency"):
+            m.profile_plan(self.root,"prx126-compact")
 
     def test_rarpd_and_tcpdump_cannot_be_pruned(self):
         for path in ("usr/sbin/tcpdump","usr/sbin/8311-rarpd.sh",

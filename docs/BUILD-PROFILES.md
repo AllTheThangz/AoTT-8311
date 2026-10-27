@@ -18,11 +18,15 @@ binaries or configuration and must remain outside public Git history.
 | Profile | Exact exclusions | Status |
 | --- | --- | --- |
 | \`documentation-free\` | \`etc/mibs/readme\` | Offline documentation cleanup |
-| \`prx126-compact\` | Documentation cleanup, Nano editor, DSL and WiFi Overview panels | Offline PRX126 SFP candidate |
+| \`prx126-compact\` | Documentation cleanup, Nano editor, DSL and WiFi Overview panels, the wireless realtime view and its two SVG resources | Offline PRX126 SFP candidate |
 | \`experimental-no-libssl\` | Compact removals plus OpenSSL \`libssl.so.1.1\` | Explicitly experimental, not hardware-qualified |
 
 The removed Overview panels require physical DSL and wireless radios.
-They are not usable on the audited PRX126 SFP board. Other generic
+They are not usable on the audited PRX126 SFP board. The standalone
+wireless realtime page and its SVGs are pruned only if the LuCI menu
+retains its wireless-device UCI condition and no wireless configuration
+is present. The resulting extra space savings round down to zero in
+the 4 KiB-aligned compressed image. Other generic
 LuCI code remains until its dependencies and routes are reviewed.
 
 All profiles retain:
@@ -146,3 +150,6 @@ Profiles are not interchangeable with tested binaries. Never publish
 a complete firmware image with user-specific provisioning or
 proprietary vendor dependencies until redistribution rights and
 board-specific recovery and bootability testing are complete.
+
+Further details and reproducible read-only evidence are in
+[the PRX126 dependency and resource audit](PRX126-DEPENDENCY-AND-RESOURCE-AUDIT.md).

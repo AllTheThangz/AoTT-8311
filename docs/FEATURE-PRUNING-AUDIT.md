@@ -19,6 +19,7 @@ a recovery workflow. The removal list is intentionally conservative.
 | --- | --- | --- |
 | DSL status Overview include | PRX126 SFP module has no DSL modem or DSL hardware driver | Exclude the generic DSL Overview widget |
 | WiFi radio Overview include | No wireless interfaces, radio configuration or matching drivers | Exclude the generic WiFi Overview widget |
+| Wireless realtime page and two SVGs | The menu requires a wireless UCI device; none is configured on the audited SFP board. The SVGs are referenced only by this page | Exclude in compact profile with menu/config/import validation |
 | Standalone Nano editor | Optional interactive CLI editor, not a boot or PON service | Exclude from compact build; keep in diagnostic build |
 | Static MIB-format readme | Only documentation, not a MIB data file | Keep in GitHub docs/MIB-FORMAT.md and exclude from firmware |
 
@@ -75,6 +76,7 @@ RootfsA and rootfsB are each allocated 6,221,824 bytes.
 | PRX126 compact with regenerated runtime pins | 6,127,616 | 94,208 bytes (92 KiB) | Offline checks pass, no boot qualification |
 | Experimental compact without libssl | 5,988,352 | 233,472 bytes (228 KiB) | Offline checks pass, runtime compatibility unverified |
 
+The three additional wireless-only assets had zero extra 4 KiB-aligned image savings compared with the existing compact image.
 Removing CSS comments/whitespace saved zero padded image bytes.
 Hardlinking duplicate \`libnl\` files also saved zero padded image
 bytes because SquashFS already deduplicates matching content.
@@ -107,3 +109,6 @@ The built offline test rootfs still uses the older v2r1 firmware
 version identifiers. Proper release versioning, hardware qualification,
 a tested rollback and an explicitly approved installation are required
 before any v2r1.1 deployment.
+
+Further details and reproducible read-only evidence are in
+[the PRX126 dependency and resource audit](PRX126-DEPENDENCY-AND-RESOURCE-AUDIT.md).
