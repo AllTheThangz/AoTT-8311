@@ -41,3 +41,5 @@ jobs:
           find overlay -type f -name '*.lua' -print0 | xargs -0 -r -n1 luac5.1 -p
           luac5.1 -p tests/gateway_config.lua
           lua5.1 tests/gateway_config.lua overlay/usr/lib/lua/8311/config.lua
+          luac5.1 -p tests/pon_me_fixture.lua
+          lua5.1 tests/pon_me_fixture.lua overlay/usr/lib/lua/luci/controller/8311.lua

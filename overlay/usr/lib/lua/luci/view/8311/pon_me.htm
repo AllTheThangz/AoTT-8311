@@ -9,7 +9,7 @@
   <button class="cbi-button" type="button" id="me-clear">Clear search</button>
 </div>
 <p class="aott-report-meta" id="me-filter-count" role="status" aria-live="polite">Loading entity count...</p>
-<div class="aott-me-list" id="me-list" role="region" tabindex="0" aria-label="Available OMCI Managed Entities">
+<div class="aott-me-list" id="me-list" data-dump-base="<%=luci.dispatcher.build_url("admin", "8311", "pon_dump")%>" role="region" tabindex="0" aria-label="Available OMCI Managed Entities">
 <%= omci %>
 </div>
 <h3 id="me_label">Selected entity</h3>

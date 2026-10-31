@@ -176,10 +176,10 @@
       "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
     },
     {
-      "bytes": 43429,
+      "bytes": 43824,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "bb7dc7f76a31d3cd2be5e2e9439f2e03c326dcb674b0c62551f27bb8f5b3875f"
+      "sha256": "49c38a7f198d06ae1a6e1f1bbb2f04ba46b3392d7c09119b948d2adfcfc03eca"
     },
     {
       "bytes": 13773,
@@ -194,16 +194,16 @@
       "sha256": "2c8dc491d8d371414f3f43128b43c11ba5908cd19c7dd3b7518276116a71f54d"
     },
     {
-      "bytes": 5697,
+      "bytes": 5787,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/health.htm",
-      "sha256": "beae03db4e4903533659c9969dc6dedf8628988f90a824b53c452f671f85f0e5"
+      "sha256": "d4c5bad01254dfc37392c0417a5e3dec717108dcd2b2b7cd8331ef0fef91d019"
     },
     {
-      "bytes": 1309,
+      "bytes": 1386,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/pon_me.htm",
-      "sha256": "6885adda33366b46e3a4c73458b5de3f68b83d4adc2ceba76e3620b4122f22f5"
+      "sha256": "2f0ccc0f11665264598ef1e4c19be62557736a339531ef582d16d0759a20c8e0"
     },
     {
       "bytes": 3246,
@@ -212,10 +212,10 @@
       "sha256": "5a92db3e0de4e82a82581a8b286d48fdd2de0f54e7c43624218e79090c4d6e21"
     },
     {
-      "bytes": 4126,
+      "bytes": 4236,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/security.htm",
-      "sha256": "e5a701f2644f7510ad35f66ca35f54647946127ec4137c5a02723d2e89a0da42"
+      "sha256": "faeda74e70548e3ced422c513a5d59bd798d8366b0869263dd3b982a1f6b14a8"
     },
     {
       "bytes": 1843,
@@ -404,10 +404,10 @@
       "sha256": "0dacc1bed3bb683f2b07a5832589ff8060b042efe7080a4f9c709b0b8d2bc9d8"
     },
     {
-      "bytes": 32724,
+      "bytes": 33384,
       "executable": false,
       "path": "www/luci-static/resources/view/8311.js",
-      "sha256": "fd049cf2deff8937b1680a24e8932477f0a3c9e70a13765f831871ad3c5c197a"
+      "sha256": "222a1556e689b88f1e5783a0e9589ded7776455191b333aa20831cac924b8ce9"
     }
   ],
   "product": "AoTT-8311",
