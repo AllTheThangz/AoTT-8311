@@ -59,13 +59,17 @@ for _,item in ipairs(plan.changes) do
     assert(item.item.id ~= "gateway", "Unexpected gateway write")
 end
 
--- Historical "gateway == local IP" is a no-route sentinel, not a next hop.
+-- Historical self-address gateways are persisted on some qualified
+-- deployments. Do not silently normalize or delete a saved gateway.
 snap,vals,plan,errors = scenario({saved_gateway="192.0.2.10"})
-assert(vals.gateway.value == "", "Legacy self-address gateway was not normalized")
-assert(plan and not next(errors or {}), "Legacy gateway no-route value rejected")
+assert(vals.gateway.value == "192.0.2.10",
+       "Saved management gateway was not preserved and displayed")
+assert(plan and not next(errors or {}), "Saved self-address gateway was rejected")
+for _,change in ipairs(plan.changes) do
+    assert(change.item.id ~= "gateway", "Unrelated save silently changed gateway")
+end
 
--- Legacy boot-snapshot and current self gateway should not look like an
--- unapplied modification to the subscriber's network.
+-- A matching boot snapshot must not cause false pending modifications.
 snap,vals,plan,errors = scenario({
     saved_gateway="192.0.2.10",
     boot={schema=1,values={
@@ -74,31 +78,31 @@ snap,vals,plan,errors = scenario({
         ["8311_gateway"]="192.0.2.10"
     }}
 })
-assert(#snap.pending==0, "Normalized legacy gateway creates false pending change")
+assert(#snap.pending==0, "Preserved legacy gateway creates false pending change")
 
--- Clearing a saved legacy self-gateway when the management IP changes
--- prevents the old local IP being treated as an off-subnet next hop.
+-- A user may explicitly clear a saved gateway during a management
+-- address change. The deliberate edit must appear in the diff.
 snap,vals,plan,errors = scenario({
     saved_gateway="192.0.2.10",
     ip="198.51.100.10",
     gateway=""
 })
-assert(plan and not next(errors or {}), "Management IP change without gateway rejected")
+assert(plan and not next(errors or {}), "Explicit gateway clearance rejected")
 local cleared = false
 for _,change in ipairs(plan.changes) do
     if change.item.id == "gateway" then
-        assert(change.raw == "", "Legacy gateway was not cleared")
+        assert(change.raw == "", "Gateway clearance was not recorded")
         cleared = true
     end
 end
-assert(cleared, "Management IP change failed to remove old self-gateway")
+assert(cleared, "Explicit gateway clearance missing from change plan")
 local migration_visible = false
 for _,change in ipairs(plan.diff) do
-    if change.id == "gateway" and change.before == "(legacy self-gateway sentinel)" then
+    if change.id == "gateway" and change.before == "192.0.2.10" then
         migration_visible = true
     end
 end
-assert(migration_visible, "Gateway migration was hidden in the change preview")
+assert(migration_visible, "Explicit gateway edit hidden from preview")
 
 -- Valid gateway remains valid and is not deleted.
 snap,vals,plan,errors = scenario({gateway="192.0.2.1"})
