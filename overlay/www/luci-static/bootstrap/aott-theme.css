@@ -60,7 +60,7 @@
 @media(max-width:700px){.aott-hostname{display:none}.aott-fw-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.aott-fw-panel{padding:11px}.aott-fw-actions button{width:100%}.aott-footer-primary{font-size:12px}}
 @media(max-width:380px){.aott-fw-summary{grid-template-columns:1fr}}
 
-/* AoTT-8311-v2r1 — readability, high contrast, task navigation.
+/* AoTT-8311-v2r1 : readability, high contrast, task navigation.
    Light/dark semantics and UI boundaries were checked against WCAG contrast ratios. */
 :root[data-aott-theme="light"] {
   color-scheme: light;

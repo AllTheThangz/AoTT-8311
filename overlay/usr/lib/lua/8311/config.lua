@@ -51,14 +51,9 @@ local function display(item, value)
 	return value
 end
 
--- Historical builds used "gateway == ONU IP" as an implicit no-route
--- sentinel. Preserve compatibility without constructing a self-route.
-local function normalized_gateway(gateway, values)
-	if gateway == "" then return "" end
-	local address = values["8311_ipaddr"]
-	if type(address) ~= "string" or address == "" then address = "192.168.11.1" end
-	return gateway == address and "" or gateway
-end
+-- Keep the saved gateway intact. Historical builds can rely on a
+-- self-address default route for remote management; it must not disappear
+-- when an administrator saves an unrelated setting.
 
 function M.snapshot(schema)
 	local values, err = tools.fwenv_read_all()
@@ -84,7 +79,6 @@ function M.snapshot(schema)
 		item.raw = values[key(item)] or ""
 		item.value = decoded(item, item.raw)
 		if item.value == nil then return nil, "Stored setting cannot be decoded: " .. item.id end
-		if item.id == "gateway" then item.value = normalized_gateway(item.value, values) end
 		item.secret = secret[item.id] or false
 		item.stored_invalid, item.stored_error = false, nil
 		if item.value ~= "" then
@@ -102,9 +96,6 @@ function M.snapshot(schema)
 		if item.stored_invalid then item.stored_error = "Unsupported saved value; choose a supported value explicitly before saving" end
 		if boot and type(boot.values) == "table" then
 			local at_boot = decoded(item, boot.values[key(item)] or "")
-			if at_boot ~= nil and item.id == "gateway" then
-				at_boot = normalized_gateway(at_boot, boot.values)
-			end
 			if at_boot == nil then
 				boot, pending = nil, {}
 			elseif at_boot ~= item.value then
@@ -242,13 +233,10 @@ function M.prepare(snapshot, form)
 				if item.value == "" and value == effective(item, "") then value = ""
 				elseif item.type == "checkbox_onoff" then value = value == "1" and "on" or "off" end
 			elseif item.id ~= "gateway" and item.value == "" and item.default ~= nil and value == tostring(item.default) then value = "" end
-			-- Clear a legacy self-gateway sentinel when saving. Otherwise an
-			-- IP change could turn that old self address into a bad next hop.
-			local legacy_gateway_clear = item.id == "gateway" and value == "" and item.raw ~= ""
-			if value ~= item.value or legacy_gateway_clear then
+			-- Never rewrite the gateway unless it was actually edited.
+			if value ~= item.value then
 				changes[#changes+1] = {item=item, value=value, raw=item.base64 and value ~= "" and base64.enc(value) or value}
-				local before = legacy_gateway_clear and "(legacy self-gateway sentinel)" or display(item,item.value)
-				diff[#diff+1] = {id=item.id,name=item.name,before=before,after=display(item,value),applies=item.id == "lang" and "Web interface after save" or "Next startup; live consumers may also re-read it"}
+				diff[#diff+1] = {id=item.id,name=item.name,before=display(item,item.value),after=display(item,value),applies=item.id == "lang" and "Web interface after save" or "Next startup; live consumers may also re-read it"}
 			end
 		end
 	end
@@ -257,8 +245,8 @@ function M.prepare(snapshot, form)
 		if type(value) ~= "string" then errors[name] = "Duplicate or invalid field" end
 	end
 	local v = proposed
-	-- Unset remains unset. Older on-disk self-gateway sentinels are
-	-- normalized for display and treated as no route by the boot scripts.
+	-- Blank means no gateway for a fresh configuration. Saved legacy
+	-- self-address routes remain visible and unchanged unless edited.
 	if v.fix_vlans == "1" and v.internet_vlan ~= "" and v.services_vlan ~= "" and
 	   tonumber(v.internet_vlan) and tonumber(v.internet_vlan) == tonumber(v.services_vlan) then
 		errors.services_vlan = "Internet and Services VLANs must differ while automatic VLAN fixes are enabled"
@@ -280,9 +268,18 @@ function M.prepare(snapshot, form)
 				errors.ipaddr = "Use a host address, not the network or broadcast address"
 			elseif v.gateway and v.gateway ~= "" then
 				local gateway = ipv4(v.gateway)
-				if not gateway or gateway == ip then
-					errors.gateway = "Gateway must be another host in the management subnet; leave blank to disable the route"
-				elseif math.floor(ip/span) ~= math.floor(gateway/span) or gateway % span == 0 or gateway % span == span-1 then
+				local original_ip = snapshot.values["8311_ipaddr"] or ""
+				if original_ip == "" then original_ip = "192.168.11.1" end
+				local original_gateway = snapshot.values["8311_gateway"] or ""
+				local legacy_unchanged = original_gateway ~= ""
+					and original_gateway == original_ip and v.gateway == original_gateway
+				if not gateway then
+					errors.gateway = "Enter a valid management gateway"
+				elseif legacy_unchanged and v.ipaddr ~= original_ip then
+					errors.gateway = "Changing the management IP requires explicitly replacing or clearing the legacy gateway; verify an alternative management path first"
+				elseif gateway == ip and not legacy_unchanged then
+					errors.gateway = "New self-address gateways are not supported; choose a reachable router or leave blank"
+				elseif gateway ~= ip and (math.floor(ip/span) ~= math.floor(gateway/span) or gateway % span == 0 or gateway % span == span-1) then
 					errors.gateway = "Gateway must be a valid host in the management subnet"
 				end
 			end

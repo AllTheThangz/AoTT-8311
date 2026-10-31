@@ -2,6 +2,24 @@
   "firmware_binaries_included": false,
   "overlay_files": [
     {
+      "bytes": 138,
+      "executable": false,
+      "path": "etc/8311_version",
+      "sha256": "1ed2554d4b6c000cf27858dde100648c9a6cd34c7d23411991be567e9bc1d824"
+    },
+    {
+      "bytes": 238,
+      "executable": false,
+      "path": "etc/aott_release",
+      "sha256": "5d36338e101286d892ec5af44e7e192a361f6a5ac1c88fc9374abb590983d573"
+    },
+    {
+      "bytes": 288,
+      "executable": false,
+      "path": "etc/banner",
+      "sha256": "db5507ed92a5e9da540b3ab038abba53038b96e1a0e618f107a3239b9eea3c83"
+    },
+    {
       "bytes": 164,
       "executable": true,
       "path": "etc/init.d/8311-config-state",
@@ -32,10 +50,10 @@
       "sha256": "c7d1023c0788fdb96645c96d47b006c385f2cfbb6dfe1cd1ded795c860e53f8d"
     },
     {
-      "bytes": 946,
+      "bytes": 940,
       "executable": true,
       "path": "etc/init.d/_8311-netinit.sh",
-      "sha256": "e3cdd9a12c2f535afd32a0453c81216118690f0526b68fbdc7fb236fc7cf6e6e"
+      "sha256": "87c2ee6cf7075e8be17b379be308db97cee921215f9f78a0232b4e8891c5af2c"
     },
     {
       "bytes": 3154,
@@ -68,10 +86,10 @@
       "sha256": "b8b49546120c461a821f03084d39b5f81f5456dafa84b0192903979b65e6b213"
     },
     {
-      "bytes": 4701,
+      "bytes": 4916,
       "executable": true,
       "path": "etc/uci-defaults/zzz-8311",
-      "sha256": "c842f1c642a8aa9f38192ab4ceb1ad0429904c7f64e99e7ec8198062b299257a"
+      "sha256": "055245294884eaa89763746147db024db3f3061cec94be4693ddbea72fc2c935"
     },
     {
       "bytes": 2161,
@@ -98,10 +116,10 @@
       "sha256": "bf0c6af138377116b67a291350dc30ae76db45112c360699bba97f98428487f0"
     },
     {
-      "bytes": 15555,
+      "bytes": 15909,
       "executable": false,
       "path": "lib/8311.sh",
-      "sha256": "dac2671b0764e526328ad80459bb751c206b0807507c95fb669252de8ff74fb4"
+      "sha256": "be56a30ed250135e0aa9264090301a60158f4fdcefed826653907ae4a975d2fa"
     },
     {
       "bytes": 1087,
@@ -110,10 +128,10 @@
       "sha256": "1848a705746075602ee74901ad5bff4b184984a86af5bb5f8ce5da754ac54744"
     },
     {
-      "bytes": 16099,
+      "bytes": 16066,
       "executable": false,
       "path": "usr/lib/lua/8311/config.lua",
-      "sha256": "b766dc48a9df36d9d54758c1fd050c5cc7d394c47de01e7813f814ae3936c3d6"
+      "sha256": "d2e0bfa03734fcf1b03f81ab7965d2b741d51b585faefaec20dd461e5a641d67"
     },
     {
       "bytes": 10131,
@@ -146,10 +164,10 @@
       "sha256": "4f1534db7215b38451dfbde68fd021604fbc87260c0e1482d1597b2ce8b33b89"
     },
     {
-      "bytes": 84,
+      "bytes": 112,
       "executable": false,
       "path": "usr/lib/lua/8311/version.lua",
-      "sha256": "ecc9ae4d7456f998ca8285afaeade7429fc48f4972212eb8a197b3d88eefa716"
+      "sha256": "7c21bb83ae077679ce4595ace3f43a7c5385f15c151c07485e043a159b5ac27e"
     },
     {
       "bytes": 3440,
@@ -158,10 +176,10 @@
       "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
     },
     {
-      "bytes": 43346,
+      "bytes": 43429,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "46c88365b27e1fdf8d16bbbfc7500a31ac15263d0c9334afd44b8ba1c8cd379e"
+      "sha256": "bb7dc7f76a31d3cd2be5e2e9439f2e03c326dcb674b0c62551f27bb8f5b3875f"
     },
     {
       "bytes": 13773,
@@ -170,10 +188,10 @@
       "sha256": "1b7da17a66dec5b530ef190238b1d941c820129b61ff90f4077aaaeec429b519"
     },
     {
-      "bytes": 8607,
+      "bytes": 8540,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/firmware.htm",
-      "sha256": "2bdb2e70eacff83eaac8a6952d511da2f413e8b777697aa8a1c72cbffda24d8d"
+      "sha256": "2c8dc491d8d371414f3f43128b43c11ba5908cd19c7dd3b7518276116a71f54d"
     },
     {
       "bytes": 5697,
@@ -218,16 +236,16 @@
       "sha256": "74d1bdae9c97750e940a1de4912f468bf9cbd83a5b488eadaaa21c946c0665b2"
     },
     {
-      "bytes": 1282,
+      "bytes": 1348,
       "executable": false,
       "path": "usr/lib/lua/luci/view/themes/bootstrap/footer.htm",
-      "sha256": "13043f76fdf1c2f1f025d18151265462af61a3726222a21144c040f554d6c9a3"
+      "sha256": "9bd5f0c0c085bfd3c50fd409712744e541ed1de0b175945011f1a14a5c4c3215"
     },
     {
-      "bytes": 14814,
+      "bytes": 14803,
       "executable": false,
       "path": "usr/lib/lua/luci/view/themes/bootstrap/header.htm",
-      "sha256": "74c67445663441264b4a424cda5a19e61dfa0ca4de7b2f5135cbe0fbae970889"
+      "sha256": "3457e6ef1b0dff16188edeeeb8618661027e2911eb9cd48bc536ece97fa3ac3a"
     },
     {
       "bytes": 220,
@@ -368,10 +386,10 @@
       "sha256": "93697dd306f2a50f4804d35d4af350c090fe8741aa90d345c7be17c268d42f7a"
     },
     {
-      "bytes": 36985,
+      "bytes": 36983,
       "executable": false,
       "path": "www/luci-static/bootstrap/aott-theme.css",
-      "sha256": "dd8c760cbe31702d35535d851bf5be27cc4781707dcc211dc7bccf10c926d93c"
+      "sha256": "3c692379434045587abf292548565e8b7b157b5b1132024fde7e5e9cb1e8001b"
     },
     {
       "bytes": 5783,
@@ -393,8 +411,8 @@
     }
   ],
   "product": "AoTT-8311",
-  "release": "AoTT-8311-v2r1",
-  "revision": "r1",
+  "release": "AoTT-8311-v2r3",
+  "revision": "r3",
   "schema": 1,
   "secrets_included": false,
   "source_only": true,

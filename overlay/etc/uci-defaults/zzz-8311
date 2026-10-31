@@ -4,6 +4,9 @@ _lib_8311 2>/dev/null || . /lib/8311.sh
 # Configure LCT Interface
 LCT_IFNAME=$(uci get "network.lct.ifname" || echo "eth0_0_1_lct")
 LCT_MAC="$(get_8311_lct_mac)"
+# Keep a saved self-address route intact for legacy management access.
+# A blank saved value means no default route. Never guess a gateway from
+# boot arguments or silently migrate an existing router configuration.
 LCT_GATEWAY=$(get_8311_gateway)
 
 LCT_DNS=$(get_8311_dns_server)

@@ -47,8 +47,9 @@ ipv4() {
     def test_unset_has_no_default_route(self):
         self.assertEqual(self.run_getter(None), "")
 
-    def test_legacy_self_gateway_has_no_default_route(self):
-        self.assertEqual(self.run_getter("192.0.2.10"), "")
+    def test_legacy_self_gateway_is_retained(self):
+        # This exact legacy value restored access after the v2r2 failure.
+        self.assertEqual(self.run_getter("192.0.2.10"), "192.0.2.10\n")
 
     def test_real_router_gateway_is_preserved(self):
         self.assertEqual(self.run_getter("192.0.2.1"), "192.0.2.1\n")

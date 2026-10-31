@@ -15,6 +15,8 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import posixpath
+import re
 import shutil
 import subprocess
 import sys
@@ -32,14 +34,45 @@ PRX126_COMPACT = (
     "www/luci-static/resources/wireless.svg",
     "www/luci-static/resources/wifirate.svg",
 )
-# Experimental only. No full device compatibility or runtime profile is
-# established by this offline exclusion, even if one observed running device
-# has not loaded libssl.so.1.1. A component could be loaded lazily.
+# Optional host-side development and terminal tools. These are not imported
+# by the audited PRX126 management or boot scripts. Keep them in the full
+# diagnostic image. Production use still requires a hardware trial.
+PRX126_LEAN_COMMANDS = (
+    "usr/bin/stress",
+    "usr/bin/omci_simulate",
+    "usr/sbin/mtr",
+    "usr/bin/lrz", "usr/bin/lrx", "usr/bin/rx", "usr/bin/lrb",
+    "usr/bin/rz", "usr/bin/rb",
+    "usr/bin/lsz", "usr/bin/lsx", "usr/bin/sb", "usr/bin/sz",
+    "usr/bin/lsb", "usr/bin/sx",
+    "usr/bin/zstd", "usr/bin/zstdcat", "usr/bin/unzstd",
+    "usr/bin/zstdmt", "usr/bin/zstdless", "usr/bin/zstdgrep",
+)
+# Libraries solely linked from these removable debugging utilities.
+# Check the ELF closure and all symlinks on every build before excluding.
+PRX126_LEAN_LIBRARIES = (
+    "usr/lib/libzstd.so", "usr/lib/libzstd.so.1",
+    "usr/lib/libzstd.so.1.4.5",
+    "usr/lib/libncursesw.so.6", "usr/lib/libncursesw.so.6.1",
+    "usr/lib/libncurses.so.6", "usr/lib/libncurses.so.6.1",
+    "usr/lib/libformw.so.6", "usr/lib/libformw.so.6.1",
+    "usr/lib/libform.so.6", "usr/lib/libform.so.6.1",
+    "usr/lib/libmenuw.so.6", "usr/lib/libmenuw.so.6.1",
+    "usr/lib/libmenu.so.6", "usr/lib/libmenu.so.6.1",
+    "usr/lib/libpanelw.so.6", "usr/lib/libpanelw.so.6.1",
+    "usr/lib/libpanel.so.6", "usr/lib/libpanel.so.6.1",
+)
+LEAN_REMOVALS = PRX126_LEAN_COMMANDS + PRX126_LEAN_LIBRARIES
+LEAN_LOGIN_ALIAS = 'alias mtr=\'/usr/sbin/mtr -b -o "LSRD NBAWVJMX"\''
+LEAN_LOGIN_PROFILE = "root/.profile"
+# Experimental only. Do not remove the vendor OpenSSL SSL ABI before
+# late-loading, release-profile and recovery tests on a separate device.
 EXPERIMENTAL = ("usr/lib/libssl.so.1.1",)
 
 PROFILES = {
     "documentation-free": DOCS_ONLY,
     "prx126-compact": DOCS_ONLY + PRX126_COMPACT,
+    "prx126-runtime-lean": DOCS_ONLY + PRX126_COMPACT + LEAN_REMOVALS,
     "experimental-no-libssl": DOCS_ONLY + PRX126_COMPACT + EXPERIMENTAL,
 }
 SENTINELS = {
@@ -90,7 +123,7 @@ def safe_root(root: Path) -> Path:
 
 def verify_family(root: Path):
     for name, expected in SENTINELS.items():
-        file = root / name
+        file = checked_path(root,name)
         require(file.is_file() and not file.is_symlink(),
                 "Source does not contain required clean PRX126 image sentinel: "+name)
         if expected:
@@ -99,7 +132,7 @@ def verify_family(root: Path):
     firmware_release=(root/"etc/openwrt_release").read_bytes()
     require(b"PTXG_CX_V0.03" in firmware_release,
             "Unsupported vendor firmware base or different SDK ABI")
-    omcid = root/"usr/bin/omcid"
+    omcid = checked_path(root,"usr/bin/omcid")
     require(omcid.is_file() and not omcid.is_symlink(),
             "Proprietary OMCI runtime missing")
     with omcid.open("rb") as stream:
@@ -107,6 +140,146 @@ def verify_family(root: Path):
     require(len(head) == 20 and head[:4] == b"\x7fELF" and
             head[4] == 1 and head[5] == 2 and head[18:20] == b"\x00\x08",
             "OMCI daemon is not compatible MIPS32 big-endian ELF")
+
+
+def checked_path(root: Path, relative: str) -> Path:
+    """Never inspect or mutate an image path through an external directory link."""
+    parts=Path(relative).parts
+    require(parts and not Path(relative).is_absolute() and ".." not in parts,
+            "Unsafe image-relative path")
+    current=root
+    for part in parts[:-1]:
+        current=current/part
+        require(not current.is_symlink(),
+                "Image path traverses a symlink directory: "+relative)
+    return root/relative
+
+
+def lean_login_profile(root: Path):
+    """Remove only the audited vendor alias for the intentionally omitted MTR."""
+    path=checked_path(root,LEAN_LOGIN_PROFILE)
+    if not path.exists():
+        require(not path.is_symlink(),"Broken login profile link")
+        return None
+    require(path.is_file() and not path.is_symlink(),
+            "Unsupported login profile path")
+    before=path.read_bytes()
+    try:
+        text=before.decode("utf-8")
+    except UnicodeError as exc:
+        raise ProfileError("Unsupported login profile encoding") from exc
+    lines=text.splitlines(keepends=True)
+    matching=[line for line in lines if line.rstrip("\r\n")==LEAN_LOGIN_ALIAS]
+    require(len(matching)<=1,"Ambiguous MTR login aliases")
+    if not matching:
+        return None
+    after="".join(line for line in lines if line not in matching).encode("utf-8")
+    return {
+        "path":LEAN_LOGIN_PROFILE,
+        "operation":"remove-audited-mtr-alias",
+        "sha256_before":hashlib.sha256(before).hexdigest(),
+        "sha256_after":hashlib.sha256(after).hexdigest(),
+        "bytes_before":len(before),"bytes_after":len(after),
+    }
+
+
+def lean_source_text(path: Path, relative: str, edits):
+    data=path.read_bytes()
+    if b"\0" in data:
+        return None
+    # Latin-1 preserves ASCII command names in otherwise non-UTF8 shell text.
+    text=data.decode("latin-1")
+    if relative==LEAN_LOGIN_PROFILE and edits:
+        text="".join(line for line in text.splitlines(keepends=True)
+                     if line.rstrip("\r\n")!=LEAN_LOGIN_ALIAS)
+    return text
+
+
+def verify_lean_runtime_closure(root: Path, edits=None):
+    """Check retained ELF, scripts, embedded library names and symlink targets.
+
+    This is deliberately conservative static evidence. Dynamically constructed
+    names, optional OLT behavior and hardware recovery still need qualification.
+    """
+    removed=set(PROFILES["prx126-runtime-lean"])
+    removed_libraries={Path(x).name for x in PRX126_LEAN_LIBRARIES}
+    commands={Path(x).name for x in PRX126_LEAN_COMMANDS}|{"nano"}
+    long_commands={x for x in commands if len(x)>2}
+    library_pattern=re.compile(r"(?<![A-Za-z0-9_])(?:"+
+                               "|".join(re.escape(x) for x in
+                                        sorted(removed_libraries,key=len,reverse=True))+
+                               r")(?![A-Za-z0-9_.])")
+    # A '-' boundary is significant in shell defaults such as ${ZCAT:-zstdcat}.
+    command_pattern=re.compile(r"(?<![A-Za-z0-9_])(?:"+
+                               "|".join(re.escape(x) for x in
+                                        sorted(long_commands,key=len,reverse=True))+
+                               r")(?![A-Za-z0-9_-])")
+    short_commands=commands-long_commands
+    short_pattern=re.compile(r"(?:^|[;|&()]|\bexec\s+|\bcommand\s+)\s*(?:"+
+                             "|".join(re.escape(x) for x in sorted(short_commands))+
+                             r")(?=\s|[;|&()]|$)",re.MULTILINE)
+    absolute_pattern=re.compile(r"/(?:usr/)?(?:s?bin)/(?:"+
+                                "|".join(re.escape(x) for x in
+                                         sorted(commands,key=len,reverse=True))+
+                                r")(?![A-Za-z0-9_-])")
+    needed_pattern=re.compile(r"\(NEEDED\)\s+Shared library:\s+\[([^\]]+)\]")
+    scanned=0
+    sources=0
+    symlinks=0
+    files=sorted(root.rglob("*"))
+    for path in files:
+        relative=path.relative_to(root).as_posix()
+        if relative in removed:
+            continue
+        checked_path(root,relative)
+        if path.is_symlink():
+            target=os.readlink(path)
+            destination=posixpath.normpath(
+                target.lstrip("/") if target.startswith("/")
+                else posixpath.join(posixpath.dirname(relative),target))
+            require(destination not in removed,
+                    "Retained symlink targets a pruned path: "+relative)
+            symlinks+=1
+            continue
+        if not path.is_file():
+            continue
+        with path.open("rb") as stream:
+            header=stream.read(4)
+        if header==b"\x7fELF" and not relative.startswith("lib/modules/"):
+            result=subprocess.run(
+                ["/usr/bin/readelf","--dynamic","--wide",str(path)],
+                capture_output=True,text=True,timeout=12,check=False)
+            require(result.returncode==0,
+                    "Cannot inspect retained ELF: "+relative)
+            scanned+=1
+            require(not (set(needed_pattern.findall(result.stdout)) & removed_libraries),
+                    "Retained ELF requires pruned shared library: "+relative)
+            # Include likely dlopen names, which are absent from DT_NEEDED.
+            binary=path.read_bytes()
+            require(not any(name.encode("ascii")+b"\0" in binary
+                            for name in removed_libraries),
+                    "Retained ELF embeds a pruned library name: "+relative)
+            require(not any(("/"+command).encode("ascii")+b"\0" in binary
+                            for command in removed if "/bin/" in command or "/sbin/" in command),
+                    "Retained ELF embeds a pruned command path: "+relative)
+            continue
+        text=lean_source_text(path,relative,edits)
+        if text is None:
+            continue
+        sources+=1
+        shell_source=(header.startswith(b"#!") or path.suffix==".sh" or
+                      path.name in (".profile","profile"))
+        require(not (command_pattern.search(text) or
+                     (shell_source and short_pattern.search(text)) or
+                     absolute_pattern.search(text)),
+                "Retained source refers to a pruned utility: "+relative)
+        require(not library_pattern.search(text),
+                "Retained source refers to a pruned library: "+relative)
+    require(scanned>=1,"No surviving ELF files were audited")
+    return {"elf_objects_scanned":scanned,"text_files_scanned":sources,
+            "retained_symlinks_checked":symlinks,
+            "hardware_qualified":False,
+            "limitations":"Static checks cannot prove dynamically constructed or conditional runtime dependencies."}
 
 
 def profile_plan(root: Path, profile: str, acknowledge: bool = False):
@@ -132,19 +305,48 @@ def profile_plan(root: Path, profile: str, acknowledge: bool = False):
                 "wireless.svg" in view.read_text() and
                 "wifirate.svg" in view.read_text(),
                 "Wireless status SVG dependency assumptions changed")
+    edits=[]
+    closure=None
+    if profile == "prx126-runtime-lean":
+        login_edit=lean_login_profile(root)
+        if login_edit:
+            edits.append(login_edit)
+        closure=verify_lean_runtime_closure(root,edits)
     removals=[]
     for rel in PROFILES[profile]:
         require(rel not in PROTECTED,"Cannot remove protected runtime dependency")
-        target=root/rel
-        require(target.is_file() and not target.is_symlink(),
+        target=checked_path(root,rel)
+        require(target.is_file() or target.is_symlink(),
                 "Expected optional file absent or changed: "+rel)
-        removals.append({
-            "path":rel, "uncompressed_bytes":target.stat().st_size,
-            "sha256":sha_file(target)
-        })
+        if target.is_symlink():
+            link=os.readlink(target)
+            require(not Path(link).is_absolute() and
+                    ".." not in Path(link).parts and target.is_file(),
+                    "Unsafe or broken optional symlink: "+rel)
+            resolved=target.resolve(strict=True)
+            require(root in resolved.parents and
+                    resolved.relative_to(root).as_posix() in PROFILES[profile],
+                    "Optional symlink does not resolve to a pruned file: "+rel)
+            removals.append({
+                "path":rel, "kind":"symlink", "link_target":link,
+                "uncompressed_bytes":0, "sha256":sha_file(target)
+            })
+        else:
+            removals.append({
+                "path":rel, "kind":"file",
+                "uncompressed_bytes":target.stat().st_size,
+                "sha256":sha_file(target)
+            })
     # The release profile is a *runtime* integrity contract, not documentation.
     # An experimental profile must not leave a false pin for a removed asset.
     profile_data=(root/"lib/8311-release-profile").read_text()
+    for line in profile_data.splitlines():
+        parts=line.split()
+        if len(parts)>=3 and parts[0] in ("file","link"):
+            require(parts[2] not in PROFILES[profile] or
+                    (profile=="experimental-no-libssl" and
+                     line.startswith(PIN_LINE_PREFIX)),
+                    "Pruned path is still pinned by runtime integrity profile: "+parts[2])
     matches=[l for l in profile_data.splitlines()
              if l.startswith(PIN_LINE_PREFIX)]
     if profile=="experimental-no-libssl":
@@ -158,6 +360,8 @@ def profile_plan(root: Path, profile: str, acknowledge: bool = False):
         "hardware_qualified":False,
         "rootfs_source":str(root),
         "pruned":removals,
+        "source_edits":edits,
+        "static_dependency_checks":closure,
         "uncompressed_bytes":sum(x["uncompressed_bytes"] for x in removals),
         "release_profile_requires_update":profile=="experimental-no-libssl",
         "protected_runtime_dependencies":sorted(PROTECTED),
@@ -193,13 +397,44 @@ def stage(root: Path, destination: Path, profile: str, acknowledge=False):
         require(call.returncode==0,
                 "Offline rootfs copy failed (diagnostics intentionally withheld)")
         created=True
+        # Validate the complete copied input before deleting symlink targets.
+        for obj in plan["pruned"]:
+            candidate=checked_path(dst,obj["path"])
+            if obj["kind"]=="symlink":
+                require(candidate.is_symlink() and
+                        os.readlink(candidate)==obj["link_target"],
+                        "Copied optional symlink changed: "+obj["path"])
+                resolved=candidate.resolve(strict=True)
+                require(dst in resolved.parents and
+                        resolved.relative_to(dst).as_posix() in PROFILES[profile],
+                        "Copied optional symlink target changed: "+obj["path"])
+            else:
+                require(not candidate.is_symlink(),
+                        "Copied optional file became a symlink: "+obj["path"])
+            require(candidate.is_file() and sha_file(candidate)==obj["sha256"],
+                    "Copied source file unexpectedly changed: "+obj["path"])
+        for edit in plan["source_edits"]:
+            candidate=checked_path(dst,edit["path"])
+            require(sha_file(candidate)==edit["sha256_before"],
+                    "Copied login profile unexpectedly changed")
+            lines=candidate.read_bytes().splitlines(keepends=True)
+            updated=b"".join(line for line in lines
+                             if line.rstrip(b"\r\n")!=LEAN_LOGIN_ALIAS.encode("ascii"))
+            require(hashlib.sha256(updated).hexdigest()==edit["sha256_after"],
+                    "Unexpected login alias transformation")
+            candidate.write_bytes(updated)
         for obj in plan["pruned"]:
             rel=obj["path"]
-            candidate=dst/rel
-            require(candidate.is_file() and not candidate.is_symlink(),
-                    "Unexpected output path during prune: "+rel)
-            require(sha_file(candidate)==obj["sha256"],
-                    "Copied source file unexpectedly changed: "+rel)
+            candidate=checked_path(dst,rel)
+            if obj["kind"] == "symlink":
+                require(candidate.is_symlink() and
+                        os.readlink(candidate) == obj["link_target"],
+                        "Copied optional symlink changed: "+rel)
+            else:
+                require(candidate.is_file() and not candidate.is_symlink(),
+                        "Unexpected output path during prune: "+rel)
+                require(sha_file(candidate)==obj["sha256"],
+                        "Copied source file unexpectedly changed: "+rel)
             candidate.unlink()
         if plan["release_profile_requires_update"]:
             pin=dst/"lib/8311-release-profile"
@@ -217,8 +452,10 @@ def stage(root: Path, destination: Path, profile: str, acknowledge=False):
                     "Protected firmware dependency missing: "+required)
         verify_family(dst)
         for obj in plan["pruned"]:
-            require(not (dst/obj["path"]).exists(),
+            require(not os.path.lexists(dst/obj["path"]),
                     "Pruned path remains: "+obj["path"])
+        if profile=="prx126-runtime-lean":
+            plan["static_dependency_checks"]=verify_lean_runtime_closure(dst)
         result=dict(plan)
         result["rootfs_source"]="(local offline image, not recorded)"
         result["staging_destination"]=str(dst)

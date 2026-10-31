@@ -2,12 +2,12 @@
  Upstream LuCI Bootstrap template credit: Steven Barth, Jo-Philipp Wich,
  David Menting. Apache License 2.0.
 -%>
-<% local lang = luci.i18n.context.lang %>
+<% local lang = luci.i18n.context.lang
+   local firmware = require "8311.version"
+   local esc = require("8311.tools").html_escape %>
 <footer class="aott-footer">
   <div class="aott-footer-primary">
-    <strong>AoTT-8311-v2r1</strong>
-    <span class="aott-footer-divider">|</span>
-    Interface revision r1
+    <strong><%=esc(firmware.display or firmware.version or "AoTT-8311")%></strong>
     <span class="aott-footer-divider">|</span>
     Firmware author: <strong>AoTT</strong>
   </div>

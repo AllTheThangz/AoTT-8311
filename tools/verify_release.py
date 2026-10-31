@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed source-only distribution audit for AoTT-8311-v2r1.
+"""Fail-closed source-only distribution audit for AoTT-8311.
 
 Not a guarantee that all possible secret formats are detectable. An independent
 human git diff/provenance review remains mandatory before public publication.
@@ -9,6 +9,9 @@ import json
 import pathlib
 import re
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from release_identity import load_release, check_files
 
 RISKY_FILENAMES = re.compile(
     r"(^|/)(?:\.ssh|\.git-credentials|id_ed25519|id_rsa|authorized_keys|"
@@ -21,7 +24,7 @@ FORBIDDEN_EXTENSIONS = {
 SKIP = {".git", "__pycache__"}
 FACTORY_IPS = {
     "192.168.11.1", "255.255.255.0", "0.0.0.1",
-    "192.0.2.1", "192.0.2.10", "198.51.100.10", "203.0.113.10"
+    "192.0.2.1", "192.0.2.10", "192.0.2.20", "198.51.100.10", "203.0.113.10"
 }
 IPV4 = re.compile(r"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])")
 MAC = re.compile(r"(?<![0-9a-f])(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}(?![0-9a-f])",re.I)
@@ -88,7 +91,9 @@ def check(root):
     if not (root/"MANIFEST.json").is_file():
         raise ValueError("Manifest missing")
     manifest=json.loads((root/"MANIFEST.json").read_text())
-    assert manifest.get("release")=="AoTT-8311-v2r1"
+    release = load_release(root)
+    assert manifest.get("release")==release["release"], "Manifest release identity mismatch"
+    assert manifest.get("revision")==release["revision"], "Manifest revision mismatch"
     assert manifest.get("source_only") is True
     assert manifest.get("firmware_binaries_included") is False
     entries=manifest["overlay_files"]
@@ -99,6 +104,10 @@ def check(root):
             for p,kind in files_under(root) if p.relative_to(root).parts[0]=="overlay"}
     assert expected==actual,("Unexpected staged source",sorted(expected^actual)[:12])
     count=0; findings=[]
+    try:
+        check_files(root/"overlay", release)
+    except (ValueError, OSError):
+        findings.append(("release.json", "generated source release identity mismatch"))
     for file,kind in files_under(root):
         rel=file.relative_to(root).as_posix()
         if kind!="file":

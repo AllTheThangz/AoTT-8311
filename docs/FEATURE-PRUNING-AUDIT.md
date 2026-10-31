@@ -28,6 +28,35 @@ wireless route implementation are not yet removed. Removing common
 network modules without testing their dynamic imports could make
 pages fail even without a wireless radio.
 
+## Optional runtime-lean profile
+
+The runtime-lean profile extends the compact profile by removing optional
+stress tests, OMCI simulation, MTR, serial file-transfer programs,
+Zstandard commands/wrappers, and the terminal/compression libraries
+whose retained consumers are checked on each build. It preserves all
+components listed in the next section, including OpenSSL `libssl`.
+
+Review of the previous local proposal found two missing dependencies:
+`zstdless` and `zstdgrep` still invoked the removed `zstdcat`, and the
+vendor root login profile still defined an alias for removed MTR.
+The revised plan removes both wrappers and only the exact audited
+MTR alias, preserving any other login-profile content. Modified or
+additional command references cause the planner to reject the image.
+
+On the audited offline reference tree, the corrected plan removes
+47 file/symlink paths totaling 1,612,270 unpacked file bytes, and removes
+the 48-byte stock alias line. It checks 149 retained ELF files,
+518 text files, and 280 retained symlinks before and after staging.
+Those counts describe static review, not hardware or WAN qualification.
+
+The checks cover ELF `DT_NEEDED`, embedded removed-library names,
+retained source references including shell defaults such as
+`${ZCAT:-zstdcat}`, optional symlink destinations, and stale runtime
+integrity pins. Newly introduced dynamic construction, external scripts,
+provider-specific behavior and recovery paths still require runtime
+qualification. Keep the full diagnostic image available for optional
+tools deliberately omitted from the lean profile.
+
 ## Explicitly retained
 
 | Feature or artifact | Why it stays |
@@ -76,9 +105,13 @@ RootfsA and rootfsB are each allocated 6,221,824 bytes.
 | PRX126 compact with regenerated runtime pins | 6,127,616 | 94,208 bytes (92 KiB) | Offline checks pass, no boot qualification |
 | Experimental compact without libssl | 5,988,352 | 233,472 bytes (228 KiB) | Offline checks pass, runtime compatibility unverified |
 
+The runtime-lean unpacked byte count above is not a compressed saving.
+Its exact image size must be recorded from the final assembled candidate
+after version identity and runtime pins have been synchronized.
+
 The three additional wireless-only assets had zero extra 4 KiB-aligned image savings compared with the existing compact image.
 Removing CSS comments/whitespace saved zero padded image bytes.
-Hardlinking duplicate \`libnl\` files also saved zero padded image
+Hardlinking duplicate `libnl` files also saved zero padded image
 bytes because SquashFS already deduplicates matching content.
 Dropping tcpdump/libpcap appeared to save significant space, but
 it was rejected after finding the live rarpd source dependency.
@@ -105,10 +138,10 @@ build profiles and this report remain in the GitHub source repo.
 No full firmware images, private flash backups, configuration, SSH
 keys, MAC addresses, or subscriber serials are included.
 
-The built offline test rootfs still uses the older v2r1 firmware
+The historical compact test rootfs used the older v2r1 firmware
 version identifiers. Proper release versioning, hardware qualification,
 a tested rollback and an explicitly approved installation are required
-before any v2r1.1 deployment.
+before deploying a newly assembled release candidate.
 
 Further details and reproducible read-only evidence are in
 [the PRX126 dependency and resource audit](PRX126-DEPENDENCY-AND-RESOURCE-AUDIT.md).

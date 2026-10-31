@@ -45,16 +45,26 @@ def build_rootfs(compression=4,padding_nonzero=False,extent=512):
 
 
 def create_archive(path,compression=4,padding_nonzero=False,
-                   tamper_hash=False,extra=False,duplicate=False):
+                   tamper_hash=False,extra=False,duplicate=False,
+                   control_updates=None,omit_fields=(),upper_hashes=False,
+                   oversized_updater=False,control_separator="\n"):
     root=build_rootfs(compression,padding_nonzero)
     files={
-        "upgrade.sh":b"#!/bin/sh\nexit 0\n",
+        "upgrade.sh":(b"x"*65537 if oversized_updater else b"#!/bin/sh\nexit 0\n"),
         "kernel.bin":b"synthetic-kernel",
         "bootcore.bin":b"synthetic-bootcore",
         "rootfs.img":root,
     }
     control=[
         "FW_VERSION=AoTT-8311-v2r1",
+        "FW_REVISION=r1",
+        "FW_VARIANT=basic",
+        "FW_TARGET=WAS-110",
+        "FW_PROFILE=potron-prx126-aott-v1",
+        "FW_VER=AoTT-8311-v2r1",
+        "FW_REV=r1",
+        "FW_LONG_VERSION=AoTT-8311-v2r1_basic",
+        "FW_SUFFIX=",
         "SIZE_KERNEL="+str(len(files["kernel.bin"])),
         "SHA256_KERNEL="+hashlib.sha256(files["kernel.bin"]).hexdigest(),
         "SIZE_BOOTCORE="+str(len(files["bootcore.bin"])),
@@ -64,9 +74,18 @@ def create_archive(path,compression=4,padding_nonzero=False,
     ]
     if tamper_hash:
         control[-1]="SHA256_ROOTFS="+"0"*64
+    fields=dict(line.split("=",1) for line in control)
+    fields.update(control_updates or {})
+    for name in omit_fields:
+        fields.pop(name,None)
+    if upper_hashes:
+        for name in fields:
+            if name.startswith("SHA256_"):
+                fields[name]=fields[name].upper()
+    control=[name+"="+value for name,value in fields.items()]
     if duplicate:
         control.append(control[0])
-    files["control"]=("\n".join(control)+"\n").encode()
+    files["control"]=(control_separator.join(control)+control_separator).encode()
     with tarfile.open(path,"w",format=tarfile.USTAR_FORMAT) as tf:
         for name in module.MEMBERS:
             blob=files[name]
@@ -98,6 +117,80 @@ class OfflineImageValidationTests(unittest.TestCase):
         self.assertEqual(report["rootfs"]["bytes_used"],256)
         self.assertEqual(report["rootfs"]["padding_bytes"],256)
         self.assertTrue(report["headroom_recommendation_met"])
+        self.assertEqual(report["revision"],"r1")
+        self.assertEqual(report["compatibility_profile"],"potron-prx126-aott-v1")
+
+    def test_required_runtime_identity_fields(self):
+        for field in ("FW_VERSION","FW_REVISION","FW_VARIANT","FW_TARGET","FW_PROFILE"):
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(module.QualificationError,
+                                            "Missing firmware identity"):
+                    self.qualify(omit_fields=(field,))
+
+    def test_wrong_board_profile_target_or_variant_rejected(self):
+        for field,value in (("FW_PROFILE","different-hardware"),
+                            ("FW_TARGET","unqualified-board"),
+                            ("FW_VARIANT","other")):
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(module.QualificationError,
+                                            "Unsupported firmware"):
+                    self.qualify(control_updates={field:value})
+
+    def test_invalid_runtime_version_fields_rejected(self):
+        for field,value in (("FW_REVISION",""),("FW_REVISION","r"*65),
+                            ("FW_VERSION","AoTT-8311-v2 r2"),
+                            ("FW_REVISION","r2;false")):
+            with self.subTest(field=field,value=value):
+                with self.assertRaisesRegex(module.QualificationError,
+                                            "Invalid firmware version"):
+                    self.qualify(control_updates={field:value})
+
+    def test_legacy_identity_aliases_must_agree(self):
+        for field,value in (("FW_VER","AoTT-8311-v2r0"),
+                            ("FW_REV","r0"),
+                            ("FW_LONG_VERSION","AoTT-8311-v2r0_basic"),
+                            ("FW_SUFFIX","unreviewed")):
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(module.QualificationError,
+                                            "identity alias differs"):
+                    self.qualify(control_updates={field:value})
+
+    def test_legacy_aliases_are_optional(self):
+        result=self.qualify(omit_fields=("FW_VER","FW_REV","FW_LONG_VERSION","FW_SUFFIX"))
+        self.assertEqual(result["status"],"passed")
+
+    def test_unsupported_control_field_rejected(self):
+        with self.assertRaisesRegex(module.QualificationError,"Unsupported control field"):
+            self.qualify(control_updates={"UNREVIEWED_OPTION":"1"})
+
+    def test_noncanonical_component_sizes_rejected(self):
+        for value in ("0","0015","+15","-15","15 ","1e1"):
+            with self.subTest(size=value):
+                with self.assertRaisesRegex(module.QualificationError,
+                                            "positive canonical decimal"):
+                    self.qualify(control_updates={"SIZE_KERNEL":value})
+
+    def test_declared_component_runtime_limits(self):
+        for field,value in (("SIZE_KERNEL","8388609"),
+                            ("SIZE_BOOTCORE","8388609"),
+                            ("SIZE_ROOTFS","33554433")):
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(module.QualificationError,
+                                            "Component size exceeds runtime limit"):
+                    self.qualify(control_updates={field:value})
+
+    def test_archive_updater_matches_runtime_64_kib_limit(self):
+        with self.assertRaisesRegex(module.QualificationError,
+                                    "Component size exceeds offline safety limits"):
+            self.qualify(oversized_updater=True)
+
+    def test_uppercase_component_hashes_match_runtime_acceptance(self):
+        self.assertEqual(self.qualify(upper_hashes=True)["status"],"passed")
+
+    def test_control_crlf_is_rejected_like_device_stager(self):
+        with self.assertRaisesRegex(module.QualificationError,
+                                    "unsupported text bytes"):
+            self.qualify(control_separator="\r\n")
 
     def test_non_ustar_archive_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -63,5 +63,12 @@ get_8311_gateway() { printf '%s\n' "$TEST_GATEWAY"; }
         self.assertIn("set network.mgmt.gateway=192.0.2.1",commands)
         self.assertNotIn("-q delete network.mgmt.gateway",commands)
 
+    def test_legacy_self_gateway_remains_for_untagged_and_tagged(self):
+        for vlan, interface in ((0,"lct"),(100,"mgmt")):
+            with self.subTest(vlan=vlan):
+                commands=self.run_fixture(vlan,"192.0.2.10")
+                self.assertIn("set network.%s.gateway=192.0.2.10"%interface,commands)
+                self.assertNotIn("-q delete network.%s.gateway"%interface,commands)
+
 if __name__=="__main__":
     unittest.main()

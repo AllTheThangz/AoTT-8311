@@ -17,6 +17,8 @@ jobs:
           persist-credentials: false
       - name: Verify manifest and scan for secrets
         run: python3 tools/verify_release.py .
+      - name: Reject identifiers, secrets, screenshots and binary artifacts
+        run: python3 tools/check_disclosure.py .
       - name: Run isolated Python security, gateway and boot tests
         run: python3 -m unittest discover -s tests -v
       - name: Check POSIX and BusyBox-style shell parsing

@@ -18,15 +18,20 @@ MEMBERS=("upgrade.sh","control","kernel.bin","bootcore.bin","rootfs.img")
 ROOTFS_MIN=96
 ROOTFS_MAX=33554432
 MAX_MEMBER={
-    "upgrade.sh":131072,
+    "upgrade.sh":65536,
     "control":4096,
     "kernel.bin":8388608,
-    "bootcore.bin":16777216,
+    "bootcore.bin":8388608,
     "rootfs.img":ROOTFS_MAX,
 }
 EXPECTED_COMPRESSION=4
 EXPECTED_BLOCK=1048576
 VALID_SHA=re.compile(r"^[0-9a-f]{64}$")
+IDENTITY_FIELDS={"FW_VERSION","FW_REVISION","FW_VARIANT","FW_TARGET","FW_PROFILE"}
+LEGACY_FIELDS={"FW_VER","FW_LONG_VERSION","FW_REV","FW_SUFFIX"}
+COMPONENT_FIELDS={prefix+part for part in ("KERNEL","BOOTCORE","ROOTFS")
+                  for prefix in ("SIZE_","SHA256_")}
+ALLOWED_FIELDS=IDENTITY_FIELDS|LEGACY_FIELDS|COMPONENT_FIELDS
 
 
 class QualificationError(ValueError):
@@ -51,29 +56,59 @@ def checksum(stream, size):
 
 def parse_control(content):
     require(0 < len(content) <= MAX_MEMBER["control"],"Invalid control size")
+    # Match the on-device Lua stager before splitting lines. splitlines()
+    # would otherwise hide carriage returns and other unsupported separators.
+    require(all(byte==10 or 32<=byte<=126 for byte in content),
+            "Control contains unsupported text bytes")
     try:
         lines=content.decode("ascii").splitlines()
     except UnicodeDecodeError as exc:
         raise QualificationError("Control is not ASCII") from exc
     result={}
     for line in lines:
-        if not line.strip():
+        if not line:
             continue
         require("=" in line,"Malformed control field")
         name,value=line.split("=",1)
         require(bool(re.fullmatch(r"[A-Z_][A-Z0-9_]*",name)),
                 "Malformed control field name")
         require(name not in result,"Duplicate control field")
+        require(name in ALLOWED_FIELDS,"Unsupported control field")
         require("\x00" not in value and "\r" not in value,
                 "Invalid control value")
         require(len(value) <= 160,"Oversized control value")
         result[name]=value
-    required=set()
-    for part in ("KERNEL","BOOTCORE","ROOTFS"):
-        required.update(("SIZE_"+part,"SHA256_"+part))
-    require(required.issubset(result),"Missing size/hash control fields")
+    require(COMPONENT_FIELDS.issubset(result),"Missing size/hash control fields")
+    require(IDENTITY_FIELDS.issubset(result),"Missing firmware identity fields")
+    for name in ("FW_VERSION","FW_REVISION"):
+        require(re.fullmatch(r"[A-Za-z0-9._+:~-]{1,64}",result[name]) is not None,
+                "Invalid firmware version information")
     require(result.get("FW_VERSION","").startswith("AoTT-8311-"),
             "Incorrect firmware family")
+    require(result["FW_VARIANT"]=="basic","Unsupported firmware variant")
+    require(result["FW_TARGET"]=="WAS-110","Unsupported firmware target")
+    require(result["FW_PROFILE"]=="potron-prx126-aott-v1",
+            "Unsupported firmware compatibility profile")
+    # These aliases are optional for the upgrader. When included, they must
+    # agree with the canonical identity instead of advertising a stale build.
+    aliases={"FW_VER":result["FW_VERSION"],
+             "FW_REV":result["FW_REVISION"],
+             "FW_LONG_VERSION":result["FW_VERSION"]+"_"+result["FW_VARIANT"],
+             "FW_SUFFIX":""}
+    for name,expected in aliases.items():
+        require(name not in result or result[name]==expected,
+                "Firmware identity alias differs: "+name)
+    for part,member in (("KERNEL","kernel.bin"),
+                        ("BOOTCORE","bootcore.bin"),("ROOTFS","rootfs.img")):
+        size=result["SIZE_"+part]
+        require(re.fullmatch(r"[1-9][0-9]{0,7}",size) is not None,
+                "Component size is not a positive canonical decimal")
+        require(int(size)<=MAX_MEMBER[member],"Component size exceeds runtime limit")
+        checksum=result["SHA256_"+part]
+        require(re.fullmatch(r"[0-9a-fA-F]{64}",checksum) is not None,
+                "Invalid SHA256 in control")
+        # The runtime upgrader accepts either case and compares lowercase.
+        result["SHA256_"+part]=checksum.lower()
     return result
 
 
@@ -225,12 +260,17 @@ def qualify_archive(path,capacity,min_headroom=32768,preferred_headroom=65536):
             "schema":1,
             "status":"passed",
             "release":control["FW_VERSION"],
+            "revision":control["FW_REVISION"],
+            "variant":control["FW_VARIANT"],
+            "target":control["FW_TARGET"],
+            "compatibility_profile":control["FW_PROFILE"],
             "rootfs":root_info,
             "min_headroom_bytes":min_headroom,
             "preferred_headroom_bytes":preferred_headroom,
             "headroom_recommendation_met":rootfs_headroom>=preferred_headroom,
             "checks":{
                 "five_member_ustar":"passed",
+                "control_identity":"passed",
                 "component_sha256":"passed",
                 "squashfs_superblock":"passed",
                 "zero_padding":"passed",

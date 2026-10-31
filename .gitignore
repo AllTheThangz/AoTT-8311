@@ -44,3 +44,23 @@ etc/passwd
 __pycache__/
 *.pyc
 .DS_Store
+
+# Screenshots, media, metadata carriers, private captures and archives
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.tiff
+*.tif
+*.heic
+*.avif
+*.svg
+*.pdf
+*.mp4
+*.mov
+*.webm
+*.pcap
+*.pcapng
+*.zst

@@ -117,7 +117,7 @@ class OverviewContrastTest(unittest.TestCase):
 
     def test_css_version_cache_refresh(self):
         header=(ROOT/"overlay/usr/lib/lua/luci/view/themes/bootstrap/header.htm").read_text()
-        self.assertIn('aott-theme.css?v=aott-8311-v2r1-1-contrast',header)
+        self.assertIn('aott-theme.css?v=aott-8311-v2r2',header)
         self.assertNotIn('aott-theme.css?v=aott-8311-v1-r4',header)
 
     def test_graph_lines_preserve_rx_tx_identity(self):

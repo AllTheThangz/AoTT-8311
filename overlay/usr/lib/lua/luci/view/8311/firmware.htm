@@ -13,7 +13,7 @@ local running_trial = state.running_trial == true
 <script src="<%=resource%>/view/8311.js?v=aott-8311-v1-r3"></script>
 
 <h2>Firmware & recovery</h2>
-<p><strong>AoTT-8311-v2r1</strong> interface | Installed firmware: <strong><%=esc(version.version or "unknown")%></strong> (<%=esc(version.revision or "unknown")%>) | <%=esc(version.variant or "unknown")%> profile.</p>
+<p>Installed firmware: <strong><%=esc(version.display or version.version or "unknown")%></strong> | <%=esc(version.variant or "unknown")%> profile.</p>
 <p>Live bank state and checks are shown below. Actions are not submitted until you select them and confirm any operational change. No automatic commit or reboot occurs on page load.</p>
 <input id="8311-token" type="hidden" value="<%=esc(token)%>" />
 <div id="firmware-message" role="alert" aria-live="polite" class="aott-fw-status"><%=esc(bank_error)%></div>
