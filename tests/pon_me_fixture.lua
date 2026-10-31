@@ -78,6 +78,10 @@ assert(type(controller.action_pon_dump) == "function", "Missing read-only ME det
 
 controller.action_pon_explorer()
 assert(captured.name == "8311/pon_me", "Unexpected Explorer template")
+assert(headers["Cache-Control"] == "no-store, private",
+       "OMCI listing page must not be cached")
+assert(headers["X-Content-Type-Options"] == "nosniff",
+       "OMCI listing page must disable content sniffing")
 local rendered = assert(captured.values.omci)
 assert(rendered:find('href="/cgi%-bin/luci/admin/8311/pon_dump/278/1"'),
        "Explorer must generate absolute, dispatcher-owned ME links")
@@ -89,7 +93,9 @@ assert(not rendered:find("<script>", 1, true), "Untrusted script rendered")
 capture_mode = "success"
 messages = {}
 controller.action_pon_dump("278", "1")
-assert(headers["Cache-Control"] == "no-store", "Raw OMCI response must not be cached")
+assert(headers["Cache-Control"] == "no-store, private", "Raw OMCI response must not be cached")
+assert(headers["X-Content-Type-Options"] == "nosniff",
+       "OMCI detail response must disable content sniffing")
 assert(captured.content_type == "text/plain; charset=utf-8", "ME response must be plain text")
 assert(captured.command[1] == "/usr/bin/omci_pipe.sh"
     and captured.command[2] == "meg"
@@ -111,6 +117,6 @@ controller.action_pon_dump("278", "1")
 assert(last_status == 502, "Unavailable OMCI lookup must return an error status")
 assert(messages[1] == "Managed entity lookup did not complete successfully.",
     "Lookup error leaked a raw OMCI response")
-assert(headers["Cache-Control"] == "no-store", "Failure response must not be cached")
+assert(headers["Cache-Control"] == "no-store, private", "Failure response must not be cached")
 
 print("PON ME Explorer: 7 offline privacy and routing checks passed")

@@ -45,7 +45,7 @@ def fixture():
     html = html.replace("<%+header%>", "").replace("<%+footer%>", "")
     html = re.sub(r'<script\s+src="[^"]+"\s*></script>', "", html)
     html = html.replace(
-        '<%=luci.dispatcher.build_url("admin", "8311", "pon_dump")%>',
+        '<%=pcdata(luci.dispatcher.build_url("admin", "8311", "pon_dump"))%>',
         DUMP_PATH,
     )
     entries = """
@@ -184,6 +184,17 @@ class RealBrowserPonExplorerTests(unittest.TestCase):
 
         self.page.locator("#me-list").evaluate(
             "(el) => el.setAttribute('data-dump-base', '')"
+        )
+        self.page.locator("a[data-me-id='278']").click()
+        self.assertIn("endpoint is unavailable", self.page.locator("#me-status").inner_text())
+        self.assertEqual(self.request_paths, [])
+        self.assertEqual(self.unexpected_requests, [])
+
+    def test_protocol_relative_remote_endpoint_is_rejected_without_request(self):
+        # A malicious or malformed template URL must not redirect OMCI
+        # attributes to another origin, even if it ends in the right path.
+        self.page.locator("#me-list").evaluate(
+            "(el) => el.setAttribute('data-dump-base', '//offsite.test/admin/8311/pon_dump')"
         )
         self.page.locator("a[data-me-id='278']").click()
         self.assertIn("endpoint is unavailable", self.page.locator("#me-status").inner_text())

@@ -323,7 +323,8 @@ function showPonMe(meId, instanceId) {
         return;
     }
     const base = String($('#me-list').attr('data-dump-base') || '').replace(/\/+$/, '');
-    if (!base || !base.startsWith('/') || base.includes('?') || base.includes('#')) {
+    if (!base || !base.startsWith('/') || base.startsWith('//') ||
+            /[?#\\\s]/.test(base) || !/\/admin\/8311\/pon_dump$/.test(base)) {
         $('#me-status').text('Managed Entity read endpoint is unavailable.');
         $('#me_dump').hide().attr('aria-busy','false');
         return;

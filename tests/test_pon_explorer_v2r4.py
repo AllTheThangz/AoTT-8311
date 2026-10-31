@@ -31,6 +31,7 @@ class PonMeExplorerTests(unittest.TestCase):
         self.assertIn('dispatcher.build_url("admin", "8311", "pon_dump", class, instance)', CONTROLLER)
         self.assertIn('luci.dispatcher.build_url("admin", "8311", "pon_dump")', VIEW)
         self.assertIn('data-dump-base=', VIEW)
+        self.assertIn('pcdata(luci.dispatcher.build_url(', VIEW)
 
     def test_inputs_are_range_checked_on_client_and_server(self):
         self.assertIn('id:match("^%d+$")', CONTROLLER)
@@ -39,7 +40,8 @@ class PonMeExplorerTests(unittest.TestCase):
         self.assertIn('Number(value) <= 65535', JS)
 
     def test_raw_omci_reply_is_never_cached(self):
-        self.assertIn('http.header("Cache-Control", "no-store")', CONTROLLER)
+        self.assertIn('http.header("Cache-Control", "no-store, private")', CONTROLLER)
+        self.assertIn('http.header("X-Content-Type-Options", "nosniff")', CONTROLLER)
         self.assertIn("cache:false", JS)
 
     def test_raw_omci_output_uses_text_only_rendering(self):
@@ -53,8 +55,8 @@ class PonMeExplorerTests(unittest.TestCase):
 
     def test_unavailable_or_invalid_route_fails_closed(self):
         self.assertIn("base.startsWith('/')", JS)
-        self.assertIn("base.includes('?')", JS)
-        self.assertIn("base.includes('#')", JS)
+        self.assertIn("base.startsWith('//')", JS)
+        self.assertRegex(JS, r"admin\\/8311\\/pon_dump")
         self.assertIn("Invalid Managed Entity identifier. No request was sent.", JS)
 
     def test_no_em_dash_placeholders_in_diagnostic_views(self):
