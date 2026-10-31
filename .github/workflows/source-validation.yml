@@ -30,6 +30,11 @@ jobs:
               sh -n "$file"
             fi
           done < <(find overlay -type f -print0)
+      - name: Validate browser JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find overlay/www -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
       - name: Install Lua 5.1 for compatibility checks
         run: |
           sudo apt-get update -qq
