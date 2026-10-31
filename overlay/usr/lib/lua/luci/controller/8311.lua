@@ -935,6 +935,10 @@ function action_save()
 end
 
 function action_pon_explorer()
+    -- Listings may contain private device metadata. Do not allow a shared
+    -- browser or intermediary to retain an authenticated OMCI response.
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
     -- Plain CLI MIB output is UNTRUSTED DATA. Escape content before adding
     -- only strictly numeric, statically constructed ME links.
     local code, output, overflow = web.capture({"/usr/bin/omci_pipe.sh", "md"},262144)
@@ -946,8 +950,10 @@ function action_pon_explorer()
             local class, instance = line:match("^|%s*(%d+)%s*|%s*(%d+)%s*%(")
             local safe = tools.html_escape(line)
             if class and instance and tonumber(class) <= 65535 and tonumber(instance) <= 65535 then
-                local href = "pon_dump/" .. class .. "/" .. instance
-                safe = '<a href="' .. href .. '" data-me-id="' .. class .. '" data-instance-id="' .. instance .. '">' .. safe .. '</a>'
+                local href = dispatcher.build_url("admin", "8311", "pon_dump", class, instance)
+                -- The path comes from LuCI, while class and instance are
+                -- checked decimal values. Escape the final HTML attribute.
+                safe = '<a href="' .. tools.html_escape(href) .. '" data-me-id="' .. class .. '" data-instance-id="' .. instance .. '">' .. safe .. '</a>'
             end
             local marker = class and instance and ' data-me-entry="1"' or ''
             html_lines[#html_lines + 1] = '<div class="aott-me-line"' .. marker .. '>' .. safe .. '</div>'
@@ -957,6 +963,10 @@ function action_pon_explorer()
 end
 
 function action_pon_dump(me_id, instance_id)
+    -- OMCI attributes can contain device/subscriber information. Never let a
+    -- browser or intermediary cache a raw dump, including error responses.
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
 	for _, id in ipairs({me_id or "", instance_id or ""}) do
 		if type(id) ~= "string" or not id:match("^%d+$") or #id > 5 or tonumber(id) > 65535 then
 			return web.reply(http,400,{error="ME and instance IDs must be decimal numbers from 0 to 65535"})

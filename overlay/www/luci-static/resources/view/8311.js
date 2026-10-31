@@ -316,10 +316,24 @@ function filterPonMe() {
 }
 function showPonMe(meId, instanceId) {
     const sequence = ++meRequest;
+    const validId = value => /^\d{1,5}$/.test(String(value)) && Number(value) <= 65535;
+    if (!validId(meId) || !validId(instanceId)) {
+        $('#me-status').text('Invalid Managed Entity identifier. No request was sent.');
+        $('#me_dump').hide().attr('aria-busy','false');
+        return;
+    }
+    const base = String($('#me-list').attr('data-dump-base') || '').replace(/\/+$/, '');
+    if (!base || !base.startsWith('/') || base.startsWith('//') ||
+            /[?#\\\s]/.test(base) || !/\/admin\/8311\/pon_dump$/.test(base)) {
+        $('#me-status').text('Managed Entity read endpoint is unavailable.');
+        $('#me_dump').hide().attr('aria-busy','false');
+        return;
+    }
     $('#me_label').text('Class ' + meId + ' · Instance ' + instanceId);
     $('#me-status').text('Reading selected Managed Entity…');
     $('#me_dump').text('Loading…').show().attr('aria-busy','true');
-    $.ajax({url:'pon_dump/' + encodeURIComponent(meId) + '/' + encodeURIComponent(instanceId),dataType:'text',timeout:20000}).done(data => {
+    $.ajax({url:base + '/' + encodeURIComponent(meId) + '/' + encodeURIComponent(instanceId),
+            dataType:'text',cache:false,timeout:20000}).done(data => {
         if (sequence !== meRequest) return;
         $('#me_dump').text(data || 'No entity attributes were returned.').show();
         $('#me-status').text('Live OMCI attributes retrieved; no changes made.');

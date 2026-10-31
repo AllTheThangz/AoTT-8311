@@ -4,7 +4,7 @@
 
 AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible web interface, deeper optical and network diagnostics, security visibility, and guarded A/B firmware management.
 
-**Hardware-tested firmware:** `AoTT-8311-v2r3` on one qualified LL-XS1010 / PRX126-SFP-PON device. **Public package:** sanitized source overlay only, not a flashable firmware image.
+**Development source candidate:** `AoTT-8311-v2r4` (offline-qualified, untried on hardware). **Last hardware-qualified firmware:** `AoTT-8311-v2r3` on one LL-XS1010 / PRX126-SFP-PON device. The public repository distributes a sanitized source overlay only.
 
 > **Important:** This repository currently provides a **secret-sanitized source overlay, not a ready-to-flash firmware image**. Proprietary vendor components, actual subscriber provisioning, and production credentials are deliberately excluded.
 
@@ -65,7 +65,7 @@ These operations require a compatible complete firmware build and an independent
 | --- | --- |
 | Primary device | OEM/Potron LL-XS1010 XGS-PON SFP+ ONU |
 | Platform | PRX126-SFP-PON, PRX300-family vendor firmware baseline |
-| Source-only release | `AoTT-8311-v2r3` (version 2, revision 3; privately hardware-tested on one supported target; no public flashable image) |
+| Development source candidate | `AoTT-8311-v2r4` (version 2, revision 4; offline qualification only, not tested or deployed) |
 | Dependencies | Compatible vendor kernel, boot components, PON/OMCI stack, and authorized ISP provisioning |
 | Other ONUs | Not automatically supported; require separate hardware qualification |
 
@@ -172,6 +172,15 @@ See [privacy and publication checks](docs/PRIVACY-AUDIT.md),
 [the verified v2r3 source release](docs/RELEASE.md) and
 [the next firmware roadmap](docs/ROADMAP.md).
 
+### Current development candidate
+
+**v2r4 is an offline candidate, not a hardware release.** It adds scoped
+PON Managed Entity Explorer routing, strict ID validation, non-cached OMCI
+responses, more legible diagnostic placeholders, and synthetic browser tests.
+The source and private image can pass offline checks without proving that
+v2r4 is safe to flash or that network service will survive a reboot.
+The last hardware-committed firmware remains v2r3.
+
 ## Project status and roadmap
 
 **Included in v2r3 source:** responsive web UI, optical/PON/OMCI diagnostics, VLAN and Ethernet visibility, security-state reporting, management-routing compatibility, persistent credential validation, and guarded A/B firmware-bank tooling.
@@ -196,4 +205,4 @@ AoTT-8311 is an independent community project, not an official vendor or ISP rel
 
 ---
 
-**AoTT-8311 · v2r3 source release**
+**AoTT-8311 · v2r4 development source candidate**
