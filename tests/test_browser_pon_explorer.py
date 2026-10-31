@@ -201,6 +201,61 @@ class RealBrowserPonExplorerTests(unittest.TestCase):
         self.assertEqual(self.request_paths, [])
         self.assertEqual(self.unexpected_requests, [])
 
+    def test_dark_and_light_theme_status_contrast(self):
+        # Real computed CSS values, not a hardcoded rendering mock. Both
+        # the list and status descriptions must remain legible in each theme.
+        for theme in ("dark", "light"):
+            with self.subTest(theme=theme):
+                results = self.page.evaluate("""(theme) => {
+                    document.documentElement.setAttribute('data-aott-theme', theme);
+                    const body = getComputedStyle(document.body);
+                    const rgb = value => (value.match(/[0-9]+(?:\\.[0-9]+)?/g) || [])
+                        .slice(0,3).map(Number).map(v => v / 255);
+                    const luminosity = value => {
+                        const v = rgb(value).map(x => x <= .04045 ? x / 12.92 :
+                            Math.pow((x + .055) / 1.055, 2.4));
+                        return v[0] * .2126 + v[1] * .7152 + v[2] * .0722;
+                    };
+                    const contrast = (a,b) => {
+                        const x=luminosity(a), y=luminosity(b);
+                        return (Math.max(x,y)+.05) / (Math.min(x,y)+.05);
+                    };
+                    return [
+                        ['status', '#me-status', body.backgroundColor],
+                        ['count', '#me-filter-count', body.backgroundColor],
+                        ['list', '#me-list', null],
+                        ['input', '#me-filter', null],
+                    ].map(([name,selector,fallback]) => {
+                        const styles=getComputedStyle(document.querySelector(selector));
+                        return {
+                            name, contrast:contrast(styles.color, fallback || styles.backgroundColor),
+                            foreground:styles.color, background:fallback || styles.backgroundColor
+                        };
+                    });
+                }""", theme)
+                for row in results:
+                    self.assertGreaterEqual(
+                        row["contrast"], 4.5,
+                        "%s %s computed contrast < 4.5:1" % (theme,row["name"])
+                    )
+        self.assertEqual(self.unexpected_requests, [])
+
+    def test_mobile_search_controls_remain_on_screen(self):
+        self.page.set_viewport_size({"width": 375, "height": 812})
+        self.page.locator("#me-filter").fill("VLAN")
+        positions = self.page.evaluate("""() => {
+            const ids=['#me-filter','#me-clear','#me-list','#me-status'];
+            return ids.map(selector => {
+                const rect=document.querySelector(selector).getBoundingClientRect();
+                return {selector,left:rect.left,right:rect.right,viewport:innerWidth};
+            });
+        }""")
+        for box in positions:
+            self.assertGreaterEqual(box["left"], -1, box["selector"])
+            self.assertLessEqual(box["right"], box["viewport"] + 1, box["selector"])
+        self.assertIn("1 of 2", self.page.locator("#me-filter-count").inner_text())
+        self.assertEqual(self.unexpected_requests, [])
+
     def test_failed_lookup_does_not_echo_response_body(self):
         self.dump_status = 502
         self.dump_body = "PRIVATE_SYNTHETIC_ERROR_SENTINEL_NOT_FOR_DISPLAY"
