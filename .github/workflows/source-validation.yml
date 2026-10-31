@@ -48,3 +48,22 @@ jobs:
           lua5.1 tests/gateway_config.lua overlay/usr/lib/lua/8311/config.lua
           luac5.1 -p tests/pon_me_fixture.lua
           lua5.1 tests/pon_me_fixture.lua overlay/usr/lib/lua/luci/controller/8311.lua
+
+      - name: Install synthetic browser testing dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y --no-install-recommends libjs-jquery
+          python3 -m venv "$RUNNER_TEMP/aott-browser-env"
+          "$RUNNER_TEMP/aott-browser-env/bin/python" -m pip install --disable-pip-version-check --no-cache-dir "playwright==1.57.0"
+          if ! command -v google-chrome-stable >/dev/null && ! command -v google-chrome >/dev/null && ! command -v chromium >/dev/null; then
+            echo "No installed Chrome/Chromium executable; refusing a skipped browser test."
+            exit 1
+          fi
+      - name: Test real Explorer UI in isolated headless Chromium
+        shell: bash
+        env:
+          AOTT_REQUIRE_BROWSER: "1"
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/aott-browser-env/bin/python" -m unittest discover -s tests -p 'test_browser_pon_explorer.py' -v
