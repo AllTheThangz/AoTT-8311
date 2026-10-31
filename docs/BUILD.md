@@ -32,8 +32,8 @@ installation package or redistributable vendor firmware.
    boot fallback. Confirm PON, 10G, SSH/HTTPS, WAN throughput and logs.
 8. Commit only after a complete, explicitly authorized trial acceptance.
 
-This source-only repository cannot reproduce a complete v2r1 or v2r3
-firmware image bit-for-bit without external authorized vendor components.
+This source-only repository cannot reproduce complete v2r1, v2r3 or v2r4
+firmware images bit-for-bit without external authorized vendor components.
 It intentionally includes neither vendor flash components nor user/ISP
 provisioning data.
 

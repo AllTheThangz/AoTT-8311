@@ -22,7 +22,7 @@ class SourceReleaseTest(unittest.TestCase):
 
     def test_full_manifest_matches(self):
         m=json.loads((ROOT/"MANIFEST.json").read_text())
-        self.assertEqual(m["release"],"AoTT-8311-v2r3")
+        self.assertEqual(m["release"],"AoTT-8311-v2r4")
         self.assertTrue(m["source_only"])
         self.assertFalse(m["firmware_binaries_included"])
         self.assertGreaterEqual(len(m["overlay_files"]),60)

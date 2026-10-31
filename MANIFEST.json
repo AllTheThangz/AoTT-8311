@@ -5,19 +5,19 @@
       "bytes": 138,
       "executable": false,
       "path": "etc/8311_version",
-      "sha256": "1ed2554d4b6c000cf27858dde100648c9a6cd34c7d23411991be567e9bc1d824"
+      "sha256": "e02d77891374609eb92e811da6464f917f4b7662155da1abb3f7ced0f12c62b0"
     },
     {
       "bytes": 238,
       "executable": false,
       "path": "etc/aott_release",
-      "sha256": "5d36338e101286d892ec5af44e7e192a361f6a5ac1c88fc9374abb590983d573"
+      "sha256": "68a74cd5ea64b190609c7a54e384bc041050a681adcfab4fa42d468a7df223e1"
     },
     {
       "bytes": 288,
       "executable": false,
       "path": "etc/banner",
-      "sha256": "db5507ed92a5e9da540b3ab038abba53038b96e1a0e618f107a3239b9eea3c83"
+      "sha256": "14936760d2b80c55e35914981b8fc016e55dad8f2322328aed0eccb840057c95"
     },
     {
       "bytes": 164,
@@ -167,7 +167,7 @@
       "bytes": 112,
       "executable": false,
       "path": "usr/lib/lua/8311/version.lua",
-      "sha256": "7c21bb83ae077679ce4595ace3f43a7c5385f15c151c07485e043a159b5ac27e"
+      "sha256": "7cec236767fbb21c5a4c9137092cdbe07cc86441daa2c20849545bd990308a49"
     },
     {
       "bytes": 3440,
@@ -411,8 +411,8 @@
     }
   ],
   "product": "AoTT-8311",
-  "release": "AoTT-8311-v2r3",
-  "revision": "r3",
+  "release": "AoTT-8311-v2r4",
+  "revision": "r4",
   "schema": 1,
   "secrets_included": false,
   "source_only": true,
