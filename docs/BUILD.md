@@ -8,6 +8,7 @@ installation package or redistributable vendor firmware.
    and OMCI ABI. Never export a subscriber's live /etc/config or flash.
 2. Run the repository source audit and unit tests:
 
+       python3 tools/release_identity.py
        python3 tools/verify_release.py .
        python3 -m unittest discover -s tests -v
 
@@ -31,10 +32,98 @@ installation package or redistributable vendor firmware.
    boot fallback. Confirm PON, 10G, SSH/HTTPS, WAN throughput and logs.
 8. Commit only after a complete, explicitly authorized trial acceptance.
 
-This repository cannot reproduce the historical v2r1 full firmware
-bit-for-bit without external original vendor binaries and source materials.
+This source-only repository cannot reproduce a complete v2r1 or v2r3
+firmware image bit-for-bit without external authorized vendor components.
 It intentionally includes neither vendor flash components nor user/ISP
 provisioning data.
 
 The source overlay helper never writes to a running device, runs UCI,
 updates the boot environment, or performs an installation.
+
+## Read-only firmware archive preflight
+
+A compatible vendor-generated firmware archive can be inspected offline without
+extracting its contents or contacting any ONU:
+
+    python3 tools/qualify_offline_image.py \
+      --archive /path/to/firmware-upgrade.tar \
+      --volume-bytes 6221824 \
+      --min-headroom 65536
+
+Use the target device's actual UBI rootfs volume capacity in bytes. The
+6,221,824-byte value above describes the existing LL-XS1010 bank layout; it
+is not guaranteed for other hardware or firmware profiles.
+
+The checker requires a five-member archive, matching component SHA-256 values,
+valid SquashFS v4/XZ metadata, zero-filled image padding, and image size
+within the target volume. It does not decompress or execute firmware. Its
+default minimum headroom is 32 KiB with a warning below the preferred 64 KiB.
+New releases should use 64 KiB or a platform-qualified alternative reserve.
+
+The known v2r1 image fits the volume but provides only 40 KiB headroom,
+so it passes the historical 32 KiB minimum and fails the recommended 64 KiB
+release threshold. Do not treat a passing static check as proof of
+bootability, service continuity, or vendor-component redistribution rights.
+
+## Hardware and lean build scope
+
+Read the separate documentation in GitHub before attempting any
+device image:
+
+- [Exact hardware compatibility](COMPATIBILITY.md)
+- [CPU, RAM and NAND capacity](RESOURCE-ALLOCATION.md)
+- [Runtime asset pruning and build profiles](BUILD-PROFILES.md)
+- [MIB format documentation](MIB-FORMAT.md)
+
+The static vendor MIB readme is removed by offline pruning profiles;
+the MIB data files, firmware runtime integrity contract, interface
+labels and valid hardware controls remain on the stick.
+
+This repository contains the source tools and documentation, never
+the binary-derived offline test images, their proprietary dependencies,
+or subscriber-specific configuration.
+
+## Current candidate identity and archive assembly
+
+`release.json` defines the machine release and human display label. After
+an intentional revision change, `python3 tools/release_identity.py
+--write-source` regenerates four text files in the source overlay. Review
+them and update their SHA-256 manifest before staging. The hardware profile,
+kernel and bootcore identities remain independent of the product revision.
+
+Merge the verified overlay into a new private copy of the audited base,
+preserving symlinks and device nodes. Apply the selected pruning profile
+and refresh only reviewed candidate pins with
+`tools/refresh_runtime_profile.py`. Keep all private base files and generated
+images outside this checkout. Additional binary security updates require
+separate exact source/build provenance and reviewed runtime pins.
+
+After producing the 1 MiB-block XZ SquashFS, assemble a candidate with:
+
+    python3 tools/build_offline_archive.py \
+      --rootfs /path/to/private/rootfs.img \
+      --kernel /path/to/private/kernel.bin \
+      --bootcore /path/to/private/bootcore.bin \
+      --destination /path/to/NEW-private-release \
+      --epoch BUILD_EPOCH \
+      --volume-bytes 6221824
+
+The builder verifies the pinned kernel and bootcore, independently extracts
+the image, checks source files and runtime identity, verifies the runtime
+integrity contract, enforces 64 KiB minimum headroom, and confirms identical
+USTAR output from two assemblies. It records `UNTRIALED_OFFLINE_ONLY` and
+`safe_for_live_install: false`. Failed output directories receive a `FAILED`
+marker and must not be used.
+
+Any live trial kit must derive the current running and committed bank
+afresh. Historical v2r1 kits used the opposite bank direction and contain
+obsolete archive hashes; they are not reusable for this candidate.
+
+## Management routing acceptance
+
+Before qualifying a build that modifies the management helper, UCI defaults,
+or configuration persistence, run the management-gateway compatibility tests.
+The v2r2 trial showed that a syntactically valid image can preserve PON
+forwarding yet sever routed management. The privately hardware-tested v2r3
+firmware preserves saved legacy routes instead of guessing an unverified next hop. See
+[MANAGEMENT-ROUTING.md](MANAGEMENT-ROUTING.md).

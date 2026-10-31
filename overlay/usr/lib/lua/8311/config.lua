@@ -51,16 +51,18 @@ local function display(item, value)
 	return value
 end
 
+-- Keep the saved gateway intact. Historical builds can rely on a
+-- self-address default route for remote management; it must not disappear
+-- when an administrator saves an unrelated setting.
+
 function M.snapshot(schema)
 	local values, err = tools.fwenv_read_all()
 	if not values then return nil, err end
 	local items = flat(schema)
-	-- This default follows the saved management IP, including a pending change;
-	-- the runtime's /tmp cache may still contain the previous startup's address.
+	-- An unset gateway is no route. Do not let the GUI fill it with the
+	-- device's own IP, including when another management IP is pending.
 	for _, item in ipairs(items) do
-		if item.id == "gateway" then
-			item.default = values['8311_ipaddr'] ~= nil and values['8311_ipaddr'] ~= "" and values['8311_ipaddr'] or "192.168.11.1"
-		end
+		if item.id == "gateway" then item.default = "" end
 	end
 	local revision, why = web.digest_text(canonical(items, values))
 	if not revision then return nil, why end
@@ -231,6 +233,7 @@ function M.prepare(snapshot, form)
 				if item.value == "" and value == effective(item, "") then value = ""
 				elseif item.type == "checkbox_onoff" then value = value == "1" and "on" or "off" end
 			elseif item.id ~= "gateway" and item.value == "" and item.default ~= nil and value == tostring(item.default) then value = "" end
+			-- Never rewrite the gateway unless it was actually edited.
 			if value ~= item.value then
 				changes[#changes+1] = {item=item, value=value, raw=item.base64 and value ~= "" and base64.enc(value) or value}
 				diff[#diff+1] = {id=item.id,name=item.name,before=display(item,item.value),after=display(item,value),applies=item.id == "lang" and "Web interface after save" or "Next startup; live consumers may also re-read it"}
@@ -242,9 +245,8 @@ function M.prepare(snapshot, form)
 		if type(value) ~= "string" then errors[name] = "Duplicate or invalid field" end
 	end
 	local v = proposed
-	-- An unset gateway follows the proposed IP at the next startup. An explicit
-	-- gateway remains explicit, even when it equals the old/default address.
-	if form.gateway == "" then v.gateway = v.ipaddr end
+	-- Blank means no gateway for a fresh configuration. Saved legacy
+	-- self-address routes remain visible and unchanged unless edited.
 	if v.fix_vlans == "1" and v.internet_vlan ~= "" and v.services_vlan ~= "" and
 	   tonumber(v.internet_vlan) and tonumber(v.internet_vlan) == tonumber(v.services_vlan) then
 		errors.services_vlan = "Internet and Services VLANs must differ while automatic VLAN fixes are enabled"
@@ -255,14 +257,32 @@ function M.prepare(snapshot, form)
 			errors.pon_slot = "The selected MIB profile cannot safely apply this UNI slot; use a compatible MIB or leave its native slot mapping unchanged"
 		end
 	end
-	if v.ipaddr and v.netmask and v.gateway then
-		local ip, mask, gateway = ipv4(v.ipaddr), ipv4(v.netmask), ipv4(v.gateway)
-		if ip and mask and gateway then
+	if v.ipaddr and v.netmask then
+		local ip, mask = ipv4(v.ipaddr), ipv4(v.netmask)
+		if ip and mask then
 			local span = 4294967296 - mask
 			local power = 1; while power < span do power = power * 2 end
-			if power ~= span or span < 4 or span > 16777216 then errors.netmask = "Use a contiguous /8 to /30 subnet mask"
-			elseif ip % span == 0 or ip % span == span-1 then errors.ipaddr = "Use a host address, not the network or broadcast address"
-			elseif gateway ~= ip and (math.floor(ip/span) ~= math.floor(gateway/span) or gateway % span == 0 or gateway % span == span-1) then errors.gateway = "Gateway must be a host in the management subnet, or the management IP to disable it" end
+			if power ~= span or span < 4 or span > 16777216 then
+				errors.netmask = "Use a contiguous /8 to /30 subnet mask"
+			elseif ip % span == 0 or ip % span == span-1 then
+				errors.ipaddr = "Use a host address, not the network or broadcast address"
+			elseif v.gateway and v.gateway ~= "" then
+				local gateway = ipv4(v.gateway)
+				local original_ip = snapshot.values["8311_ipaddr"] or ""
+				if original_ip == "" then original_ip = "192.168.11.1" end
+				local original_gateway = snapshot.values["8311_gateway"] or ""
+				local legacy_unchanged = original_gateway ~= ""
+					and original_gateway == original_ip and v.gateway == original_gateway
+				if not gateway then
+					errors.gateway = "Enter a valid management gateway"
+				elseif legacy_unchanged and v.ipaddr ~= original_ip then
+					errors.gateway = "Changing the management IP requires explicitly replacing or clearing the legacy gateway; verify an alternative management path first"
+				elseif gateway == ip and not legacy_unchanged then
+					errors.gateway = "New self-address gateways are not supported; choose a reachable router or leave blank"
+				elseif gateway ~= ip and (math.floor(ip/span) ~= math.floor(gateway/span) or gateway % span == 0 or gateway % span == span-1) then
+					errors.gateway = "Gateway must be a valid host in the management subnet"
+				end
+			end
 		end
 	end
 	if next(errors) then return nil, errors, 422 end

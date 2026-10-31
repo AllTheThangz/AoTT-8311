@@ -60,7 +60,7 @@
 @media(max-width:700px){.aott-hostname{display:none}.aott-fw-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.aott-fw-panel{padding:11px}.aott-fw-actions button{width:100%}.aott-footer-primary{font-size:12px}}
 @media(max-width:380px){.aott-fw-summary{grid-template-columns:1fr}}
 
-/* AoTT-8311-v2r1 — readability, high contrast, task navigation.
+/* AoTT-8311-v2r1 : readability, high contrast, task navigation.
    Light/dark semantics and UI boundaries were checked against WCAG contrast ratios. */
 :root[data-aott-theme="light"] {
   color-scheme: light;
@@ -466,4 +466,121 @@
     padding:4px 0 4px 10px;
     margin-top:6px;
     overflow-wrap:anywhere;
+}
+
+/* AoTT overview contrast for interface tiles, status text, and progress
+ * graphs. The inherited LuCI theme hardcodes white card backgrounds,
+ * a white text glow, and a nearly white progress label.
+ * Use the same semantic theme colors as the rest of the interface. */
+[data-aott-theme] #view.aott-overview-live .network-status-table .ifacebox,
+[data-aott-theme] #view.aott-overview-live .network-status-table .ifacebadge {
+  background:var(--aott-pane-alt);
+  background-image:none;
+  border:1px solid var(--aott-border);
+  color:var(--aott-text);
+  text-shadow:none;
+  box-shadow:var(--aott-shadow);
+}
+[data-aott-theme] #view.aott-overview-live .network-status-table .ifacebox-head,
+[data-aott-theme] #view.aott-overview-live .network-status-table .ifacebox-body {
+  color:var(--aott-text);
+  text-shadow:none;
+}
+[data-aott-theme] #view.aott-overview-live .network-status-table .ifacebox-head {
+  background:var(--aott-pane);
+  border-color:var(--aott-border);
+}
+[data-aott-theme] #view.aott-overview-live .network-status-table .ifacebox-head.active {
+  background:var(--aott-highlight);
+}
+[data-aott-theme] #view.aott-overview-live .network-status-table .ifacebox strong,
+[data-aott-theme] #view.aott-overview-live .network-status-table .ifacebox small,
+[data-aott-theme] #view.aott-overview-live .network-status-table .ifacebadge span {
+  color:var(--aott-text);
+  text-shadow:none;
+}
+[data-aott-theme] #view.aott-overview-live .cbi-progressbar {
+  background:var(--aott-control);
+  border:1px solid var(--aott-border);
+  color:var(--aott-text);
+  box-shadow:none;
+  min-width:0;
+  max-width:100%;
+}
+[data-aott-theme] #view.aott-overview-live .cbi-progressbar > div {
+  background:var(--aott-action);
+}
+[data-aott-theme] #view.aott-overview-live .cbi-progressbar::after {
+  color:var(--aott-text);
+  text-shadow:none;
+  font-size:12px;
+  font-weight:650;
+  line-height:19px;
+}
+[data-aott-theme="light"] #view.aott-overview-live .cbi-progressbar > div {
+  /* Ensure dark label text remains legible both over the bar and empty track. */
+  background:#91cffa;
+}
+@media screen and (max-width:540px) {
+  [data-aott-theme] #view.aott-overview-live .network-status-table .ifacebox {
+    min-width:0;
+    width:100%;
+  }
+}
+
+/* Use sufficient SVG label and grid contrast if status graphs are embedded
+ * in the overview by the active LuCI version. Leave plotted data intact. */
+[data-aott-theme="dark"] #view.aott-overview-live svg text {
+  fill:#f0f6ff!important;
+  text-shadow:none!important;
+}
+[data-aott-theme="dark"] #view.aott-overview-live svg line {
+  stroke:#91a8c7!important;
+  stroke-width:.6!important;
+}
+[data-aott-theme="dark"] #view.aott-overview-live svg polyline#rx {
+  stroke:#77cfff!important;
+  fill:#77cfff!important;
+  fill-opacity:.24!important;
+  stroke-width:1.5!important;
+}
+[data-aott-theme="dark"] #view.aott-overview-live svg polyline#tx {
+  stroke:#8dea9d!important;
+  fill:#8dea9d!important;
+  fill-opacity:.24!important;
+  stroke-width:1.5!important;
+}
+[data-aott-theme="light"] #view.aott-overview-live svg text {
+  fill:#14263c!important;
+  text-shadow:none!important;
+}
+
+/* LuCI realtime line graph text and background contrast correction.
+ * The inherited graph loader inserts a white inline background, pale
+ * labels, and nearly invisible hairline grid rules. Target only the
+ * known 300px LuCI graph containers and preserve RX/TX series identities. */
+[data-aott-theme] #view div[style*="height:300px"][style*="background:#fff"] {
+  background:var(--aott-pane-alt)!important;
+  border:1px solid var(--aott-border)!important;
+  color:var(--aott-text)!important;
+}
+[data-aott-theme] #view div[style*="height:300px"][style*="background:#fff"] svg text {
+  fill:var(--aott-text)!important;
+  text-shadow:none!important;
+}
+[data-aott-theme] #view div[style*="height:300px"][style*="background:#fff"] svg line {
+  stroke:var(--aott-muted)!important;
+  stroke-width:.65!important;
+}
+[data-aott-theme="dark"] #view div[style*="height:300px"][style*="background:#fff"] svg polyline#rx {
+  stroke:#77cfff!important;
+  fill:#77cfff!important;
+  fill-opacity:.24!important;
+  stroke-width:1.5!important;
+}
+[data-aott-theme="dark"] #view div[style*="height:300px"][style*="background:#fff"] svg polyline#tx {
+  stroke:#8dea9d!important;
+  fill:#8dea9d!important;
+  fill-opacity:.24!important;
+  stroke-width:1.5!important;
 }

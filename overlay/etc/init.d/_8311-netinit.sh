@@ -19,8 +19,10 @@ boot() {
 	# LCT Netmask
 	set_8311_netmask "$(get_8311_netmask)"
 
-	# LCT Gateway
-	set_8311_gateway "$(get_8311_gateway)"
+	# Keep existing management routes, including legacy self-address values.
+	# Only an explicitly unset gateway means no default route.
+	LCT_GATEWAY=$(get_8311_gateway)
+	[ -n "$LCT_GATEWAY" ] && set_8311_gateway "$LCT_GATEWAY"
 
 	# LCT MAC
 	set_8311_lct_mac "$(get_8311_lct_mac)"

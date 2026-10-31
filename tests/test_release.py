@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import pathlib
+import shutil
 import tempfile
 import unittest
 
@@ -21,7 +22,7 @@ class SourceReleaseTest(unittest.TestCase):
 
     def test_full_manifest_matches(self):
         m=json.loads((ROOT/"MANIFEST.json").read_text())
-        self.assertEqual(m["release"],"AoTT-8311-v2r1")
+        self.assertEqual(m["release"],"AoTT-8311-v2r3")
         self.assertTrue(m["source_only"])
         self.assertFalse(m["firmware_binaries_included"])
         self.assertGreaterEqual(len(m["overlay_files"]),60)
@@ -62,6 +63,27 @@ class SourceReleaseTest(unittest.TestCase):
         mac="a2"+":1b"+":2c"+":3d"+":4e"+":5f"
         self.assertIn("literal hardware MAC address",
                       verify.inspect_text("test.txt",mac))
+
+    def test_tampered_executable_mode_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sandbox = pathlib.Path(tmp)/"release"
+            shutil.copytree(ROOT,sandbox,ignore=shutil.ignore_patterns(".git","__pycache__"))
+            target=sandbox/"overlay/usr/sbin/8311-bankctl.sh"
+            target.chmod(0o644)
+            _,findings=verify.check(sandbox)
+            self.assertIn("overlay manifest executable-mode mismatch",
+                          [issue for _,issue in findings])
+
+    def test_tampered_size_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sandbox = pathlib.Path(tmp)/"release"
+            shutil.copytree(ROOT,sandbox,ignore=shutil.ignore_patterns(".git","__pycache__"))
+            target=sandbox/"overlay/usr/sbin/8311-bankctl.sh"
+            with target.open("ab") as stream:
+                stream.write(b"\\n")
+            _,findings=verify.check(sandbox)
+            self.assertIn("overlay manifest size mismatch",
+                          [issue for _,issue in findings])
 
     def test_offline_install_into_new_directory(self):
         with tempfile.TemporaryDirectory() as base:

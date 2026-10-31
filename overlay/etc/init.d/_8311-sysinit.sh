@@ -43,9 +43,34 @@ start() {
 	SYS_LANG=$(get_8311_lang)
 	[ -n "$SYS_LANG" ] && set_8311_lang "$SYS_LANG"
 
-	# fwenv for setting the root account password hash
+	# Apply an existing, validated saved administrator hash. Never generate a
+	# shared password, log the value, or replace it with an unknown default.
 	ROOT_PWHASH=$(get_8311_root_pwhash)
-	[ -n "$ROOT_PWHASH" ] && set_8311_root_pwhash "$ROOT_PWHASH"
+	if [ -n "$ROOT_PWHASH" ]; then
+		if ! set_8311_root_pwhash "$ROOT_PWHASH"; then
+			unset ROOT_PWHASH
+			echo "Security: failed to apply saved root credential at boot" | to_console
+			return 1
+		fi
+		# Read back the live shadow field without passing secret material on the
+		# awk command line or emitting the comparison values to logs/stdout.
+		if ! { printf '%s\n' "$ROOT_PWHASH"; cat /etc/shadow; } | awk -F: '
+			NR == 1 { expected=$0; next }
+			$1 == "root" { found=1; if ($2 != expected) exit 1 }
+			END { if (!found) exit 1 }
+		' >/dev/null 2>&1; then
+			unset ROOT_PWHASH
+			echo "Security: saved root credential did not survive live readback" | to_console
+			return 1
+		fi
+		unset ROOT_PWHASH
+	else
+		# A blank root field is not a safe deployment default. Report only
+		# the state; credential creation requires local administrative action.
+		if awk -F: '$1 == "root" && $2 == "" { blank=1 } END { exit !blank }' /etc/shadow; then
+			echo "Security warning: no valid saved root credential; configure a unique password and restrict management access" | to_console
+		fi
+	fi
 }
 
 boot() {

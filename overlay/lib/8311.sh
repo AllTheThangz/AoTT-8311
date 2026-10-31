@@ -346,8 +346,13 @@ set_8311_netmask() {
 }
 
 get_8311_gateway() {
-	[ -f "/tmp/8311-gateway" ] || { fwenv_get_8311 "gateway" | ipv4 || get_8311_ipaddr; } > "/tmp/8311-gateway"
-
+	# Preserve a saved legacy self-address route without rewriting it.
+	# Some PRX126 deployments need that route for management return traffic.
+	# Only a genuinely unset value means no default route. Do not substitute
+	# an unverified next hop from the kernel boot arguments.
+	if [ ! -f "/tmp/8311-gateway" ]; then
+		{ fwenv_get_8311 "gateway" | ipv4 || :; } > "/tmp/8311-gateway" || return 1
+	fi
 	cat "/tmp/8311-gateway"
 }
 
@@ -402,13 +407,19 @@ set_8311_ethtool() {
 get_8311_root_pwhash() {
 	local hash
 	hash=$(fwenv_get_8311 "root_pwhash") || return 1
-	/usr/libexec/8311-root-hash-valid "$hash" || return 1
+	# The Lua validator can emit unrelated startup text on stdout. Its
+	# exit status alone authorizes a hash; never append diagnostic text
+	# to the value returned for password restoration.
+	/usr/libexec/8311-root-hash-valid "$hash" >/dev/null 2>&1 || return 1
 	printf '%s\n' "$hash"
 }
 
 set_8311_root_pwhash() {
 	local hash="$1" tmp mode uid gid
-	/usr/libexec/8311-root-hash-valid "$hash" || return 1
+	# The Lua validator can emit unrelated startup text on stdout. Its
+	# exit status alone authorizes a hash; never append diagnostic text
+	# to the value returned for password restoration.
+	/usr/libexec/8311-root-hash-valid "$hash" >/dev/null 2>&1 || return 1
 	echo "Setting root password hash" | to_console
 	tmp=$(mktemp /etc/.shadow.8311.XXXXXX) || return 1
 	awk -F: -v OFS=: -v hash="$hash" '

@@ -622,11 +622,11 @@ function fwenvs_8311()
 				},{
 					id="gateway",
 					name=translate("Management default gateway"),
-					description=translate("Optional gateway for management-plane routes. Leaving it blank uses no separately configured default gateway; changing it may affect remote management."),
+					description=translate("Optional management default gateway. Existing legacy self-address routes are kept for compatibility: do not clear one until another management path is verified. A blank new setting means no route. New self-address gateways are rejected. Changes apply on next startup and can disconnect remote management."),
 					maxlength=15,
 					pattern=ipv4_regex,
 					type="text",
-					default="192.168.11.1" -- snapshot replaces this with the saved management IP
+					default=""
 				},{
 					id="dns_server",
 					name=translate("Management DNS resolver"),
