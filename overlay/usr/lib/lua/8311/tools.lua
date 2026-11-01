@@ -1,4 +1,5 @@
 local require = require
+local pcall = pcall
 local string = string
 local setmetatable = setmetatable
 local tonumber = tonumber
@@ -158,8 +159,21 @@ local function optical_dbm(word)
 	if word > 0 then return 10 * math.log10(word / 10000) end
 end
 
-function metrics()
-	local ploam_status = string.match(" " .. (util.exec("pon psg") or "") .. " ", "%scurrent=(%d+)%s")
+-- A collector scrape must never block indefinitely in the vendor pon CLI.
+-- Existing interactive status calls retain their historical behavior.
+function metrics(bounded)
+    local status_text
+    if bounded then
+        local ok, code, output, overflow = pcall(
+            require("8311.webutil").capture,
+            {"/usr/bin/timeout", "-k", "1", "3", "/usr/bin/pon", "psg"}, 1024)
+        if ok and code == 0 and not overflow and type(output) == "string" then
+            status_text = output
+        end
+    else
+        status_text = util.exec("pon psg")
+    end
+    local ploam_status = string.match(" " .. (status_text or "") .. " ", "%scurrent=(%d+)%s")
 	local values = {
 		ploam_state = tonumber(ploam_status),
 		cpu1_tempC = sensor_temperature("/sys/class/thermal/thermal_zone0/temp"),

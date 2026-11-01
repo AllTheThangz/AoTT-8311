@@ -61,6 +61,7 @@ Do not invent a GUI control for a protocol, persistence mechanism or source unav
 
 - Reuse `8311.tools.metrics()` for basic optical values. Extend from the existing authenticated `8311.health.performance()` for uptime, Ethernet/GEM counters and link details only when safe.
 - Keep inexpensive optical status polls separate from costly `pontop` and `ethtool` subprocess calls. Bound process timeouts, output bytes, response sizes and concurrent work.
+- The draft JSON collector path bounds the basic pon psg command using the existing BusyBox timeout and a 1 KiB output cap. This does not replace concurrent-scrape and GEM workload measurements.
 - Suggested external scrape guidance: around 60 seconds for basic optics/PON, around 300 seconds for heavy diagnostic counters; measure before choosing firm defaults.
 - Use explicit status for unavailable counters, resets, reboot boundaries and omitted samples. Do not invent zeros or derive data rates from a single sample.
 - Prefer metric names with units and Prometheus `_total` suffixes for monotonic counters if text exposition is implemented.

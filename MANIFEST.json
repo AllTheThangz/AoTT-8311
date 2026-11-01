@@ -158,10 +158,10 @@
       "sha256": "985c30be54a9328e2adfa868e45a19a22253057626b45c39926a760c84594788"
     },
     {
-      "bytes": 5472,
+      "bytes": 6039,
       "executable": false,
       "path": "usr/lib/lua/8311/tools.lua",
-      "sha256": "792795d6ae10c23254a16b727027dbf464bf82c53fcf9375a6217a02335617fe"
+      "sha256": "49f0d7a6fce40ad13ba4c57664b16bd99ceb87667e8b1537af357027084b047a"
     },
     {
       "bytes": 7186,
@@ -182,10 +182,10 @@
       "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
     },
     {
-      "bytes": 52188,
+      "bytes": 52194,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "0ef66bad0733fba5b9988d4d6a7ac52bfaeca5c6d93cda491a34f90cf42e4b33"
+      "sha256": "3a6e47a7bab6aef0d236159b46b9a6d9bec8bedcf6e1ae996ca7905eeb6384bc"
     },
     {
       "bytes": 13773,

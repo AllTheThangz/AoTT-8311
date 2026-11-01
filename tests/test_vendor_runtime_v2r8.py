@@ -71,6 +71,16 @@ class VendorMonitoringIntegrationTests(unittest.TestCase):
                           "usr/lib/lua/luci/sgi/uhttpd.lua")
         self.assertIn("VENDOR_UHTTPD_ENVIRONMENT_OFFLINE_PASS", out)
 
+    def test_bounded_pon_scrape_uses_target_mips_lua(self):
+        if not shutil.which("qemu-mips-static"):
+            self.skipTest("Target MIPS emulator unavailable")
+        out = self.command([
+            "qemu-mips-static", "-L", str(VENDOR), str(VENDOR / "usr/bin/lua"),
+            str(ROOT / "tests/metrics_bounded_fixture.lua"),
+            str(ROOT / "overlay/usr/lib/lua/8311/tools.lua")
+        ])
+        self.assertIn("BOUNDED_METRICS_FIXTURE_PASS", out)
+
 
 if __name__ == "__main__":
     unittest.main()

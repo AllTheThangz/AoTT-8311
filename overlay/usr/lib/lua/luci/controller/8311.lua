@@ -782,7 +782,7 @@ function action_metrics()
     end
     http.header("Cache-Control", "no-store, private")
     http.header("X-Content-Type-Options", "nosniff")
-    local ok, metrics = pcall(tools.metrics)
+    local ok, metrics = pcall(tools.metrics, true)
     if not ok or type(metrics) ~= "table" then
         return web.reply(http, 503, {success=false, error="Metrics unavailable"})
     end

@@ -12,6 +12,7 @@ The base is the committed v2r7 source for the qualified PRX126-SFP-PON hardware 
 - A bounded, locally generated test log message returns a correlation marker. It cannot confirm that a UDP or TCP collector received the message.
 - The inherited anonymous metrics service is replaced with an administrator-authenticated metrics view and an external read-only metrics route. The external route requires HTTPS, the exact allowed source IP, a socket destination matching the configured management address, and the X-AoTT-Metrics-Token header. Forwarded/proxy identity headers are ignored.
 - The existing Live Health page remains authenticated and provides additional Ethernet and GEM diagnostics. No database, Python runtime, exporter service or flash-based historical log storage is installed.
+- The external JSON metrics path now bounds the inherited PON registration probe using the already-installed BusyBox timeout and a 1 KiB output limit. A timeout, overflow or failed read yields an unavailable PLOAM value rather than a false zero; interactive PON status remains unchanged. A target-MIPS fixture checks failure modes.
 - The current vendor remote-log service has **no supported severity filtering knob**. Do not expose a nonfunctional severity setting; collectors may apply their own filtering.
 
 ## Validation performed

@@ -25,6 +25,16 @@ class MonitoringBackendTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("MONITORING_FIXTURE_PASS", result.stdout)
 
+    def test_bounded_optical_metrics_fixture(self):
+        if not shutil.which("lua5.1"):
+            self.skipTest("Lua 5.1 unavailable")
+        result = subprocess.run(
+            ["lua5.1", str(ROOT / "tests/metrics_bounded_fixture.lua"),
+             str(ROOT / "overlay/usr/lib/lua/8311/tools.lua")],
+            capture_output=True, text=True, timeout=12)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("BOUNDED_METRICS_FIXTURE_PASS", result.stdout)
+
     def test_lua51_syntax_for_new_and_existing_controller(self):
         if not shutil.which("luac5.1"):
             self.skipTest("Lua 5.1 compiler not installed")
