@@ -34,10 +34,11 @@ class MonitoringBackendTests(unittest.TestCase):
                     capture_output=True, text=True, timeout=8)
                 self.assertEqual(r.returncode, 0, r.stderr)
 
-    def test_inherited_anonymous_metrics_route_removed(self):
+    def test_inherited_anonymous_metrics_route_replaced_with_guard(self):
         s = CONTROLLER.read_text()
-        self.assertNotIn('entry({"8311", "metrics"}', s)
+        self.assertIn('entry({"8311", "metrics"}, call("action_collector_metrics"))', s)
         self.assertIn('entry({"admin", "8311", "metrics"}', s)
+        self.assertIn('monitoring.collector_authorized(http.getenv)', s)
         self.assertIn('call("action_metrics")', s)
         self.assertIn('monitoring.metrics_enabled()', s)
         self.assertIn('Cache-Control", "no-store, private"', s)
@@ -45,7 +46,8 @@ class MonitoringBackendTests(unittest.TestCase):
 
     def test_config_writes_are_authenticated_and_csrf_checked(self):
         s = CONTROLLER.read_text()
-        for name in ("action_r8_monitoring_save", "action_r8_monitoring_test"):
+        for name in ("action_r8_monitoring_save", "action_r8_monitoring_test",
+                     "action_r8_monitoring_credential"):
             anchor = "function " + name + "()"
             self.assertIn(anchor, s)
             body = s.split(anchor, 1)[1].split("\nend", 1)[0]
@@ -76,9 +78,27 @@ class MonitoringBackendTests(unittest.TestCase):
         self.assertIn('Receiver', s)
         self.assertIn("receiver's availability cannot be inferred", s.lower())
         self.assertIn("filter log levels on your collector", s)
-        self.assertIn("requires an authenticated administrator session", s.lower())
+        self.assertIn("External endpoint", s)
+        self.assertIn("X-AOTT-Metrics-Token", s)
+        self.assertIn('name="aott_metrics_client"', s)
+        self.assertIn("aott-r8-token-rotate", s)
+        self.assertIn("aott-r8-token-revoke", s)
         self.assertNotIn('name="log_level"', s)
         self.assertNotIn("192.168.0.", s)
+
+    def test_collector_auth_is_strict_and_never_accepts_query_tokens(self):
+        s = MODULE.read_text()
+        self.assertIn('function M.collector_authorized(getenv)', s)
+        self.assertIn('function M.change_credential(revision, operation)', s)
+        self.assertIn('getenv("HTTPS")', s)
+        self.assertIn('getenv("REMOTE_ADDR")', s)
+        self.assertIn('getenv("SERVER_ADDR")', s)
+        self.assertIn('getenv("HTTP_X_AOTT_METRICS_TOKEN")', s)
+        self.assertIn('trusted_local_address(u, local_addr)', s)
+        self.assertIn('web.digest_text("AoTT-8311:v2r8:metrics:" .. token)', s)
+        self.assertNotIn('getenv("HTTP_X_FORWARDED_FOR")', s)
+        self.assertNotIn('getenv("QUERY_STRING")', s)
+        self.assertNotIn("io.popen(", s)
 
     def test_new_components_are_in_source_manifest(self):
         m = json.loads((ROOT / "MANIFEST.json").read_text())

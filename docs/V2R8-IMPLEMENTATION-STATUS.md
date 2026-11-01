@@ -7,10 +7,10 @@ The base is the committed v2r7 source for the qualified PRX126-SFP-PON hardware 
 ## Implemented in this development branch
 
 - A lightweight Lua module uses existing UCI and the vendor's OpenWrt logging service. A read-only inspection of the qualified vendor image verified that `/etc/init.d/log` supports `log_remote`, `log_ip`, `log_port`, and `log_proto` with **UDP and TCP** transport options.
-- The authenticated Monitoring & Telemetry LuCI page can configure forwarding, receiver address/port and protocol, and enable or disable an **authenticated** read-only JSON metrics endpoint.
+- The authenticated Monitoring & Telemetry page configures remote syslog, an exact allowed IPv4 collector address and optional metrics. The administrator can generate, rotate or revoke a separate 256-bit random read-only token. Only a domain-separated SHA-256 digest is persisted. A new token is shown once over HTTPS.
 - Form submission requires LuCI session/CSRF validation, rejects unknown fields and malformed addresses/ports, checks a saved-configuration revision, locks concurrent AoTT monitoring writes, applies a single UCI system section, and reloads only the logger. A failed reload attempts to restore and verify the previous configuration.
 - A bounded, locally generated test log message returns a correlation marker. It cannot confirm that a UDP or TCP collector received the message.
-- The inherited anonymous `/cgi-bin/luci/8311/metrics` route is no longer registered. The replacement `/cgi-bin/luci/admin/8311/metrics` inherits LuCI administrative authentication, is disabled unless enabled in UCI and returns no more than the existing basic optical/PON metrics.
+- The inherited anonymous metrics service is replaced with an administrator-authenticated metrics view and an external read-only metrics route. The external route requires HTTPS, the exact allowed source IP, a socket destination matching the configured management address, and the X-AoTT-Metrics-Token header. Forwarded/proxy identity headers are ignored.
 - The existing Live Health page remains authenticated and provides additional Ethernet and GEM diagnostics. No database, Python runtime, exporter service or flash-based historical log storage is installed.
 - The current vendor remote-log service has **no supported severity filtering knob**. Do not expose a nonfunctional severity setting; collectors may apply their own filtering.
 
@@ -18,17 +18,17 @@ The base is the committed v2r7 source for the qualified PRX126-SFP-PON hardware 
 
 - Static Lua 5.1 parser checks for the module and LuCI controller.
 - Isolated source-level Lua tests using mocked UCI, logging processes and locks. The tests cover invalid configuration, stale revision, successful save, test emission and failed-logging-service rollback.
-- The same Lua fixture passed in QEMU using the target MIPS userspace Lua interpreter.
+- The same Lua fixture passed in target MIPS Lua under QEMU. Security-negative tests exercise wrong or missing tokens, non-HTTPS requests, mismatched source and destination IPs, spoofed forwarded headers, stale credential requests, rotation and revocation.
 - Full source manifest and privacy/disclosure gates passed after adding the candidate files.
-- A **size-only** private SquashFS rebuild using the same XZ/1 MiB block settings measured **5,693,440 bytes**, versus the verified v2r7 **5,689,344 bytes**, a **4 KiB** increase. Remaining aligned rootfs capacity is **528,384 bytes (516 KiB)** in the unchanged 6,221,824-byte bank.
+- A **size-only** private SquashFS measurement using XZ and 1 MiB blocks is **5,697,536 bytes** against v2r7 **5,689,344 bytes**, a delta of **8 KiB**. Remaining fixed-bank capacity is **524,288 bytes (512 KiB)**. This is not a qualified flashable image.
 - Python regression tests and actual browser tests must be rerun on the final candidate, including CI with the Chromium requirements enforced.
 
 **Important:** this is not firmware qualification. The private size-only filesystem still carries the v2r7 runtime integrity profile. Its hashes are not updated for new files, it is not eligible for an upgrade archive, and it must not be installed onto a device.
 
 ## Remaining release-blocking work
 
-1. **Collector authentication:** determine a secure non-administrator read-only collection method or document an independently reviewed, tightly controlled authenticated proxy. Using the full LuCI administrator session for an unattended monitoring agent is not the desired final integration.
-2. **Access network:** verify management-interface ACLs and no untrusted/WAN exposure on a recoverable test instance. A route under `admin` enforces session authentication, but does not itself prove an interface-bound firewall policy.
+1. **Collector authorization qualification:** A separate HTTPS-only, read-only token and exact IPv4 allowlist exist in offline source. Verify actual target HTTP header/TLS and management socket behavior, credential permissions, negative requests and persistence in an isolated recoverable environment.
+2. **Access network:** Verify management-interface firewall ACLs and the absence of untrusted/WAN exposure on recoverable hardware. The request-level socket destination and source-IP checks are defense in depth, not a substitute for firewall testing.
 3. **Persistence:** test UCI reload, readback and log forwarding against the actual vendor build, including an unreachable receiver, failed reload, configuration conflict, reboot and bank switch. Lua mocks do not prove a procd runtime behavior.
 4. **Performance:** benchmark concurrent basic metrics scrapes, expensive detailed `pontop` reads, idle memory and active CPU usage. Do not implement new background polling before measuring.
 5. **Browser UX:** run real Chromium form submission/failure/test-event scenarios at desktop and mobile widths. Resolve all accessibility and styling defects before GUI signoff.

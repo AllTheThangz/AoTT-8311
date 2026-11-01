@@ -17,17 +17,22 @@ local function cursor()
     function u:get(config, section, key)
         assert(config == "system" and section == "test-system")
         if pending[key] ~= nil then
-            return pending[key] == DELETED and nil or pending[key]
+            if pending[key] == DELETED then return false end
+            return pending[key]
         end
         if stored[key] == nil then return false end
         return stored[key]
     end
     function u:get_all(config, section)
+        if config == "network" then
+            if section == "lct" then return {ipaddr=("192" .. ".0.2.1")} end
+            return nil
+        end
         assert(config == "system" and section == "test-system")
         local result = {[".type"]="system", [".name"]=section}
         for key, value in pairs(stored) do result[key]=value end
         for key, value in pairs(pending) do
-            result[key] = (value == DELETED) and nil or value
+            if value == DELETED then result[key] = nil else result[key] = value end
         end
         return result
     end
@@ -54,7 +59,7 @@ local function cursor()
     function u:commit(config)
         assert(config == "system")
         for k, v in pairs(pending) do
-            stored[k] = (v == DELETED) and nil or v
+            if v == DELETED then stored[k] = nil else stored[k] = v end
         end
         pending = {}
         return true
@@ -104,8 +109,9 @@ package.preload["8311.webutil"] = function()
 end
 package.preload["luci.sys"] = function()
     return {uniqueid=function(n)
-        assert(n == 8)
-        return "0123456789abcdef"
+        if n == 8 then return "0123456789abcdef" end
+        assert(n == 32)
+        return string.rep("a",64)
     end}
 end
 
@@ -119,7 +125,7 @@ assert(not monitor.metrics_enabled())
 local form = {
     revision=old.revision, token="irrelevant-in-isolated-stub",
     log_remote="1", log_ip="collector.example.com", log_port="5514",
-    log_proto="tcp", aott_metrics="1"
+    log_proto="tcp", aott_metrics="0", aott_metrics_client=""
 }
 local validated = assert(monitor.validate(form))
 assert(validated.log_ip == "collector.example.com")
@@ -151,10 +157,10 @@ do
 end
 local done, err, code = monitor.apply(form)
 assert(done and not err and code == 200)
-assert(done.log_remote == "1" and done.aott_metrics == "1")
+assert(done.log_remote == "1" and done.aott_metrics == "0")
 assert(done.log_proto == "tcp" and done.log_port == "5514")
 assert(reload_calls == 1 and not lock_held)
-assert(monitor.metrics_enabled())
+assert(not monitor.metrics_enabled())
 local latest = assert(monitor.snapshot())
 assert(latest.revision ~= old.revision)
 local stale, serr, status = monitor.apply(form)
@@ -167,7 +173,7 @@ assert(stored.log_ip == "collector.example.com")
 local rollback_form = {
     revision=latest.revision,
     log_remote="1", log_ip="collector.example.com", log_port="5515",
-    log_proto="udp", aott_metrics="1"
+    log_proto="udp", aott_metrics="0", aott_metrics_client=""
 }
 fail_reload_once=true
 local failed, warning, failure_code = monitor.apply(rollback_form)
@@ -177,4 +183,82 @@ assert(stored.log_port == "5514" and stored.log_proto == "tcp")
 assert(monitor.snapshot().revision == latest.revision)
 assert(not lock_held)
 assert(reload_calls == 3) -- successful apply, failed apply, successful rollback
+-- Read-only external collector credentials are independent from admin login.
+local before_token = assert(monitor.snapshot())
+assert(before_token.aott_metrics == "0" and not before_token.credential_configured)
+local generated, problem, http_status =
+    monitor.change_credential(before_token.revision, "rotate")
+assert(generated and not problem and http_status == 200)
+assert(generated.credential_configured and #generated.collector_token == 64)
+assert(stored.aott_metrics_sha256 and #stored.aott_metrics_sha256 == 64)
+assert(stored.aott_metrics_sha256 ~= generated.collector_token)
+assert(monitor.snapshot().revision ~= before_token.revision)
+assert(not lock_held)
+
+local obsolete, why_stale, stale_status =
+    monitor.change_credential(before_token.revision, "revoke")
+assert(not obsolete and stale_status == 409 and why_stale)
+local credential_state = assert(monitor.snapshot())
+local allowed_client = ("192" .. ".0.2.40")
+local guarded_form = {
+    revision=credential_state.revision,
+    log_remote="1", log_ip="collector.example.com", log_port="5514",
+    log_proto="tcp", aott_metrics="1",
+    aott_metrics_client=allowed_client
+}
+local enabled, why_enable, enable_status = monitor.apply(guarded_form)
+assert(enabled and enable_status == 200 and not why_enable)
+assert(enabled.credential_configured and enabled.aott_metrics == "1")
+assert(enabled.aott_metrics_client == allowed_client)
+assert(reload_calls == 3) -- a credential-only change must not restart logd
+assert(monitor.metrics_enabled())
+
+local env = {
+    HTTPS="on", REMOTE_ADDR=allowed_client, SERVER_ADDR=("192" .. ".0.2.1"),
+    HTTP_X_AOTT_METRICS_TOKEN=generated.collector_token
+}
+local function getenv(name) return env[name] end
+assert(monitor.collector_authorized(getenv))
+assert(not monitor.collector_authorized(nil))
+env.HTTPS="off"; assert(not monitor.collector_authorized(getenv)); env.HTTPS="on"
+env.REMOTE_ADDR=("192" .. ".0.2.41")
+env.HTTP_X_FORWARDED_FOR=allowed_client
+assert(not monitor.collector_authorized(getenv))
+env.REMOTE_ADDR=allowed_client
+env.SERVER_ADDR=("192" .. ".0.2.2"); assert(not monitor.collector_authorized(getenv))
+env.SERVER_ADDR=("192" .. ".0.2.1")
+env.HTTP_X_AOTT_METRICS_TOKEN=string.rep("b",64)
+assert(not monitor.collector_authorized(getenv))
+env.HTTP_X_AOTT_METRICS_TOKEN=generated.collector_token
+assert(monitor.collector_authorized(getenv))
+local rejects = {
+    {aott_metrics_client=""},
+    {aott_metrics_client=("0" .. ".0.0.0")},
+    {aott_metrics_client=("224" .. ".1.1.1")},
+    {aott_metrics_client=("192" .. ".0.2.40/32")},
+    {aott_metrics_client=("192" .. ".0.2.040")}
+}
+for _, mutation in ipairs(rejects) do
+    local invalid = {}
+    for k,v in pairs(guarded_form) do invalid[k]=v end
+    invalid.revision=monitor.snapshot().revision
+    for k,v in pairs(mutation) do invalid[k]=v end
+    local prepared = monitor.validate(invalid)
+    assert(prepared == nil, "Invalid collector address accepted")
+end
+local denied = {}
+for k,v in pairs(guarded_form) do denied[k]=v end
+denied.revision=monitor.snapshot().revision
+denied.aott_metrics_sha256=generated.collector_token
+assert(monitor.validate(denied)==nil)
+
+local current = assert(monitor.snapshot())
+local revoked, rev_err, rev_status =
+    monitor.change_credential(current.revision, "revoke")
+assert(revoked and rev_status == 200 and not rev_err)
+assert(revoked.credential_configured == false and not revoked.collector_token)
+assert(stored.aott_metrics_sha256 == nil)
+assert(not monitor.metrics_enabled())
+assert(not monitor.collector_authorized(getenv))
+assert(not lock_held)
 print("MONITORING_FIXTURE_PASS")

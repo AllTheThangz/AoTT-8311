@@ -50,14 +50,18 @@ function index()
     entry({"admin", "8311", "security_data"}, call("action_r5_security_data")).leaf=true
 	entry({"admin", "8311", "bank_status"}, call("action_bank_status"))
 	-- The inherited unauthenticated metrics route is intentionally removed.
-    -- All r8 management/metrics routes inherit admin LuCI authentication.
+    -- Admin operations inherit LuCI authentication. A separate public-path
+    -- collector route performs its own TLS, IP and bearer checks.
     entry({"admin", "8311", "monitoring"}, call("action_r8_monitoring"),
           translate("Monitoring & telemetry"), 9)
     entry({"admin", "8311", "monitoring_save"},
           post("action_r8_monitoring_save")).leaf=true
     entry({"admin", "8311", "monitoring_test"},
           post("action_r8_monitoring_test")).leaf=true
+    entry({"admin", "8311", "monitoring_credential"},
+          post("action_r8_monitoring_credential")).leaf=true
     entry({"admin", "8311", "metrics"}, call("action_metrics")).leaf=true
+    entry({"8311", "metrics"}, call("action_collector_metrics")).leaf=true
 end
 
 function pontop_page_details()
@@ -768,7 +772,10 @@ function action_r5_security_data()
 end
 
 function action_metrics()
-    -- No metrics are served through the inherited anonymous route.
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    -- The authenticated admin metrics view remains available if enabled.
     if not monitoring.metrics_enabled() then
         return web.reply(http, 403, {success=false,
             error="Metrics export is disabled by the administrator"})
@@ -802,6 +809,23 @@ function action_metrics()
 		luci.http.write('  "' .. metric .. '": ' .. value)
 	end
 	luci.http.write("\n}\n")
+end
+
+-- A dedicated read-only collector route, not the inherited anonymous API.
+-- It is disabled by default and fails closed on missing TLS, socket identity,
+-- allowed IP or the independently rotated token.
+function action_collector_metrics()
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    http.header("Referrer-Policy", "no-referrer")
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    if not monitoring.collector_authorized(http.getenv) then
+        return web.reply(http, 403,
+            {success=false,error="Read-only collector access denied"})
+    end
+    return action_metrics()
 end
 
 function temperature(t)
@@ -1057,6 +1081,10 @@ function action_r8_monitoring()
         return web.reply(http, 503, {success=false,error=err})
     end
     http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    -- The private saved digest and UCI section must never enter the view scope.
+    state.original = nil
+    state.section = nil
     return ltemplate.render("8311/monitoring", {monitor=state})
 end
 
@@ -1065,7 +1093,7 @@ function action_r8_monitoring_save()
        not dispatcher.test_post_security(true) then return end
     local values = operation_form({
         revision=true,log_remote=true,log_ip=true,log_port=true,
-        log_proto=true,aott_metrics=true
+        log_proto=true,aott_metrics=true,aott_metrics_client=true
     })
     if not values then return end
     local state, err, status = monitoring.apply(values)
@@ -1074,7 +1102,10 @@ function action_r8_monitoring_save()
                    configured=state.configured,
                    log_remote=state.log_remote,log_ip=state.log_ip,
                    log_port=state.log_port,log_proto=state.log_proto,
-                   aott_metrics=state.aott_metrics,receiver_confirmed=false}
+                   aott_metrics=state.aott_metrics,
+                   aott_metrics_client=state.aott_metrics_client,
+                   credential_configured=state.credential_configured,
+                   receiver_confirmed=false}
             or {success=false,error=err or "Monitoring configuration failed"})
 end
 
@@ -1088,6 +1119,28 @@ function action_r8_monitoring_test()
         result and {success=true,event_id=result.event_id,
                     receiver_confirmed=false,note=result.note}
             or {success=false,error=err})
+end
+
+function action_r8_monitoring_credential()
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    http.header("Referrer-Policy", "no-referrer")
+    if http.getenv("HTTPS") ~= "on" and http.getenv("HTTPS") ~= "1" then
+        return web.reply(http, 403, {success=false,
+            error="HTTPS is required for collector credential management"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values = operation_form({revision=true,credential_action=true})
+    if not values then return end
+    local result, why, status = monitoring.change_credential(
+        values.revision, values.credential_action)
+    return web.reply(http, status or 503,
+        result and {success=true,revision=result.revision,
+                    credential_configured=result.credential_configured,
+                    aott_metrics=result.aott_metrics,
+                    collector_token=result.collector_token}
+            or {success=false,error=why or "Credential change failed"})
 end
 
 function action_bank_status()

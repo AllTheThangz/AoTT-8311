@@ -10,7 +10,7 @@ local selected_tcp = monitor.log_proto == "tcp"
 <p class="aott-r5-intro">Use your own syslog receiver or Prometheus-compatible collector. AoTT-8311 exposes bounded monitoring data, but does not store historic metrics or bundle a monitoring server.</p>
 <div class="aott-section-intro" role="note">
   <strong>Scope and security</strong>
-  <p>All settings apply to this ONU only. Collector scheduling, storage, dashboards and notification rules are managed externally. Metrics require authenticated LuCI access and are disabled until explicitly enabled. Remote log reception must be confirmed on the receiving server.</p>
+  <p>All settings apply to this ONU only. Collector scheduling, storage, dashboards and notification rules are managed externally. Browser metrics use administrator authentication. External collectors require HTTPS, an exact allowed client IP and a separate read-only credential. Remote log reception must be confirmed on the receiving server.</p>
 </div>
 
 <form id="aott-r8-monitoring" action="<%=url('admin/8311/monitoring_save')%>" method="post">
@@ -70,9 +70,30 @@ local selected_tcp = monitor.log_proto == "tcp"
           <option value="0" <% if monitor.aott_metrics == "0" then %>selected<% end %>>Disabled</option>
           <option value="1" <% if monitor.aott_metrics == "1" then %>selected<% end %>>Enabled</option>
         </select>
-        <p class="aott-r5-muted">Endpoint: <a href="<%=url('admin/8311/metrics')%>"><%=esc(url('admin/8311/metrics'))%></a>. Requires an authenticated administrator session. The inherited anonymous endpoint is retired.</p>
+        <p class="aott-r5-muted">Administrator view: <a href="<%=url('admin/8311/metrics')%>"><%=esc(url('admin/8311/metrics'))%></a>.</p>
+        <p class="aott-r5-muted">External endpoint: <code><%=esc(url('8311/metrics'))%></code>. Requires HTTPS, the exact allowed client IP, and an <code>X-AOTT-Metrics-Token</code> HTTP header. Do not send the token in a URL.</p>
       </div>
     </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="aott-r8-client-ip">Allowed collector IPv4</label>
+      <div class="cbi-value-field">
+        <input id="aott-r8-client-ip" name="aott_metrics_client" type="text"
+               maxlength="15" spellcheck="false" autocomplete="off"
+               placeholder="192.0.2.10" value="<%=esc(monitor.aott_metrics_client)%>">
+        <p class="aott-r5-muted">One exact source address, not a subnet. Use the address visible to the ONU after NAT. IPv6 collector access is not included.</p>
+      </div>
+    </div>
+    <div class="aott-r5-controls">
+      <button class="cbi-button" id="aott-r8-token-rotate" type="button">Generate / rotate read-only token</button>
+      <button class="cbi-button" id="aott-r8-token-revoke" type="button" <% if not monitor.credential_configured then %>disabled<% end %>>Revoke token and disable metrics</button>
+      <span id="aott-r8-token-state" class="aott-r5-muted"><%=monitor.credential_configured and "Token configured; it cannot be retrieved again." or "No collector token configured."%></span>
+    </div>
+    <div id="aott-r8-secret-panel" hidden>
+      <label for="aott-r8-secret">Copy your token now. It is shown once, never saved to browser storage or logged.</label>
+      <input id="aott-r8-secret" type="text" readonly spellcheck="false" autocomplete="off" aria-label="One-time collector token">
+      <button type="button" class="cbi-button" id="aott-r8-secret-copy">Copy token</button>
+    </div>
+    <p class="aott-r5-muted">Token rotation immediately invalidates the previous token. Revocation disables remote metrics access.</p>
     <p>Basic optical power, temperatures, voltage, laser bias and registration state can be converted into Prometheus metrics by an external collector. Detailed authenticated <a href="<%=url('admin/8311/health')%>">Live Health</a> includes Ethernet and GEM counters. Prefer 60-second basic polls and lower-frequency detailed polling until resource measurements are qualified.</p>
   </section>
 
@@ -91,10 +112,33 @@ local selected_tcp = monitor.log_proto == "tcp"
   var saveButton = document.getElementById("aott-r8-monitor-save");
   var testButton = document.getElementById("aott-r8-monitor-test");
   var status = document.getElementById("aott-r8-monitor-status");
-  if (!form || !saveButton || !testButton || !status) return;
+  var rotateButton = document.getElementById("aott-r8-token-rotate");
+  var revokeButton = document.getElementById("aott-r8-token-revoke");
+  var tokenState = document.getElementById("aott-r8-token-state");
+  var secretPanel = document.getElementById("aott-r8-secret-panel");
+  var secret = document.getElementById("aott-r8-secret");
+  var copyButton = document.getElementById("aott-r8-secret-copy");
+  if (!form || !saveButton || !testButton || !status ||
+      !rotateButton || !revokeButton || !secretPanel || !copyButton || !secret) return;
   var busy = false;
+  var credentialConfigured = <%=monitor.credential_configured and "true" or "false"%>;
   var confirmedForwarding = form.querySelector('[name="log_remote"]').value === "1";
   function message(value) { status.textContent = value; }
+  function clearSecret() { secret.value = ""; secretPanel.hidden = true; }
+  function setBusy(value) {
+    busy = value;
+    saveButton.disabled = value;
+    testButton.disabled = value || !confirmedForwarding;
+    rotateButton.disabled = value;
+    revokeButton.disabled = value || !credentialConfigured;
+  }
+  function credentialFields(action) {
+    var v = new URLSearchParams();
+    v.set("token", form.querySelector('input[name="token"]').value);
+    v.set("revision", form.querySelector('input[name="revision"]').value);
+    v.set("credential_action", action);
+    return v;
+  }
   async function send(url, values) {
     var response = await fetch(url, {
       method: "POST",
@@ -114,31 +158,25 @@ local selected_tcp = monitor.log_proto == "tcp"
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
     if (busy) return;
-    busy = true;
-    saveButton.disabled = true;
-    testButton.disabled = true;
+    setBusy(true);
+    clearSecret();
     message("Saving and validating logging settings...");
     try {
       var result = await send(form.action, new FormData(form));
       form.querySelector('input[name="revision"]').value = result.revision;
-      for (var key of ["log_remote", "log_ip", "log_port", "log_proto", "aott_metrics"]) {
+      for (var key of ["log_remote", "log_ip", "log_port", "log_proto", "aott_metrics", "aott_metrics_client"]) {
         form.querySelector('[name="' + key + '"]').value = result[key];
       }
       confirmedForwarding = result.configured === true;
+      credentialConfigured = result.credential_configured === true;
       message("Settings saved and the local logging service reloaded. Collector receipt is not verified.");
     } catch (error) {
       message("Settings not confirmed: " + error.message + ". Refresh and review the effective configuration.");
-    } finally {
-      busy = false;
-      saveButton.disabled = false;
-      testButton.disabled = !confirmedForwarding;
-    }
+    } finally { setBusy(false); }
   });
   testButton.addEventListener("click", async function () {
     if (busy) return;
-    busy = true;
-    saveButton.disabled = true;
-    testButton.disabled = true;
+    setBusy(true);
     message("Generating a local test event...");
     try {
       var values = new URLSearchParams();
@@ -147,10 +185,52 @@ local selected_tcp = monitor.log_proto == "tcp"
       message("Test marker " + result.event_id + " was submitted locally. Verify it on your collector.");
     } catch (error) {
       message("Test failed: " + error.message);
-    } finally {
-      busy = false;
-      saveButton.disabled = false;
-      testButton.disabled = !confirmedForwarding;
+    } finally { setBusy(false); }
+  });
+  async function changeCredential(action) {
+    if (busy) return;
+    if (action === "rotate" && credentialConfigured &&
+        !window.confirm("Replace the current read-only token? Existing collectors will lose access.")) return;
+    if (action === "revoke" &&
+        !window.confirm("Revoke the collector token and disable metrics now?")) return;
+    setBusy(true);
+    clearSecret();
+    message(action === "rotate" ? "Generating a collector credential..." :
+                                    "Revoking collector access...");
+    try {
+      var result = await send("<%=url('admin/8311/monitoring_credential')%>",
+                              credentialFields(action));
+      form.querySelector('input[name="revision"]').value = result.revision;
+      credentialConfigured = result.credential_configured === true;
+      form.querySelector('[name="aott_metrics"]').value = result.aott_metrics;
+      tokenState.textContent = credentialConfigured ?
+          "Read-only token configured. It cannot be retrieved again." :
+          "No collector token configured.";
+      if (action === "rotate") {
+        if (!/^[a-f0-9]{64}$/.test(result.collector_token))
+          throw new Error("Unexpected credential response; revoke and retry.");
+        secret.value = result.collector_token;
+        secretPanel.hidden = false;
+        message("Token generated. Copy it once and configure your collector.");
+      } else {
+        message("Credential revoked and external metrics disabled.");
+      }
+    } catch (error) {
+      message("Credential change not confirmed: " + error.message +
+              ". Refresh and inspect the effective settings.");
+    } finally { setBusy(false); }
+  }
+  rotateButton.addEventListener("click", function () { changeCredential("rotate"); });
+  revokeButton.addEventListener("click", function () { changeCredential("revoke"); });
+  copyButton.addEventListener("click", async function () {
+    if (!secret.value) return;
+    try {
+      await navigator.clipboard.writeText(secret.value);
+      message("Token copied. Store it securely in your collector configuration.");
+    } catch (error) {
+      secret.focus();
+      secret.select();
+      message("Select and manually copy the one-time token.");
     }
   });
 }());

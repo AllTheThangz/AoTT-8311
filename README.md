@@ -45,7 +45,7 @@ AoTT-8311 **builds on** the existing [8311 Community Firmware](https://github.co
 
 The source includes authenticated **Live Health** and **Security & Access** views. Health data can be refreshed at selectable intervals without automatically changing configuration. v2r7 improves light/dark Overview graph contrast.
 
-Existing diagnostic JSON can be consumed by external monitoring systems. **v2r8 has an offline development candidate for GUI-controlled remote syslog and authenticated metrics access.** It is not released or hardware-qualified. See [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md). Users supply their own receiver, Prometheus-compatible collector, storage, dashboards and alerting. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and [v2r8 plan](docs/V2R8-PLAN.md).
+Existing diagnostic JSON can be consumed by external monitoring systems. **v2r8 has an offline development candidate for GUI-controlled remote syslog and HTTPS-only, token-protected read-only metrics collection restricted to one configured collector IPv4 address.** It is not released or hardware-qualified. See [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md). Users supply their own receiver, Prometheus-compatible collector, storage, dashboards and alerting. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and [v2r8 plan](docs/V2R8-PLAN.md).
 
 ### A/B upgrade safety
 

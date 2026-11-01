@@ -12,7 +12,7 @@ This document defines the planned AoTT-8311 v2r8 monitoring interface. It is a *
 
 ## What exists in the current source
 
-The inherited JSON `/cgi-bin/luci/8311/metrics` route exposes a compact collection of optical power, optic and CPU temperature, voltage, laser bias and PLOAM status. **Its route is not currently nested under the authenticated LuCI admin path**, so v2r8 must audit and harden its access boundary before any expanded exposure.
+The committed v2r7 source inherits an anonymous JSON metrics route. The unmerged v2r8 candidate replaces it with a token-protected collector endpoint and a separate administrator-authenticated view. Neither approach is a completed hardware security qualification.
 
 The authenticated Live Health endpoint uses `8311.health.performance()` to present selected Ethernet MAC counters, GEM/XGEM counters, uptime, optical readings and host link speed. Some source commands execute external utilities and require bounded, lower-frequency sampling.
 
@@ -25,15 +25,15 @@ Both APIs are read-only. Do not mistake a browser's live-refresh selector for a 
 | Enable remote syslog | Disabled until enabled by an administrator |
 | Destination | User-provided hostname or IP, validated before saving |
 | Port | Configurable valid destination port |
-| Transport | Only protocols shown to be supported by the installed logger; UDP is baseline when available |
-| Severity | Validated logging threshold mapped onto actual vendor logger behavior |
+| Transport | The audited v2r7 OpenWrt logger supports UDP and TCP; the v2r8 candidate presents both |
+| Severity | The vendor forwarding service has no verified remote severity selector, so v2r8 does not present a nonfunctional one. Filter on the collector |
 | Test event | Locally generated, bounded, unprivileged-content message |
 | Apply/revert | Save and read back effective configuration with recovery-safe failure behavior |
 | Status | Distinguish local configuration, sender attempt and confirmed collector-side receipt |
 
 An example receiver hostname is `collector.example.net`. This is a reserved documentation domain, **not** a built-in destination. Actual UI settings must be empty or safely disabled until supplied by the operator.
 
-For OpenWrt-derived images, verify `/etc/config/system` remote logging options and the shipped `logd` implementation before designing the GUI backend. Different vendor builds may support different transports. Do not silently alter routing or firewall policy to make a collector reachable.
+The audited vendor `/etc/init.d/log` supports `log_remote`, `log_ip`, `log_port` and `log_proto`. Device-side settings do not change routes or firewall access to external collectors.
 
 ## Planned metrics integration
 
@@ -53,6 +53,32 @@ Compatible ONU (trusted management network)
 ```
 
 The receiver and exporter are software **chosen by the user**, not embedded in AoTT-8311. Scrape timing, credentials and log retention are external deployment settings; the GUI must clearly distinguish these from locally applied ONU settings.
+
+## Dedicated read-only collector authentication (v2r8 candidate)
+
+The optional external JSON endpoint is `/cgi-bin/luci/8311/metrics`. This is **not a public anonymous route** in the r8 candidate. An administrator configures its separate read-only credential and an exact allowed IPv4 client in the Monitoring & Telemetry page.
+
+- Generate the 256-bit token from the authenticated HTTPS GUI. It is displayed **once**; only a domain-separated SHA-256 digest is persisted in the device's UCI system configuration. Keep the token in a user-controlled secure secret store, not in source code, logs, URLs, query parameters or public dashboards.
+- Select the single source IP as seen by the ONU, including any NAT. No wildcard or CIDR client ranges, proxy-trusted source headers or IPv6 client access are implemented in this candidate.
+- The collector sends an HTTPS GET to the trusted management address with an `X-AOTT-Metrics-Token` request header. The source address, local destination and HTTPS state are checked from the socket environment supplied by uhttpd, not from user-controlled forwarded headers.
+- A token alone is not a substitute for a trusted management firewall. Reject untrusted interfaces and certificate errors. The collector should validate the ONU certificate, using an appropriately trusted CA or pinned certificate as supported by its software.
+- Rotate the token using the same authenticated GUI when necessary. Rotation invalidates the previous token immediately. Revocation deletes the hash and disables external metrics. Old tokens cannot be retrieved.
+- The admin metrics view remains under `/cgi-bin/luci/admin/8311/metrics` and inherits LuCI session authentication. External collectors do **not** need administrator credentials.
+
+Generic external configuration:
+
+```text
+URL: https://onu.example.net/cgi-bin/luci/8311/metrics
+Method: GET
+Header name: X-AOTT-Metrics-Token
+Header value: <one-time token copied from the device GUI>
+Scrape interval: about 60 seconds to start
+TLS: validate the ONU's certificate using trusted CA/pinning
+```
+
+This is a JSON response, not native Prometheus exposition. Run a compatible JSON-to-Prometheus conversion externally. Store the header value through the collector's secret mechanism. No monitoring service, data retention or collector configuration is bundled into the firmware.
+
+**Qualification limit:** the code and its isolated tests exist in draft source, but actual UCI persistence, HTTP header/TLS behavior, management ACLs, and A/B survivability have not yet been independently hardware-qualified.
 
 ## Security and troubleshooting contracts
 

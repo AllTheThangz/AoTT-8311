@@ -28,6 +28,9 @@ end
 package.preload["luci.http"] = function()
     return {
         formvalue=function() return nil end,
+        getenv=function(name)
+            return name == "REQUEST_METHOD" and "GET" or nil
+        end,
         header=function(name, value) headers[name]=value end,
         status=function(code) last_status=code end,
         prepare_content=function(content_type) captured.content_type=content_type end,
@@ -65,7 +68,9 @@ package.preload["8311.webutil"] = function()
     }
 end
 package.preload["8311.health"] = function() return {} end
-package.preload["8311.monitoring"] = function() return {} end
+package.preload["8311.monitoring"] = function()
+    return {collector_authorized=function() return false end}
+end
 package.preload["8311.config"] = function() return {} end
 package.preload["8311.uploads"] = function() return {} end
 package.preload["8311.jobs"] = function() return {} end
@@ -120,4 +125,12 @@ assert(messages[1] == "Managed entity lookup did not complete successfully.",
     "Lookup error leaked a raw OMCI response")
 assert(headers["Cache-Control"] == "no-store, private", "Failure response must not be cached")
 
-print("PON ME Explorer: 7 offline privacy and routing checks passed")
+-- The public-path collector route may exist, but without bearer credentials
+-- its action must deny requests before any optical metrics are read.
+last_response = nil
+controller.action_collector_metrics()
+assert(last_response and last_response.status == 403,
+       "Collector endpoint must deny unauthenticated requests")
+assert(headers["Cache-Control"] == "no-store, private")
+assert(headers["X-Content-Type-Options"] == "nosniff")
+print("PON ME Explorer: 7 offline privacy and routing checks passed; collector denied in 1 route check")
