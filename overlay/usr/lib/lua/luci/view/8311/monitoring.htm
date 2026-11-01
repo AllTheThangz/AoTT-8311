@@ -13,6 +13,13 @@ local selected_tcp = monitor.log_proto == "tcp"
   <p>All settings apply to this ONU only. Collector scheduling, storage, dashboards and notification rules are managed externally. Browser metrics use administrator authentication. External collectors require HTTPS, an exact allowed client IP and a separate read-only credential. Remote log reception must be confirmed on the receiving server.</p>
 </div>
 
+<% if not monitor.durable_consistent then %>
+<div class="aott-section-intro" role="alert">
+  <strong>Persistent monitoring configuration is unavailable or differs from active settings.</strong>
+  <p>Collector metrics are denied until both configurations agree. On a new installation, generate a collector credential, then save settings. If restoration failed, review storage and configuration before enabling monitoring.</p>
+</div>
+<% end %>
+
 <form id="aott-r8-monitoring" action="<%=url('admin/8311/monitoring_save')%>" method="post">
   <input type="hidden" name="token" value="<%=esc(token)%>">
   <input type="hidden" name="revision" value="<%=esc(monitor.revision)%>">

@@ -106,6 +106,47 @@ end
 assert(loadfile(vendor_uci))()
 local uci = assert(package.loaded["luci.model.uci"])
 assert(uci.cursor(), "vendor module did not register cursor")
+-- Synthetic durable store dependency for isolated monitoring UCI tests.
+local durable
+local fields = {
+ "log_remote","log_ip","log_port","log_proto","aott_metrics",
+ "aott_metrics_client","aott_metrics_sha256"
+}
+local function clone(v)
+ local result={}
+ for k,x in pairs(v or {}) do result[k]=x end
+ return result
+end
+local function from_snapshot(state)
+ local record = {
+  schema=1, log_remote=state.log_remote, log_ip=state.log_ip,
+  log_port=state.log_port, log_proto=state.log_proto,
+  aott_metrics=state.aott_metrics,
+  aott_metrics_client=state.aott_metrics_client or "",
+  aott_metrics_sha256=state.original.aott_metrics_sha256 or ""
+ }
+ return record
+end
+local function same_live(raw)
+ if not durable or type(raw)~="table" then return false end
+ local defaults = {
+   log_remote="0",log_ip="",log_port="514",log_proto="udp",
+   aott_metrics="0",aott_metrics_client="",aott_metrics_sha256=""
+ }
+ for _,key in ipairs(fields) do
+  if (raw[key] or defaults[key]) ~= durable[key] then return false end
+ end
+ return true
+end
+package.preload["8311.monitor_store"] = function()
+ return {
+  write=function(record) durable=clone(record);return true end,
+  read=function() return durable and clone(durable) or nil end,
+  from_snapshot=from_snapshot,
+  same_live=same_live
+ }
+end
+
 local mon=assert(loadfile(monitoring_path))()
 local state=assert(mon.snapshot())
 assert(state.log_remote=="0" and state.log_port=="514")

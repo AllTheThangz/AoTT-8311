@@ -1,6 +1,6 @@
 # AoTT-8311 v2r8 persistent monitoring configuration design
 
-Status: **qualified design direction, NOT yet implemented or deployed**. The first r8 monitoring candidate remains a draft and does not yet guarantee monitoring settings survive a reboot or A/B bank transition.
+Status: **implemented as a source-only offline r8 candidate, not hardware-qualified or deployed**. The protected record, early startup restore, and dual-record access check require independent UBIFS, boot and bank-transition acceptance.
 
 ## Why this is required
 
@@ -27,11 +27,11 @@ Store a **small, canonical configuration record** in the existing persistent vol
 - There are no collector defaults, network addresses, operator hostnames, or organization-specific labels in the image.
 - Atomic update using a unique 0600 temporary file in the same directory, verified bytes/mode, filesystem rename, synchronization, and a readback. Reject symlinks, incorrect ownership, malformed schema, unknown keys and partial records. Writes occur **only on administrator configuration changes**, not at scrape time.
 
-JSON is a proposed storage representation rather than a committed wire format. The extracted image contains `jsonfilter`, `uci`, `logd`, `logread`, Lua 5.1 and LuCI, so restoring the small record should require no additional runtime or daemon.
+The draft implements a canonical JSON record and validates every field, size, owner, file mode and mount source. Only existing Lua 5.1, nixio, LuCI JSONC, UCI and BusyBox functionality is used. The running rootfs carries no collector-specific values.
 
 ## Boot restoration
 
-An isolated startup restore would run **after stock startup 10** and **before logger startup 12**. It must:
+An r8 startup restore runs at START=11 after the stock START=10 boot and before the vendor START=12 logger. The existing UCI defaults enable the hook and invoke a first-boot restore. Its implementation:
 
 1. Confirm `/ptconf` is mounted as the expected persistent UBIFS volume; otherwise leave remote monitoring **disabled** and report a safe error.
 2. Validate the private directory and record type, ownership, mode, schema, complete field list, and bounded size. Never `source` configuration data into a shell.
@@ -51,7 +51,7 @@ All restoration behavior must remain fail closed on malformed or missing persist
 - **Change syslog:** validate and durably stage the intended record, apply only logger-relevant changes and read back effective UCI. On failure, report whether durable or live state changed rather than silently claiming full rollback.
 - **Reboot/bank switch:** restore to UCI from durable state, then independently verify collector denial/acceptance, local logging, and A/B management operation. An older firmware bank that does not implement the interface should not attempt to parse or rewrite the durable record.
 
-The above is a design contract to be implemented and independently qualified, not a claim that existing draft source currently enforces dual-record consistency.
+This order is implemented in the draft offline source and verified with deterministic failure-injection tests. Actual UBIFS persistence and live boot timing have not been qualified.
 
 ## Offline evidence and next tests
 
@@ -61,9 +61,11 @@ The above is a design contract to be implemented and independently qualified, no
 
 Required before merging:
 
-- Prototype the exact persistent schema and fail-closed restore in a disposable rootfs, using real vendor UCI/jsonfilter binaries where feasible.
+- Offline canonical-record and boot-restore fixtures pass; independently confirm the implementation on real UBIFS and the exact kernel/boot service ordering before hardware acceptance.
 - Test missing/corrupt file, symlink/permission attacks, partial write, interrupted rotation/revocation, repeated boot, changed management IP, and A/B downgrade/return.
 - Add negative authorization tests for a mismatched durable/live record and a failed restoration.
 - Rebuild the private image independently, verify manifest/runtime pins and flash headroom, and perform separately authorized hardware acceptance.
+
+**Fallback caveat:** v2r7 lacks the r8 durable token and collector security policy. Switching to the older bank restores its inherited behavior, including the legacy metrics route, so external management firewall controls must remain in place. A/B fallback cannot be claimed to preserve r8 endpoint authorization on older firmware.
 
 No persistent configuration should be written on a production device merely to test this design.

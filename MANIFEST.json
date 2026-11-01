@@ -26,6 +26,12 @@
       "sha256": "161a2636aa1a984b1a00abc01e7ee0da341cfaba4f156d22d134b442c8eaefd2"
     },
     {
+      "bytes": 181,
+      "executable": true,
+      "path": "etc/init.d/8311-monitoring",
+      "sha256": "6dffc1d3b23039013469b8041118b0a9987b1fd223139d9e6436db982de6a72d"
+    },
+    {
       "bytes": 251,
       "executable": true,
       "path": "etc/init.d/8311-pingd",
@@ -86,10 +92,10 @@
       "sha256": "b8b49546120c461a821f03084d39b5f81f5456dafa84b0192903979b65e6b213"
     },
     {
-      "bytes": 4916,
+      "bytes": 5260,
       "executable": true,
       "path": "etc/uci-defaults/zzz-8311",
-      "sha256": "055245294884eaa89763746147db024db3f3061cec94be4693ddbea72fc2c935"
+      "sha256": "dcf0abec4f0491bc4a645b2390c9c788130e97cb81e53c3da2de78cec57f08fd"
     },
     {
       "bytes": 2161,
@@ -152,10 +158,22 @@
       "sha256": "0a48626907448eef0c8f45802ad635cd42e661a297b555640c41646920ee1fda"
     },
     {
-      "bytes": 17165,
+      "bytes": 2391,
+      "executable": false,
+      "path": "usr/lib/lua/8311/monitor_restore.lua",
+      "sha256": "2290e3dfb614c6d1ed1339d5d0781b74dcdc795b4321109603efb60375a05cef"
+    },
+    {
+      "bytes": 8767,
+      "executable": false,
+      "path": "usr/lib/lua/8311/monitor_store.lua",
+      "sha256": "ca74c46d5d2c8191f12854d550ed8a3001f08d9006debaaf8c9f38ebe9364dbb"
+    },
+    {
+      "bytes": 17530,
       "executable": false,
       "path": "usr/lib/lua/8311/monitoring.lua",
-      "sha256": "985c30be54a9328e2adfa868e45a19a22253057626b45c39926a760c84594788"
+      "sha256": "365122cbc1efd9837cd098e00b3784d18e3848f076a20164a24085759fd71e34"
     },
     {
       "bytes": 6039,
@@ -206,10 +224,10 @@
       "sha256": "d4c5bad01254dfc37392c0417a5e3dec717108dcd2b2b7cd8331ef0fef91d019"
     },
     {
-      "bytes": 13522,
+      "bytes": 13965,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/monitoring.htm",
-      "sha256": "b73b425f583b2cf5be737635398ad9ce770e8fd0b8652fcc545763e9233bc712"
+      "sha256": "b58cd527d779d6e2479bacd3cb1434a226285e4ed7c1a1bc0825708f5f5c77be"
     },
     {
       "bytes": 1394,
@@ -300,6 +318,12 @@
       "executable": true,
       "path": "usr/libexec/8311-mib-edit.lua",
       "sha256": "c8e7baefc848c3796d610f92cafefe4a0c87e83870e7b688474d21bc58ba6f17"
+    },
+    {
+      "bytes": 241,
+      "executable": true,
+      "path": "usr/libexec/8311-monitoring-restore",
+      "sha256": "eac46f078fa1759085e1c3f462699230e60cc2e348ba27f2600a9fd7fa55368c"
     },
     {
       "bytes": 136,

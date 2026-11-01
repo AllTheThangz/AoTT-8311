@@ -29,8 +29,9 @@ The base is the committed v2r7 source for the qualified PRX126-SFP-PON hardware 
 ## Persistence and vendor-runtime qualification findings
 
 The vendor source explicitly documents that stock boot can delete rootfs_data
-while the separate ptconf volume survives. Monitoring settings stored only
-in UCI system configuration are therefore not yet guaranteed durable.
+while the separate ptconf volume survives. The r8 draft now
+restores the reviewed settings from a protected persistent record during
+boot. Real hardware persistence and recovery remain unqualified.
 
 - The extracted vendor LuCI UCI model passed synthetic configuration,
   token rotation/revocation and default-value tests under host Lua 5.1 and
@@ -43,7 +44,7 @@ in UCI system configuration are therefore not yet guaranteed durable.
 - A disposable vendor-runtime lab parsed the proposed record with target
   MIPS jsonfilter and round-tripped settings through the actual target
   MIPS UCI CLI using a fresh temporary configuration.
-- The prototype exists under tools only. No early boot restoration or
+- The source candidate now includes a root-only, atomic JSON record store on the persistent ptconf UBIFS volume, an S11 restore hook before the S12 vendor logger, and a first-boot restore registration in the existing UCI defaults. The target-MIPS nixio/jsonc store parser passed offline tests for symlinks, permissions, malformed mounts, canonical JSON and readback.
   persistent-write integration has been added to the firmware.
 
 See [durable monitoring design](V2R8-PERSISTENCE-DESIGN.md).
@@ -52,7 +53,7 @@ See [durable monitoring design](V2R8-PERSISTENCE-DESIGN.md).
 
 1. **Collector authorization qualification:** A separate HTTPS-only, read-only token and exact IPv4 allowlist exist in offline source. Verify actual target HTTP header/TLS and management socket behavior, credential permissions, negative requests and persistence in an isolated recoverable environment.
 2. **Access network:** Verify management-interface firewall ACLs and the absence of untrusted/WAN exposure on recoverable hardware. The request-level socket destination and source-IP checks are defense in depth, not a substitute for firewall testing.
-3. **Persistence:** implement and qualify a small root-owned persistent store, an early boot restore step and fail-closed dual-record collector authentication. The synthetic UCI/jsonfilter tests prove parser compatibility, not live boot behavior. Validate logging and A/B persistence on recoverable hardware.
+3. **Persistence:** the durable store, early restore and fail-closed dual-record authorization are implemented in source and pass offline tests, but have not been qualified on an actual mounted ptconf UBIFS volume or across real reboot and A/B switching. Test interrupted writes, receiver reachability, low-space behavior and the original boot sequence on recoverable hardware.
 4. **Performance:** benchmark concurrent basic metrics scrapes, expensive detailed `pontop` reads, idle memory and active CPU usage. Do not implement new background polling before measuring.
 5. **Browser UX:** run real Chromium form submission/failure/test-event scenarios at desktop and mobile widths. Resolve all accessibility and styling defects before GUI signoff.
 6. **Release freeze:** assign canonical r8 release identity, refresh all source manifest and runtime-integrity pins, verify actual compressed image archive and original vendor ABI, independently rebuild twice and complete full native regression tests.

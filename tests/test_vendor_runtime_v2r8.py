@@ -7,6 +7,7 @@ All fixtures are synthetic. Nothing contacts, flashes or reboots an ONU.
 import os
 from pathlib import Path
 import shutil
+import tempfile
 import subprocess
 import unittest
 
@@ -70,6 +71,20 @@ class VendorMonitoringIntegrationTests(unittest.TestCase):
         out = self.target("tests/vendor_uhttpd_metrics_fixture.lua",
                           "usr/lib/lua/luci/sgi/uhttpd.lua")
         self.assertIn("VENDOR_UHTTPD_ENVIRONMENT_OFFLINE_PASS", out)
+
+    def test_durable_store_uses_actual_vendor_nixio_and_jsonc(self):
+        if not shutil.which("qemu-mips-static"):
+            self.skipTest("Target MIPS emulator unavailable")
+        with tempfile.TemporaryDirectory(prefix="aott-r8-store-test-",
+                                         dir="/var/tmp") as scratch:
+            out = self.command([
+                "qemu-mips-static", "-L", str(VENDOR),
+                str(VENDOR / "usr/bin/lua"),
+                str(ROOT / "tests/monitor_store_target_fixture.lua"),
+                str(ROOT / "overlay/usr/lib/lua/8311/monitor_store.lua"),
+                scratch, str(VENDOR)
+            ])
+            self.assertIn("PERSISTENT_STORE_VENDOR_RUNTIME_PASS", out)
 
     def test_bounded_pon_scrape_uses_target_mips_lua(self):
         if not shutil.which("qemu-mips-static"):

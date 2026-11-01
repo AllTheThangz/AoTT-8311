@@ -6,6 +6,7 @@ local DELETED = {}
 local reload_calls = 0
 local log_calls = 0
 local fail_reload_once = false
+local fail_commit_once = false
 local lock_held = false
 
 local function cursor()
@@ -58,6 +59,10 @@ local function cursor()
     end
     function u:commit(config)
         assert(config == "system")
+        if fail_commit_once then
+            fail_commit_once = false
+            return false
+        end
         for k, v in pairs(pending) do
             if v == DELETED then stored[k] = nil else stored[k] = v end
         end
@@ -113,6 +118,47 @@ package.preload["luci.sys"] = function()
         assert(n == 32)
         return string.rep("a",64)
     end}
+end
+
+-- Synthetic durable store dependency for isolated monitoring UCI tests.
+local durable
+local fields = {
+ "log_remote","log_ip","log_port","log_proto","aott_metrics",
+ "aott_metrics_client","aott_metrics_sha256"
+}
+local function clone(v)
+ local result={}
+ for k,x in pairs(v or {}) do result[k]=x end
+ return result
+end
+local function from_snapshot(state)
+ local record = {
+  schema=1, log_remote=state.log_remote, log_ip=state.log_ip,
+  log_port=state.log_port, log_proto=state.log_proto,
+  aott_metrics=state.aott_metrics,
+  aott_metrics_client=state.aott_metrics_client or "",
+  aott_metrics_sha256=state.original.aott_metrics_sha256 or ""
+ }
+ return record
+end
+local function same_live(raw)
+ if not durable or type(raw)~="table" then return false end
+ local defaults = {
+   log_remote="0",log_ip="",log_port="514",log_proto="udp",
+   aott_metrics="0",aott_metrics_client="",aott_metrics_sha256=""
+ }
+ for _,key in ipairs(fields) do
+  if (raw[key] or defaults[key]) ~= durable[key] then return false end
+ end
+ return true
+end
+package.preload["8311.monitor_store"] = function()
+ return {
+  write=function(record) durable=clone(record);return true end,
+  read=function() return durable and clone(durable) or nil end,
+  from_snapshot=from_snapshot,
+  same_live=same_live
+ }
 end
 
 local monitor = assert(loadfile(module_path))()
@@ -253,6 +299,19 @@ denied.aott_metrics_sha256=generated.collector_token
 assert(monitor.validate(denied)==nil)
 
 local current = assert(monitor.snapshot())
+-- Simulate the worst revocation window: the authoritative store is
+-- durably disabled, but the vendor UCI commit fails with old live values.
+fail_commit_once = true
+local failed_revoke, failed_why, failed_code =
+    monitor.change_credential(current.revision, "revoke")
+assert(not failed_revoke and failed_code == 503 and failed_why)
+assert(stored.aott_metrics == "1" and stored.aott_metrics_sha256 ~= nil)
+local persistent = assert(require("8311.monitor_store").read())
+assert(persistent.aott_metrics == "0" and
+       persistent.aott_metrics_sha256 == "")
+assert(not monitor.collector_authorized(getenv),
+       "Old bearer must remain denied despite failed live UCI commit")
+assert(not monitor.metrics_enabled())
 local revoked, rev_err, rev_status =
     monitor.change_credential(current.revision, "revoke")
 assert(revoked and rev_status == 200 and not rev_err)

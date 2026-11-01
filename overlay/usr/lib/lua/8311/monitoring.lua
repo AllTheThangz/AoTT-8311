@@ -4,6 +4,7 @@
 local uci_lib = require "luci.model.uci"
 local web = require "8311.webutil"
 local sys = require "luci.sys"
+local store = require "8311.monitor_store"
 local M = {}
 
 local options = {
@@ -76,7 +77,8 @@ function M.snapshot(u)
             and not raw.aott_metrics_sha256:find("[^0-9a-f]"),
         transport_udp=true, transport_tcp=true,
         severity_filter_available=false,
-        configured=enabled
+        configured=enabled,
+        durable_consistent=store.same_live(raw)
     }
 end
 
@@ -197,36 +199,46 @@ local function reload_logger()
     return code == 0 and not overflow
 end
 
--- The lock covers the fresh read, single-package UCI commit and reload.
--- A failed reload triggers best-effort rollback and explicit failure.
+-- Persist the authoritative record first. If an active configuration write fails,
+-- the durable intent remains and collector access fails closed until reconciled.
 function M.apply(form)
     local values, why = M.validate(form)
     if not values then return nil, why, 422 end
     local fd = web.lock("/tmp/8311-monitoring.lock")
     if not fd then return nil, "Monitoring settings are busy; retry", 409 end
-    local function finish(result, error, status)
+    local function finish(result, err, status)
         fd:close()
-        return result, error, status
+        return result, err, status
     end
     local u = uci_lib.cursor()
     local changes = u:changes("system")
     if type(changes) ~= "table" or next(changes) then
-        return finish(nil, "Other system configuration changes are pending; apply them first", 409)
+        return finish(nil, "Other system configuration changes are pending", 409)
     end
     local before, err = M.snapshot(u)
     if not before then return finish(nil, err, 503) end
     if form.revision ~= before.revision then
-        return finish(nil, "Settings changed; refresh and review before saving", 409)
+        return finish(nil, "Settings changed; refresh before applying", 409)
     end
     if values.aott_metrics == "1" and not before.credential_configured then
         return finish(nil, "Generate a collector token before enabling metrics", 422)
     end
-    -- Do not take a credential digest from the web form.
     values.aott_metrics_sha256 = before.original.aott_metrics_sha256
+    local target = {
+        schema=1,log_remote=values.log_remote,log_ip=values.log_ip,
+        log_port=values.log_port,log_proto=values.log_proto,
+        aott_metrics=values.aott_metrics,
+        aott_metrics_client=values.aott_metrics_client,
+        aott_metrics_sha256=values.aott_metrics_sha256 or ""
+    }
+    local durable, durable_err = store.write(target)
+    if not durable then return finish(nil,
+        "Persistent monitoring settings unavailable: " .. (durable_err or "write failed"),503)
+    end
     local ok, seterr = set_options(u, before.section, values)
     if not ok then
         u:revert("system")
-        return finish(nil, seterr, 503)
+        return finish(nil, "Durable monitoring intent saved; live apply failed", 503)
     end
     local committed = u:commit("system")
     local logging_changed = false
@@ -235,32 +247,34 @@ function M.apply(form)
     end
     if committed and (not logging_changed or reload_logger()) then
         local after = M.snapshot(uci_lib.cursor())
-        if after and after.log_remote == values.log_remote
-            and after.log_ip == values.log_ip
-            and after.log_port == values.log_port
-            and after.log_proto == values.log_proto
-            and after.aott_metrics == values.aott_metrics
-            and after.aott_metrics_client == values.aott_metrics_client
-            and after.original.aott_metrics_sha256 ==
-                before.original.aott_metrics_sha256 then
+        if after and store.same_live(after.original)
+           and after.log_remote == values.log_remote
+           and after.log_ip == values.log_ip
+           and after.log_port == values.log_port
+           and after.log_proto == values.log_proto
+           and after.aott_metrics == values.aott_metrics
+           and after.aott_metrics_client == values.aott_metrics_client then
             return finish(after, nil, 200)
         end
     end
-
-    -- Persist the original exact values, including previously absent options.
+    u:revert("system")
+    -- Restore the previous *live* settings if possible. Never rewrite the
+    -- durable desired state, which would undo a forward credential change.
     local rescue = uci_lib.cursor()
     local restored = set_options(rescue, before.section, before.original)
     local saved = restored and rescue:commit("system")
     local restarted = saved and (not logging_changed or reload_logger())
     local verified
     if restarted then
-        local state = M.snapshot(uci_lib.cursor())
-        verified = state and state.revision == before.revision
+        local old = M.snapshot(uci_lib.cursor())
+        verified = old and old.revision == before.revision
     end
     if verified then
-        return finish(nil, "Monitoring apply failed; previous settings restored", 503)
+        return finish(nil,
+            "Live apply failed; prior running settings restored. Durable intent remains pending. Collector access is blocked until repaired.", 503)
     end
-    return finish(nil, "Monitoring apply failed and rollback could not be verified; inspect system logging", 503)
+    return finish(nil,
+        "Monitoring apply failed; live settings could not be verified. Collector access is blocked until repaired.", 503)
 end
 
 function M.send_test()
@@ -282,8 +296,8 @@ function M.send_test()
         note="Local test event generated. Confirm receipt using your own syslog collector."}
 end
 
--- Rotate/revoke a bounded, random read-only credential. Plaintext is never
--- persisted; a one-time copy is returned only after a verified UCI commit.
+-- One-way durable credential transitions. A failed UCI write cannot undo a
+-- durable revocation or make an old bearer valid again after a reboot.
 function M.change_credential(revision, operation)
     if type(revision) ~= "string" or #revision ~= 64 or
        revision:find("[^0-9a-f]") or
@@ -304,9 +318,10 @@ function M.change_credential(revision, operation)
     local old, err = M.snapshot(u)
     if not old then return finish(nil, err, 503) end
     if old.revision ~= revision then
-        return finish(nil, "Settings changed; refresh before changing credentials", 409)
+        return finish(nil, "Settings changed; refresh credentials page", 409)
     end
-
+    local desired = store.from_snapshot(old)
+    if not desired then return finish(nil, "Invalid current monitoring configuration", 503) end
     local token, digest
     if operation == "rotate" then
         token = sys.uniqueid(32)
@@ -319,56 +334,46 @@ function M.change_credential(revision, operation)
            digest:find("[^0-9a-f]") then
             return finish(nil, "Secure token hashing unavailable", 503)
         end
+        desired.aott_metrics_sha256 = digest
+    else
+        desired.aott_metrics_sha256 = ""
+        desired.aott_metrics = "0"
     end
 
-    local ok
-    if digest then
-        ok = u:set("system", old.section, "aott_metrics_sha256", digest)
-    elseif old.original.aott_metrics_sha256 ~= nil then
-        ok = u:delete("system", old.section, "aott_metrics_sha256")
-    else
-        ok = true
+    local persisted, perr = store.write(desired)
+    if not persisted then
+        return finish(nil,
+            "Credential could not be stored durably: " .. (perr or "unavailable"), 503)
     end
-    if ok and operation == "revoke" then
-        ok = u:set("system", old.section, "aott_metrics", "0")
+    local values = {}
+    for _, key in ipairs(options) do
+        values[key] = desired[key]
     end
+    if values.aott_metrics_sha256 == "" then
+        values.aott_metrics_sha256 = nil
+    end
+    local ok, why = set_options(u, old.section, values)
     if not ok then
         u:revert("system")
-        return finish(nil, "Credential configuration write rejected", 503)
+        return finish(nil,
+            "Credential saved durably but live configuration failed; collector access remains blocked",503)
     end
     local committed = u:commit("system")
     local current = committed and M.snapshot(uci_lib.cursor())
-    if current and current.original.aott_metrics_sha256 == digest
-       and (operation ~= "revoke" or current.aott_metrics == "0") then
-        return finish({revision=current.revision,
-                       credential_configured=operation == "rotate",
-                       aott_metrics=current.aott_metrics,
-                       collector_token=token}, nil, 200)
+    if current and store.same_live(current.original)
+        and (current.original.aott_metrics_sha256 or "") ==
+            desired.aott_metrics_sha256
+        and current.aott_metrics == desired.aott_metrics then
+        return finish({
+            revision=current.revision,
+            credential_configured=operation == "rotate",
+            aott_metrics=current.aott_metrics,
+            collector_token=token
+        }, nil, 200)
     end
-
-    -- A failed readback is not an issuance. Attempt exact restoration.
-    local rescue = uci_lib.cursor()
-    local before = rescue:get_all("system", old.section)
-    if type(before) ~= "table" then
-        return finish(nil, "Credential change unverified; inspect settings", 503)
-    end
-    for _, key in ipairs({"aott_metrics_sha256", "aott_metrics"}) do
-        local value = old.original[key]
-        if value ~= nil then
-            ok = rescue:set("system", old.section, key, value)
-        else
-            ok = before[key] == nil or rescue:delete("system", old.section, key)
-        end
-        if not ok then
-            return finish(nil, "Credential rollback failed; inspect settings", 503)
-        end
-    end
-    local restored = rescue:commit("system")
-    local verified = restored and M.snapshot(uci_lib.cursor())
-    if verified and verified.revision == old.revision then
-        return finish(nil, "Credential change failed; previous state restored", 503)
-    end
-    return finish(nil, "Credential change unverified; inspect settings", 503)
+    u:revert("system")
+    return finish(nil,
+        "Durable credential transition completed but live readback failed; monitoring remains blocked until repaired", 503)
 end
 
 local function safe_equal(a, b)
@@ -408,7 +413,8 @@ function M.collector_authorized(getenv)
     local u = uci_lib.cursor()
     local section = system_section(u)
     local saved = section and u:get_all("system", section)
-    if type(saved) ~= "table" or saved.aott_metrics ~= "1" or
+    if type(saved) ~= "table" or not store.same_live(saved) or
+       saved.aott_metrics ~= "1" or
        saved.aott_metrics_client ~= remote or
        type(saved.aott_metrics_sha256) ~= "string" or
        #saved.aott_metrics_sha256 ~= 64 or
@@ -430,7 +436,8 @@ function M.metrics_enabled()
     local u = uci_lib.cursor()
     local section = system_section(u)
     local values = section and u:get_all("system", section)
-    return type(values) == "table" and values.aott_metrics == "1" or false
+    return type(values) == "table" and values.aott_metrics == "1" and
+           store.same_live(values) or false
 end
 
 return M

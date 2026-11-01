@@ -1,0 +1,7 @@
+#!/bin/sh /etc/rc.common
+# Restore only the reviewed ptconf monitoring record before logd starts.
+START=11
+
+boot() {
+    /usr/libexec/8311-monitoring-restore >/dev/null 2>&1 || :
+}

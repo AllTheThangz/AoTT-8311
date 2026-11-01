@@ -160,3 +160,9 @@ uci_set "sfp_eeprom.default.serial_no" "$(get_8311_sfp_serial)"
 uci_set "sfp_eeprom.default.datecode" "$(get_8311_sfp_date)"
 uci_set "sfp_eeprom.default.vendor_data" "$(get_8311_sfp_vendordata)"
 uci commit "sfp_eeprom"
+
+# r8: ensure durable monitoring settings are restored before logger startup.
+# /ptconf is mounted in preinit; no route, PON identity or bank is changed.
+# This call also handles the first boot before the S11 init symlink exists.
+/etc/init.d/8311-monitoring enable >/dev/null 2>&1 || :
+/usr/libexec/8311-monitoring-restore >/dev/null 2>&1 || :

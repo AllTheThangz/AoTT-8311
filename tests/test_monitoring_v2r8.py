@@ -35,10 +35,26 @@ class MonitoringBackendTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("BOUNDED_METRICS_FIXTURE_PASS", result.stdout)
 
+    def test_boot_restore_runs_in_isolated_lua(self):
+        if not shutil.which("lua5.1"):
+            self.skipTest("Lua 5.1 unavailable")
+        result = subprocess.run([
+            "lua5.1", str(ROOT / "tests/monitor_restore_fixture.lua"),
+            str(ROOT / "overlay/usr/lib/lua/8311/monitor_restore.lua")],
+            capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("BOOTS_RESTORE_ISOLATED_PASS", result.stdout)
+
     def test_lua51_syntax_for_new_and_existing_controller(self):
         if not shutil.which("luac5.1"):
             self.skipTest("Lua 5.1 compiler not installed")
-        for p in (MODULE, CONTROLLER, FIXTURE):
+        for p in (
+            MODULE, CONTROLLER, FIXTURE,
+            ROOT / "overlay/usr/lib/lua/8311/monitor_store.lua",
+            ROOT / "overlay/usr/lib/lua/8311/monitor_restore.lua",
+            ROOT / "overlay/usr/libexec/8311-monitoring-restore",
+            ROOT / "tests/monitor_restore_fixture.lua",
+        ):
             with self.subTest(path=p):
                 r = subprocess.run(["luac5.1", "-p", str(p)],
                     capture_output=True, text=True, timeout=8)
@@ -93,6 +109,7 @@ class MonitoringBackendTests(unittest.TestCase):
         self.assertIn('name="aott_metrics_client"', s)
         self.assertIn("aott-r8-token-rotate", s)
         self.assertIn("aott-r8-token-revoke", s)
+        self.assertIn("monitor.durable_consistent", s)
         self.assertNotIn('name="log_level"', s)
         self.assertNotIn("192.168.0.", s)
 
@@ -110,11 +127,46 @@ class MonitoringBackendTests(unittest.TestCase):
         self.assertNotIn('getenv("QUERY_STRING")', s)
         self.assertNotIn("io.popen(", s)
 
+    def test_durable_store_fails_closed_and_precedes_uci_change(self):
+        s = MODULE.read_text()
+        self.assertIn('local store = require "8311.monitor_store"', s)
+        self.assertIn("store.write(target)", s)
+        self.assertIn("store.same_live(saved)", s)
+        self.assertIn("store.same_live(values)", s)
+        self.assertLess(s.index("store.write(target)"),
+                        s.index("set_options(u, before.section, values)"))
+        credential = s.split("function M.change_credential", 1)[1]
+        self.assertLess(credential.index("store.write(desired)"),
+                        credential.index("set_options(u, old.section, values)"))
+        self.assertNotIn('store.write(old.', credential)
+
+    def test_boot_hook_restores_before_logger_without_ubus(self):
+        defaults = (ROOT / "overlay/etc/uci-defaults/zzz-8311").read_text()
+        init = (ROOT / "overlay/etc/init.d/8311-monitoring").read_text()
+        entry = (ROOT / "overlay/usr/libexec/8311-monitoring-restore").read_text()
+        script = (ROOT / "overlay/usr/lib/lua/8311/monitor_restore.lua").read_text()
+        self.assertIn("START=11", init)
+        self.assertIn("8311-monitoring enable", defaults)
+        self.assertIn("/usr/libexec/8311-monitoring-restore", defaults)
+        self.assertIn('require("8311.monitor_restore").run()', entry)
+        self.assertIn('source.read()', script)
+        self.assertIn('"/sbin/uci", "-q"', script)
+        self.assertNotIn('os.execute(', script)
+        self.assertNotIn("ubus", script)
+        self.assertNotIn("firmware-install", defaults)
+
     def test_new_components_are_in_source_manifest(self):
         m = json.loads((ROOT / "MANIFEST.json").read_text())
         entries = {e["path"] for e in m["overlay_files"]}
         self.assertIn("usr/lib/lua/8311/monitoring.lua", entries)
         self.assertIn("usr/lib/lua/luci/view/8311/monitoring.htm", entries)
+        for path in (
+            "usr/lib/lua/8311/monitor_store.lua",
+            "usr/lib/lua/8311/monitor_restore.lua",
+            "usr/libexec/8311-monitoring-restore",
+            "etc/init.d/8311-monitoring",
+        ):
+            self.assertIn(path, entries)
 
 
 if __name__ == "__main__":
