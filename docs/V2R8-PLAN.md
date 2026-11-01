@@ -85,6 +85,8 @@ Do not invent a GUI control for a protocol, persistence mechanism or source unav
 5. **UI and performance pass.** Consolidate navigation, improve charts, benchmark both light/heavy polls and verify bounded service impact. Defer native text exposition if it costs too much.
 6. **Qualification and release.** Run privacy/manifest/provenance checks, Lua 5.1, shell, JavaScript, isolated native MIPS, browser, regression, independent offline image/archive rebuilds and a hardware-recoverable staged trial. A distinct authorized permanent commit comes only after acceptance.
 
+The conditional bank layout, fresh full-bank backup requirements, r8 candidate runtime pins and separately approved stage-only handoff are specified in [stage readiness](V2R8-STAGE-READINESS.md). Validation-only checks do not grant flashing approval.
+
 ## Acceptance matrix
 
 | Gate | Required pass condition |

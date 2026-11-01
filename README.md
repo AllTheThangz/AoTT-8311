@@ -171,6 +171,7 @@ To build actual firmware, obtain a **legally authorized, clean, compatible vendo
 | `docs/V2R8-IMPLEMENTATION-STATUS.md` | Current candidate, offline tests, limitations and remaining blockers. |
 | `docs/V2R8-PERSISTENCE-DESIGN.md` | Durable monitoring configuration design and offline vendor-runtime evidence; not yet deployed. |
 | `docs/V2R8-BOOT-READINESS-AUDIT.md` | Three-pass private source, runtime, and archive boot-readiness audit; hardware trial still required. |
+| `docs/V2R8-STAGE-READINESS.md` | Conditional A/B bank plan, fresh-backup requirements and stage-only approval gates. |
 | `docs/V2R8-MANAGEMENT-ACL-AUDIT.md` | Explicit security checks and interface/firewall acceptance requirements for public collectors. |
 | `examples/monitoring/README.md` | Optional user-hosted Prometheus JSON adapter, secure token handling and collector configuration. |
 | `docs/MONITORING-AND-TELEMETRY.md` | Deployment-neutral syslog and metrics integration design. |

@@ -76,6 +76,29 @@ a universal flashability guarantee for other ONU chipsets or boards.
   on the final draft commit; private MIPS suites are not bundled into
   public CI.
 
+## Offline inactive-bank stage readiness
+
+The **running v2r7 native firmware installer** has also accepted this
+exact private r8 archive using its validation-only path in an isolated
+MIPS chroot with no networking or accessible UBI flash devices. This
+does not validate an actual flash write.
+
+The r7 native postwrite rootfs qualifier checks exact pinned candidate
+runtime files. Its historical r7 profile correctly rejects the r8
+candidate's six changed pins. The independently refreshed **r8 profile**
+passed the same native qualifier and must accompany the private kit.
+Never stage r8 with stale candidate pins.
+
+An off-device bank-A preparation kit now pins the private r8 archive and
+three reviewed policy inputs. Its offline checker confirms file hashes,
+safe file modes, release identity, component SHA values and conditional
+preserve-B/overwrite-A direction. Tampered files, symlinks, reversed
+bank selection and false authorization claims were all rejected.
+
+The kit has no stage authorization and no live hardware backup attestation.
+Historical r7 acceptance and older pre-r7 backups **do not satisfy** those
+freshness requirements. See [stage readiness](V2R8-STAGE-READINESS.md).
+
 ## Remaining unknowns
 
 These are explicit release blockers, not failures demonstrated by the

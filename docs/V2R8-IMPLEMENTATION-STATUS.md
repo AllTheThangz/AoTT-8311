@@ -142,6 +142,24 @@ All private outputs remain marked **UNTRIALED_OFFLINE_ONLY**. See
 [V2R8-BOOT-READINESS-AUDIT.md](V2R8-BOOT-READINESS-AUDIT.md) for the
 three-pass evidence, untested risks and the required A/B recovery gates.
 
+## Private stage-only preparation
+
+The native r7 upgrader accepted the r8 archive using `--validate` in an
+offline, networkless, flash-device-masked MIPS chroot. Postwrite candidate
+qualification was checked separately: the refreshed r8 runtime profile
+passes, whereas the stale r7 candidate pins fail as expected.
+
+A private, hashed bank-A stage kit has been prepared with reviewed
+runtime policy inputs. Its offline gate fails closed for tampering,
+symlinks, reversed bank selection and false authorization, and marks
+fresh bank state, fresh complete A/B backups and independent stage-only
+approval as missing.
+
+**No live stage was performed.** The most recent accepted device
+record is historical: bank B committed v2r7 and bank A valid v2r6.
+See [stage readiness](V2R8-STAGE-READINESS.md) for the mandatory
+checks before even an inactive-bank write can be contemplated.
+
 ## Remaining release-blocking work
 
 1. **Collector authorization qualification:** A separate HTTPS-only, read-only token and exact IPv4 allowlist exist in offline source. Verify actual target HTTP header/TLS and management socket behavior, credential permissions, negative requests and persistence in an isolated recoverable environment.
