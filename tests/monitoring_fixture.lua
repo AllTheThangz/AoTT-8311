@@ -19,7 +19,17 @@ local function cursor()
         if pending[key] ~= nil then
             return pending[key] == DELETED and nil or pending[key]
         end
+        if stored[key] == nil then return false end
         return stored[key]
+    end
+    function u:get_all(config, section)
+        assert(config == "system" and section == "test-system")
+        local result = {[".type"]="system", [".name"]=section}
+        for key, value in pairs(stored) do result[key]=value end
+        for key, value in pairs(pending) do
+            result[key] = (value == DELETED) and nil or value
+        end
+        return result
     end
     function u:set(config, section, key, value)
         assert(config == "system" and section == "test-system")
@@ -100,6 +110,7 @@ package.preload["luci.sys"] = function()
 end
 
 local monitor = assert(loadfile(module_path))()
+assert(cursor():get("system", "test-system", "log_ip") == false)
 local old = assert(monitor.snapshot())
 assert(old.log_remote == "0")
 assert(old.aott_metrics == "0")

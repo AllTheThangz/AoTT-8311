@@ -22,11 +22,17 @@ local function system_section(u)
 end
 
 local function original_options(u, section)
+    -- The vendor LuCI get() reports missing UCI options as false, not nil.
+    -- Read the entire section instead so an absent option is unambiguous.
+    local all = u:get_all("system", section)
+    if type(all) ~= "table" then
+        return nil, "Logging settings are not readable"
+    end
     local out = {}
     for _, key in ipairs(options) do
-        local value = u:get("system", section, key)
+        local value = all[key]
         if value ~= nil and type(value) ~= "string" then
-            return nil, "Logging settings are not readable"
+            return nil, "Unsupported saved logging option"
         end
         out[key] = value
     end
@@ -138,12 +144,15 @@ function M.validate(values)
 end
 
 local function set_options(u, section, values)
+    local current = u:get_all("system", section)
+    if type(current) ~= "table" then
+        return nil, "Logging section is unreadable"
+    end
     for _, key in ipairs(options) do
         local value = values[key]
         local ok
         if value == nil then
-            ok = u:get("system", section, key) == nil or
-                u:delete("system", section, key)
+            ok = current[key] == nil or u:delete("system", section, key)
         else
             ok = u:set("system", section, key, value)
         end
@@ -237,7 +246,8 @@ function M.metrics_enabled()
     -- on every external metrics scrape.
     local u = uci_lib.cursor()
     local section = system_section(u)
-    return section and u:get("system", section, "aott_metrics") == "1" or false
+    local values = section and u:get_all("system", section)
+    return type(values) == "table" and values.aott_metrics == "1" or false
 end
 
 return M
