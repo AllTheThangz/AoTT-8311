@@ -26,6 +26,8 @@ The base is the committed v2r7 source for the qualified PRX126-SFP-PON hardware 
 
 **Important:** this is not firmware qualification. The private size-only filesystem still carries the v2r7 runtime integrity profile. Its hashes are not updated for new files, it is not eligible for an upgrade archive, and it must not be installed onto a device.
 
+The draft monitoring configuration and credential transitions write the durable desired state before modifying live UCI settings. A failed live apply can leave pending durable settings that **may activate at the next boot**. The interface reports this explicitly and requires review rather than claiming that a failed apply fully cancels the operator's request. Token revocation remains fail closed while the r8 route is active.
+
 ## Persistence and vendor-runtime qualification findings
 
 The vendor source explicitly documents that stock boot can delete rootfs_data

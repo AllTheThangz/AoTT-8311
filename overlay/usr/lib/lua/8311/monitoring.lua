@@ -238,7 +238,7 @@ function M.apply(form)
     local ok, seterr = set_options(u, before.section, values)
     if not ok then
         u:revert("system")
-        return finish(nil, "Durable monitoring intent saved; live apply failed", 503)
+        return finish(nil, "Durable monitoring intent saved, but live apply failed. Review before reboot: the stored settings may activate on restart", 503)
     end
     local committed = u:commit("system")
     local logging_changed = false
@@ -271,10 +271,10 @@ function M.apply(form)
     end
     if verified then
         return finish(nil,
-            "Live apply failed; prior running settings restored. Durable intent remains pending. Collector access is blocked until repaired.", 503)
+            "Live apply failed; previous running settings restored. Durable settings may activate after reboot. Collector access is blocked until repaired.", 503)
     end
     return finish(nil,
-        "Monitoring apply failed; live settings could not be verified. Collector access is blocked until repaired.", 503)
+        "Monitoring apply failed; live settings are unverified. Durable settings may activate after reboot. Collector access is blocked until repaired.", 503)
 end
 
 function M.send_test()
@@ -356,7 +356,7 @@ function M.change_credential(revision, operation)
     if not ok then
         u:revert("system")
         return finish(nil,
-            "Credential saved durably but live configuration failed; collector access remains blocked",503)
+            "Credential transition saved durably, but live configuration failed. Read-only collector access remains blocked until reconciled",503)
     end
     local committed = u:commit("system")
     local current = committed and M.snapshot(uci_lib.cursor())
@@ -373,7 +373,7 @@ function M.change_credential(revision, operation)
     end
     u:revert("system")
     return finish(nil,
-        "Durable credential transition completed but live readback failed; monitoring remains blocked until repaired", 503)
+        "Credential transition saved durably, but live readback failed. Reboot may restore the stored state; collector access remains blocked until reconciled", 503)
 end
 
 local function safe_equal(a, b)
