@@ -16,7 +16,7 @@ local selected_tcp = monitor.log_proto == "tcp"
 <% if not monitor.durable_consistent then %>
 <div class="aott-section-intro" role="alert">
   <strong>Persistent monitoring configuration is unavailable or differs from active settings.</strong>
-  <p>Collector metrics are denied until both configurations agree. On a new installation, generate a collector credential, then save settings. If restoration failed, review storage and configuration before enabling monitoring.</p>
+  <p>Collector metrics are denied until both configurations agree. Normal saves and token rotation are blocked during a mismatch so a previously revoked credential cannot be restored. Revocation remains available for recovery. On a new installation, generate a collector token, then save settings; after a failed apply, review the durable record and reboot behavior before retrying.</p>
 </div>
 <% end %>
 

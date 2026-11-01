@@ -229,6 +229,17 @@ assert(stored.log_port == "5514" and stored.log_proto == "tcp")
 assert(monitor.snapshot().revision == latest.revision)
 assert(not lock_held)
 assert(reload_calls == 3) -- successful apply, failed apply, successful rollback
+-- A failed logging reload left pending durable intent. Copying the stale
+-- live credential/settings to the durable record must be blocked. The
+-- fixture then explicitly simulates a reviewed recovery of that state.
+local post_fail = assert(monitor.snapshot())
+local denied_rotation, deny_reason, deny_status =
+    monitor.change_credential(post_fail.revision, "rotate")
+assert(not denied_rotation and deny_status == 409 and deny_reason)
+assert(not lock_held)
+local store_stub = require "8311.monitor_store"
+assert(store_stub.write(store_stub.from_snapshot(post_fail)))
+
 -- Read-only external collector credentials are independent from admin login.
 local before_token = assert(monitor.snapshot())
 assert(before_token.aott_metrics == "0" and not before_token.credential_configured)
@@ -312,6 +323,18 @@ assert(persistent.aott_metrics == "0" and
 assert(not monitor.collector_authorized(getenv),
        "Old bearer must remain denied despite failed live UCI commit")
 assert(not monitor.metrics_enabled())
+-- Saving the still-enabled live form must not restore a revoked bearer.
+local stale_save = {}
+for k,v in pairs(guarded_form) do stale_save[k]=v end
+stale_save.revision=current.revision
+local rejected, why_rejected, rejection_code = monitor.apply(stale_save)
+assert(not rejected and rejection_code == 409 and why_rejected)
+local denied_old_rotation, why_rotation, denied_code =
+    monitor.change_credential(current.revision, "rotate")
+assert(not denied_old_rotation and denied_code == 409 and why_rotation)
+assert(not monitor.collector_authorized(getenv))
+assert(store_stub.read().aott_metrics == "0")
+assert(store_stub.read().aott_metrics_sha256 == "")
 local revoked, rev_err, rev_status =
     monitor.change_credential(current.revision, "revoke")
 assert(revoked and rev_status == 200 and not rev_err)

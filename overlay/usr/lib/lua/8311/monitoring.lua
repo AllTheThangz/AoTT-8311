@@ -199,6 +199,22 @@ local function reload_logger()
     return code == 0 and not overflow
 end
 
+-- Do not recover from an interrupted revocation by copying the stale
+-- active token back into the durable record. A new device with no collector
+-- credential can initialize the store; an active token without a matching
+-- durable record is always treated as inconsistent.
+local function safe_to_update(snapshot)
+    if store.same_live(snapshot.original) then return true end
+    local durable = store.read()
+    if durable then
+        return nil, "Persistent and active monitoring settings disagree. Collector access is denied; restore the intended state or revoke the token."
+    end
+    if snapshot.aott_metrics == "1" or snapshot.credential_configured then
+        return nil, "Collector token exists without a valid persistent record. Revoke it before changing monitoring settings."
+    end
+    return true
+end
+
 -- Persist the authoritative record first. If an active configuration write fails,
 -- the durable intent remains and collector access fails closed until reconciled.
 function M.apply(form)
@@ -220,6 +236,8 @@ function M.apply(form)
     if form.revision ~= before.revision then
         return finish(nil, "Settings changed; refresh before applying", 409)
     end
+    local safe, inconsistent = safe_to_update(before)
+    if not safe then return finish(nil, inconsistent, 409) end
     if values.aott_metrics == "1" and not before.credential_configured then
         return finish(nil, "Generate a collector token before enabling metrics", 422)
     end
@@ -319,6 +337,12 @@ function M.change_credential(revision, operation)
     if not old then return finish(nil, err, 503) end
     if old.revision ~= revision then
         return finish(nil, "Settings changed; refresh credentials page", 409)
+    end
+    -- Revocation must always remain possible as a fail-closed recovery action.
+    -- A rotation of stale UCI state could otherwise resurrect an old bearer.
+    if operation ~= "revoke" then
+        local safe, inconsistent = safe_to_update(old)
+        if not safe then return finish(nil, inconsistent, 409) end
     end
     local desired = store.from_snapshot(old)
     if not desired then return finish(nil, "Invalid current monitoring configuration", 503) end

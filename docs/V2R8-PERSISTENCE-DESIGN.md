@@ -50,8 +50,36 @@ All restoration behavior must remain fail closed on malformed or missing persist
 - **Revoke:** durably write a disabled/tombstoned record **before** changing live UCI. The dual-record authorization check immediately rejects the old token even if live UCI restoration fails. Do not roll back a completed durable revocation into an enabled record.
 - **Change syslog:** validate and durably stage the intended record, apply only logger-relevant changes and read back effective UCI. On failure, report whether durable or live state changed rather than silently claiming full rollback.
 - **Reboot/bank switch:** restore to UCI from durable state, then independently verify collector denial/acceptance, local logging, and A/B management operation. An older firmware bank that does not implement the interface should not attempt to parse or rewrite the durable record.
+- **Interrupted revocation:** reject ordinary settings saves and credential
+  rotation while durable and active settings disagree. Otherwise stale UCI
+  could reinstate a revoked token. Revocation remains an available recovery
+  operation. Other changes require reviewed reconciliation of the intended
+  durable state.
+- **Failed boot restore:** reject pre-existing unrelated staged UCI edits,
+  revert newly staged monitoring changes if set/commit fails, and preserve
+  prior committed system values. A failed revert is an explicit error.
 
 This order is implemented in the draft offline source and verified with deterministic failure-injection tests. Actual UBIFS persistence and live boot timing have not been qualified.
+
+### Exact vendor UCI test isolation
+
+The vendor CLI accepts -p to add a staging search path and -P to set the
+default staging path, but these options do not fully eliminate fallback to
+the built-in /tmp/.uci path. A naive offline test can mistakenly inspect
+uncommitted values and claim a successful commit.
+
+The r8 test harness therefore executes the actual MIPS UCI binary inside
+a **private, temporary vendor-rootfs chroot**, with its own default
+staging directory. /proc is bound only inside a child mount namespace
+because UCI's commit implementation needs /proc/self/fd. The harness
+reads the **physical committed config file** and verifies staged deltas
+are empty after success or recovery; the host staging directory is
+independently checked for changes.
+
+Five deterministic tests cover successful restore and repetition,
+no-record refusal, pending unrelated edits, failed mid-set recovery
+and failed commit recovery. This procedure is a development test only
+and does not mount or write the production /ptconf volume.
 
 ## Offline evidence and next tests
 

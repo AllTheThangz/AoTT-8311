@@ -37,6 +37,14 @@ function M.run(command, source)
     if invoke("get", "system.@system[0]") ~= "system" then
         return nil, "System settings not initialized"
     end
+    -- The S10 boot service should have completed all its UCI commits.
+    -- Never overwrite or discard unrelated outstanding system changes.
+    if invoke("changes", "system") ~= "" then
+        return nil, "Uncommitted system settings block monitoring restoration"
+    end
+    local function revert_staged()
+        return invoke("revert", "system") ~= nil
+    end
     local changed = false
     for _, key in ipairs(keys) do
         local uci_name = "system.@system[0]." .. key
@@ -44,14 +52,20 @@ function M.run(command, source)
         if existing ~= record[key] then
             -- Every value was fully validated by the durable store parser.
             if invoke("set", uci_name .. "=" .. record[key]) == nil then
-                return nil, "Unable to restore monitoring option"
+                if not revert_staged() then
+                    return nil, "Monitoring staging failed and UCI revert could not be verified"
+                end
+                return nil, "Unable to restore monitoring option; staged changes reverted"
             end
             changed = true
         end
     end
     if changed then
         if invoke("commit", "system") == nil then
-            return nil, "Unable to commit monitoring restoration"
+            if not revert_staged() then
+                return nil, "Monitoring commit failed and UCI revert could not be verified"
+            end
+            return nil, "Unable to commit monitoring restoration; staged changes reverted"
         end
     end
     for _, key in ipairs(keys) do

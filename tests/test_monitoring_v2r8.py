@@ -133,6 +133,10 @@ class MonitoringBackendTests(unittest.TestCase):
         self.assertIn("store.write(target)", s)
         self.assertIn("store.same_live(saved)", s)
         self.assertIn("store.same_live(values)", s)
+        self.assertIn("local function safe_to_update(snapshot)", s)
+        self.assertIn("safe_to_update(before)", s)
+        self.assertIn('operation ~= "revoke"', s)
+        self.assertIn("safe_to_update(old)", s)
         self.assertLess(s.index("store.write(target)"),
                         s.index("set_options(u, before.section, values)"))
         credential = s.split("function M.change_credential", 1)[1]
@@ -151,9 +155,21 @@ class MonitoringBackendTests(unittest.TestCase):
         self.assertIn('require("8311.monitor_restore").run()', entry)
         self.assertIn('source.read()', script)
         self.assertIn('"/sbin/uci", "-q"', script)
+        self.assertIn('invoke("changes", "system")', script)
+        self.assertIn('invoke("revert", "system")', script)
         self.assertNotIn('os.execute(', script)
         self.assertNotIn("ubus", script)
         self.assertNotIn("firmware-install", defaults)
+
+    def test_private_vendor_cli_harness_enforces_chroot_isolation(self):
+        source = (ROOT / "tests/test_vendor_boot_cli_v2r8.py").read_text()
+        self.assertIn('"unshare", "--mount", "--propagation", "private"', source)
+        self.assertIn("mount --bind /proc", source)
+        self.assertIn("chroot", source)
+        self.assertIn('(self.config / "system").write_text', source)
+        self.assertIn('self.assertEqual(self.cli("changes", "system"), (0, ""))', source)
+        self.assertNotIn('"-p", self.internal_stage', source)
+        self.assertNotIn('"-P", self.internal_stage', source)
 
     def test_new_components_are_in_source_manifest(self):
         m = json.loads((ROOT / "MANIFEST.json").read_text())

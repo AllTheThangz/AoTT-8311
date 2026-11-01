@@ -21,7 +21,7 @@ The base is the committed v2r7 source for the qualified PRX126-SFP-PON hardware 
 - Isolated source-level Lua tests using mocked UCI, logging processes and locks. The tests cover invalid configuration, stale revision, successful save, test emission and failed-logging-service rollback.
 - The same Lua fixture passed in target MIPS Lua under QEMU. Security-negative tests exercise wrong or missing tokens, non-HTTPS requests, mismatched source and destination IPs, spoofed forwarded headers, stale credential requests, rotation and revocation.
 - Full source manifest and privacy/disclosure gates passed after adding the candidate files.
-- A **size-only** private SquashFS measurement using XZ and 1 MiB blocks is **5,697,536 bytes** against v2r7 **5,689,344 bytes**, a delta of **8 KiB**. Remaining fixed-bank capacity is **524,288 bytes (512 KiB)**. This is not a qualified flashable image.
+- A **size-only** private SquashFS measurement using XZ and 1 MiB blocks is **5,701,632 bytes** against v2r7 **5,689,344 bytes**, a delta of **12 KiB**. Remaining fixed-bank capacity is **520,192 bytes (508 KiB)**. This is not a qualified flashable image.
 - Python regression tests and actual browser tests must be rerun on the final candidate, including CI with the Chromium requirements enforced.
 
 **Important:** this is not firmware qualification. The private size-only filesystem still carries the v2r7 runtime integrity profile. Its hashes are not updated for new files, it is not eligible for an upgrade archive, and it must not be installed onto a device.
@@ -50,6 +50,43 @@ boot. Real hardware persistence and recovery remain unqualified.
   persistent-write integration has been added to the firmware.
 
 See [durable monitoring design](V2R8-PERSISTENCE-DESIGN.md).
+
+### Interrupted-revocation and vendor CLI hardening
+
+A security audit found that an ordinary settings save could copy an old live
+credential back into durable storage after a prior revocation succeeded
+durably but its live UCI commit failed. This loophole is closed: **normal
+saves and token rotation now require durable/live consistency**, while
+revocation remains available during a mismatch.
+
+Boot restoration also rejects unrelated pending UCI edits and reverts its
+own staged changes when an allowlisted set or commit operation fails.
+An isolated harness drives the exact boot-restore module against the real
+vendor MIPS UCI CLI using only disposable configuration directories.
+It covers successful restore, idempotence, unrelated settings, missing
+records, and injected set/commit failures with staged-state cleanup.
+
+The full local suite now passes **283 tests** (four browser-dependent skips). These are not power-loss, real UBIFS, or A/B hardware acceptance tests.
+
+### Fully isolated vendor UCI commit tests
+
+The first private vendor CLI harness used a custom staging search path and
+incorrectly counted staged values as committed. The vendor UCI command also
+needs /proc/self/fd during commit, which was absent from that first chroot.
+
+The corrected test suite clones the extracted vendor rootfs into a private
+scratch chroot, binds /proc only inside a temporary mount namespace and
+uses the vendor default UCI staging path **inside the chroot**. No host
+staging path or running device configuration is changed.
+
+Five end-to-end tests now confirm physical configuration-file readback,
+repeated no-op restore, unrelated pending settings rejection, failed
+middle-option revert and failed commit revert. An incidental synthetic
+staging file from the earlier experiment was preserved off-path in a
+private local test backup, not deleted or published.
+
+This is still a disposable filesystem integration test, not proof that
+the r8 hook survives actual UBIFS power loss or A/B transitions.
 
 ## Remaining release-blocking work
 
