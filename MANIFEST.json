@@ -152,6 +152,12 @@
       "sha256": "0a48626907448eef0c8f45802ad635cd42e661a297b555640c41646920ee1fda"
     },
     {
+      "bytes": 8992,
+      "executable": false,
+      "path": "usr/lib/lua/8311/monitoring.lua",
+      "sha256": "9f630aaaa9db78a5a5d7ad45d20745085208874a71c1f3f9eafac7d836c693a5"
+    },
+    {
       "bytes": 5472,
       "executable": false,
       "path": "usr/lib/lua/8311/tools.lua",
@@ -176,10 +182,10 @@
       "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
     },
     {
-      "bytes": 46673,
+      "bytes": 49586,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "8646dd259962fc9e925cf84dc001f208da5f6dc483f9b93f49643afdd1917a8a"
+      "sha256": "6ba5761c69ca0cb156102e314512d5a0774c3f42b401b715464a399d612a7c09"
     },
     {
       "bytes": 13773,
@@ -198,6 +204,12 @@
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/health.htm",
       "sha256": "d4c5bad01254dfc37392c0417a5e3dec717108dcd2b2b7cd8331ef0fef91d019"
+    },
+    {
+      "bytes": 8466,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/8311/monitoring.htm",
+      "sha256": "f199489bbf3c0d09beb95fca09d0fbd307d65d592fe5365d52c06cbffd856b64"
     },
     {
       "bytes": 1394,
@@ -242,10 +254,10 @@
       "sha256": "9bd5f0c0c085bfd3c50fd409712744e541ed1de0b175945011f1a14a5c4c3215"
     },
     {
-      "bytes": 14803,
+      "bytes": 15039,
       "executable": false,
       "path": "usr/lib/lua/luci/view/themes/bootstrap/header.htm",
-      "sha256": "062c895dde3206200717cd677fe8a5e331f7262444a7c5bd47a8796adc27166a"
+      "sha256": "95f5eb03016635f2823a7d01e0d5ddb097f2b45d6a443aad4b66533ea4fab45d"
     },
     {
       "bytes": 220,

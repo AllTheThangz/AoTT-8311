@@ -4,7 +4,7 @@
 
 AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible web interface, deeper optical and network diagnostics, security visibility, and guarded A/B firmware management.
 
-**Latest privately hardware-qualified and committed firmware:** `AoTT-8311-v2r7` on one qualified LL-XS1010 / PRX126-SFP-PON unit, committed in bank B. Its verified on-device alternative is v2r6 in bank A. The public repository distributes sanitized **v2r7 source only**, not ready-to-flash archives. **v2r8 is planned, not implemented.**
+**Latest privately hardware-qualified and committed firmware:** `AoTT-8311-v2r7` on one qualified LL-XS1010 / PRX126-SFP-PON unit, committed in bank B. Its verified on-device alternative is v2r6 in bank A. The public repository distributes sanitized **v2r7 source only**, not ready-to-flash archives. **v2r8 implementation is underway in a separate development branch, not hardware-qualified or released.**
 
 > **Important:** This repository currently provides a **secret-sanitized source overlay, not a ready-to-flash firmware image**. Proprietary vendor components, actual subscriber provisioning, and production credentials are deliberately excluded.
 
@@ -45,7 +45,7 @@ AoTT-8311 **builds on** the existing [8311 Community Firmware](https://github.co
 
 The source includes authenticated **Live Health** and **Security & Access** views. Health data can be refreshed at selectable intervals without automatically changing configuration. v2r7 improves light/dark Overview graph contrast.
 
-Existing diagnostic JSON can be consumed by external monitoring systems. **v2r8 is planned to add GUI-controlled remote syslog and secure optional metrics integration.** This is not yet implemented. Users supply their own receiver, Prometheus-compatible collector, storage, dashboards and alerting. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and [v2r8 plan](docs/V2R8-PLAN.md).
+Existing diagnostic JSON can be consumed by external monitoring systems. **v2r8 has an offline development candidate for GUI-controlled remote syslog and authenticated metrics access.** It is not released or hardware-qualified. See [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md). Users supply their own receiver, Prometheus-compatible collector, storage, dashboards and alerting. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and [v2r8 plan](docs/V2R8-PLAN.md).
 
 ### A/B upgrade safety
 
@@ -168,6 +168,7 @@ To build actual firmware, obtain a **legally authorized, clean, compatible vendo
 | `docs/V2R7-RELEASE.md` | Historical v2r7 untried build-stage contract and recovery risks. |
 | `docs/V2R7-HARDWARE-ACCEPTANCE.md` | v2r7 hardware trial, verified permanent commit and qualification limits. |
 | `docs/V2R8-PLAN.md` | r8 architecture, prioritization, implementation order and release gates. |
+| `docs/V2R8-IMPLEMENTATION-STATUS.md` | Current candidate, offline tests, limitations and remaining blockers. |
 | `docs/MONITORING-AND-TELEMETRY.md` | Deployment-neutral syslog and metrics integration design. |
 | `CHANGELOG.md` | Version-by-version development and deployment history. |
 
@@ -200,7 +201,7 @@ The original v2r7 source and private archive build-time markers (`offline-candid
 
 **Included in v2r7 source:** responsive LuCI interface, improved light/dark realtime graph contrast, optical/PON/OMCI/GEM and Ethernet diagnostics, security-state reporting, management routing compatibility, and guarded A/B firmware lifecycle tooling.
 
-**Planned for v2r8:** GUI-configurable remote syslog, access-controlled metrics for external collection, bounded telemetry overhead, verified management security, diagnostic improvements and UI consistency. See [the implementation plan](docs/V2R8-PLAN.md). Planning a feature does not mean it is implemented.
+**v2r8 development:** Initial remote syslog and authenticated metrics source is under offline review, not merged into stable firmware and not hardware-qualified. Dedicated collector authorization, workload validation and A/B hardware acceptance remain open. See [the implementation plan](docs/V2R8-PLAN.md) and [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md).
 
 **Deferred:** kernel/VPE activation, UBI resizing, vendor PON stack replacement, unsupported ONU hardware and automatic disruptive upgrades. A source-only update is not a firmware image or throughput guarantee.
 

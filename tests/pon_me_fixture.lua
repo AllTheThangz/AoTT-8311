@@ -65,6 +65,7 @@ package.preload["8311.webutil"] = function()
     }
 end
 package.preload["8311.health"] = function() return {} end
+package.preload["8311.monitoring"] = function() return {} end
 package.preload["8311.config"] = function() return {} end
 package.preload["8311.uploads"] = function() return {} end
 package.preload["8311.jobs"] = function() return {} end

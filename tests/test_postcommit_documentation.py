@@ -46,8 +46,8 @@ class CurrentReleaseDocumentationTests(unittest.TestCase):
         self.assertIn("V2R7-HARDWARE-ACCEPTANCE.md", self.readme)
 
     def test_r8_is_planned_not_claimed_delivered(self):
-        self.assertIn("v2r8 is planned, not implemented", self.readme)
-        self.assertIn("scope defined, implementation not started", self.plan)
+        self.assertIn("v2r8 implementation is underway", self.readme)
+        self.assertIn("first offline monitoring candidate under review", self.plan)
         self.assertIn("v2r8: Observability", self.roadmap)
         self.assertIn("MONITORING-AND-TELEMETRY.md", self.readme)
 

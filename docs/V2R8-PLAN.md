@@ -1,6 +1,6 @@
 # AoTT-8311 v2r8 implementation plan
 
-Planning status: **scope defined, implementation not started** (2026-11-01).
+Implementation status: **first offline monitoring candidate under review**, not yet qualified or merged (2026-11-01). See [candidate implementation status](V2R8-IMPLEMENTATION-STATUS.md).
 Baseline: privately committed v2r7 source and its independently verified A/B recovery contract on one qualified LL-XS1010 / PRX126-SFP-PON device. Public GitHub remains source-only.
 
 ## Release objective
