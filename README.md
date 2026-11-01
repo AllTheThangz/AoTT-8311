@@ -45,7 +45,7 @@ AoTT-8311 **builds on** the existing [8311 Community Firmware](https://github.co
 
 The source includes authenticated **Live Health** and **Security & Access** views. Health data can be refreshed at selectable intervals without automatically changing configuration. v2r7 improves light/dark Overview graph contrast.
 
-Existing diagnostic JSON can be consumed by external monitoring systems. **v2r8 has an offline development candidate for GUI-controlled remote syslog and HTTPS-only, token-protected read-only metrics collection restricted to one configured collector IPv4 address.** It is not released or hardware-qualified. See [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md). Users supply their own receiver, Prometheus-compatible collector, storage, dashboards and alerting. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and [v2r8 plan](docs/V2R8-PLAN.md).
+Existing diagnostic JSON can be consumed by external monitoring systems. **v2r8 has an offline development candidate for GUI-controlled remote syslog and HTTPS-only, token-protected read-only metrics collection restricted to one configured collector IPv4 address.** It is not released or hardware-qualified. See [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md). Users supply their own receiver, Prometheus-compatible collector, storage, dashboards and alerting. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and [v2r8 plan](docs/V2R8-PLAN.md). A [generic off-device Prometheus adapter](examples/monitoring/README.md) is provided as source and runs only on the user-owned collector.
 
 ### A/B upgrade safety
 
@@ -170,6 +170,8 @@ To build actual firmware, obtain a **legally authorized, clean, compatible vendo
 | `docs/V2R8-PLAN.md` | r8 architecture, prioritization, implementation order and release gates. |
 | `docs/V2R8-IMPLEMENTATION-STATUS.md` | Current candidate, offline tests, limitations and remaining blockers. |
 | `docs/V2R8-PERSISTENCE-DESIGN.md` | Durable monitoring configuration design and offline vendor-runtime evidence; not yet deployed. |
+| `docs/V2R8-MANAGEMENT-ACL-AUDIT.md` | Explicit security checks and interface/firewall acceptance requirements for public collectors. |
+| `examples/monitoring/README.md` | Optional user-hosted Prometheus JSON adapter, secure token handling and collector configuration. |
 | `docs/MONITORING-AND-TELEMETRY.md` | Deployment-neutral syslog and metrics integration design. |
 | `CHANGELOG.md` | Version-by-version development and deployment history. |
 

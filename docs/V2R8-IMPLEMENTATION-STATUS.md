@@ -66,7 +66,7 @@ vendor MIPS UCI CLI using only disposable configuration directories.
 It covers successful restore, idempotence, unrelated settings, missing
 records, and injected set/commit failures with staged-state cleanup.
 
-The full local suite now passes **283 tests** (four browser-dependent skips). These are not power-loss, real UBIFS, or A/B hardware acceptance tests.
+The expanded local suite now passes **301 tests** (four browser-dependent skips), including generic external collector, vendor syslog transport and management ACL contracts. These are not power-loss, real UBIFS, or A/B hardware acceptance tests.
 
 ### Fully isolated vendor UCI commit tests
 
@@ -87,6 +87,24 @@ private local test backup, not deleted or published.
 
 This is still a disposable filesystem integration test, not proof that
 the r8 hook survives actual UBIFS power loss or A/B transitions.
+
+### Vendor syslog, collector endpoints and operator examples
+
+- Source-mocked procd tests run the extracted vendor logger start callback
+  and confirm the exact logread command for UDP and TCP, optional TCP null
+  framing, receiver port and disabled or rejected settings. They do not
+  claim an external collector received a message.
+- The controller's actual read-only JSON actions pass positive and
+  negative isolated Lua checks: denied bearer, non-GET requests, disabled
+  export, authorized numeric-only JSON and bounded sensor error handling.
+- A public, optional [off-device Prometheus adapter](../examples/monitoring/README.md)
+  uses Python's standard library on the operator's collector machine,
+  verifies HTTPS, accepts a private token file, exposes only eight
+  documented numeric metrics and rate-limits polls with a cache.
+  No collector service or runtime dependency is bundled on the ONU.
+- An [ACL audit](V2R8-MANAGEMENT-ACL-AUDIT.md) records that the vendor's
+  uhttpd listener binds wildcard IPv4/IPv6. Effective firewall and older
+  firmware fallback behavior must still be tested on recoverable hardware.
 
 ## Remaining release-blocking work
 

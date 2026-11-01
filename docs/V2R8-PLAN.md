@@ -29,7 +29,7 @@ No P1/P2 feature may displace a P0 security or recovery gate. A feature not qual
 - Existing LuCI/uhttpd and Lua form the management UI and read-only telemetry surface. No new always-on metrics agent is bundled.
 - Use the vendor/OpenWrt logging service when its exact version supports remote forwarding. Do not claim TCP support until verified on the targeted image; UDP is the baseline transport if supported.
 - The stick **does not** store historical metrics, run Prometheus/Loki/Grafana, maintain long-term persistent logs or include collector-specific client binaries.
-- Users bring their own monitoring system and configure the destination; a collector may translate the existing JSON into Prometheus exposition.
+- Users bring their own monitoring system and configure the destination; a collector may translate the existing JSON into Prometheus exposition. A generic, source-only [external adapter](../examples/monitoring/README.md) and [management ACL checklist](V2R8-MANAGEMENT-ACL-AUDIT.md) provide tested integration guidance without bundling collector software on the stick.
 - Default: remote forwarding and optional export disabled until a trusted management path and receiver are configured. Existing local Live Health remains available to authenticated admins.
 - No shipped address, hostname, network topology, deployment label or special-case logic for a developer's own infrastructure.
 - Detailed protocol, example configuration, safety and naming contracts: [MONITORING-AND-TELEMETRY.md](MONITORING-AND-TELEMETRY.md).

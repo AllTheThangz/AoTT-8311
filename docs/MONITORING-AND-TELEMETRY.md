@@ -52,6 +52,8 @@ Compatible ONU (trusted management network)
   |-- remote syslog events ----------> user's syslog receiver -> optional log store
 ```
 
+An optional [standard-library-only external Prometheus JSON adapter](../examples/monitoring/README.md) demonstrates how operators can use their own monitoring hosts. It is not installed on the ONU. Its loopback-only listener, TLS validation, bounded response parsing and cached polling are part of the example, not device-side settings.
+
 The receiver and exporter are software **chosen by the user**, not embedded in AoTT-8311. Scrape timing, credentials and log retention are external deployment settings; the GUI must clearly distinguish these from locally applied ONU settings.
 
 ## Dedicated read-only collector authentication (v2r8 candidate)
@@ -79,6 +81,8 @@ TLS: validate the ONU's certificate using trusted CA/pinning
 This is a JSON response, not native Prometheus exposition. Run a compatible JSON-to-Prometheus conversion externally. Store the header value through the collector's secret mechanism. No monitoring service, data retention or collector configuration is bundled into the firmware.
 
 **Qualification limit:** the code and its isolated tests exist in draft source, but actual UCI persistence, HTTP header/TLS behavior, management ACLs, and A/B survivability have not yet been independently hardware-qualified.
+
+See the [management ACL audit](V2R8-MANAGEMENT-ACL-AUDIT.md) before treating a listener bound on all device interfaces as safely restricted. The stock vendor web listener uses wildcard addresses, so hardware ingress and fallback-bank checks remain mandatory.
 
 ## Security and troubleshooting contracts
 
