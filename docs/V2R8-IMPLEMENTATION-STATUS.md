@@ -46,7 +46,7 @@ boot. Real hardware persistence and recovery remain unqualified.
 - A disposable vendor-runtime lab parsed the proposed record with target
   MIPS jsonfilter and round-tripped settings through the actual target
   MIPS UCI CLI using a fresh temporary configuration.
-- The source candidate now includes a root-only, atomic JSON record store on the persistent ptconf UBIFS volume, an S11 restore hook before the S12 vendor logger, and a first-boot restore registration in the existing UCI defaults. The target-MIPS nixio/jsonc store parser passed offline tests for symlinks, permissions, malformed mounts, canonical JSON and readback.
+- The source candidate now includes a root-only, atomic JSON record store on the persistent ptconf UBIFS volume, an optional bounded restore call in the vendor's already-registered S11 sysctl service, before the S12 logger. The original UCI defaults are preserved unchanged. This avoids relying on a first-boot-created rc.d symlink that might disappear during rootfs_data reset. The target-MIPS nixio/jsonc store parser passed offline tests for symlinks, permissions, malformed mounts, canonical JSON and readback.
   persistent-write integration has been added to the firmware.
 
 See [durable monitoring design](V2R8-PERSISTENCE-DESIGN.md).
@@ -105,6 +105,42 @@ the r8 hook survives actual UBIFS power loss or A/B transitions.
 - An [ACL audit](V2R8-MANAGEMENT-ACL-AUDIT.md) records that the vendor's
   uhttpd listener binds wildcard IPv4/IPv6. Effective firewall and older
   firmware fallback behavior must still be tested on recoverable hardware.
+
+### Boot startup registration correction
+
+The initial draft shipped a new S11 init script but did not include a
+durable startup link in the compressed image. Dynamically creating the
+link in UCI defaults is not sufficient when rootfs_data can be discarded.
+Adding a symlink to the public source is also prohibited by this project's
+source-only verifier.
+
+The reviewed implementation now retains the vendor's existing, immutable
+S11sysctl rc.d link and adds one optional 12-second bounded call after
+the original sysctl operations. The restore runs only when a durable
+monitoring record exists. Stock UCI defaults match the qualified r7
+source byte-for-byte, and no additional symlink or resident daemon is
+distributed. Real boot timing and behavior remain unqualified.
+
+## Three-pass preboot audit and privately qualified archive
+
+The independent boot audit corrected the r8 startup packaging to reuse
+the vendor's immutable S11sysctl rc.d symlink. The source-only project
+forbids newly introduced symlinks, so a first-boot-generated startup link
+would not survive every possible rootfs_data reset. The vendor sysctl
+logic is preserved, with one bounded optional restore after its original
+operations; stock UCI defaults remain byte-identical to qualified r7.
+
+A separate private scratch release was assigned canonical v2r8 identity
+without changing this public draft's historical r7 labels. Its refreshed
+runtime candidate pins passed inspection. Independent r8 SquashFS images
+and complete private upgrade archives were byte-identical. The standard
+five-component archive, exact kernel and bootcore hashes, hardware
+profile and release labels passed separate offline qualification.
+The r8 image is **5,697,536 bytes** with **512 KiB** fixed-bank headroom.
+
+All private outputs remain marked **UNTRIALED_OFFLINE_ONLY**. See
+[V2R8-BOOT-READINESS-AUDIT.md](V2R8-BOOT-READINESS-AUDIT.md) for the
+three-pass evidence, untested risks and the required A/B recovery gates.
 
 ## Remaining release-blocking work
 

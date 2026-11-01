@@ -146,12 +146,15 @@ class MonitoringBackendTests(unittest.TestCase):
 
     def test_boot_hook_restores_before_logger_without_ubus(self):
         defaults = (ROOT / "overlay/etc/uci-defaults/zzz-8311").read_text()
-        init = (ROOT / "overlay/etc/init.d/8311-monitoring").read_text()
+        sysctl = (ROOT / "overlay/etc/init.d/sysctl").read_text()
         entry = (ROOT / "overlay/usr/libexec/8311-monitoring-restore").read_text()
         script = (ROOT / "overlay/usr/lib/lua/8311/monitor_restore.lua").read_text()
-        self.assertIn("START=11", init)
-        self.assertIn("8311-monitoring enable", defaults)
-        self.assertIn("/usr/libexec/8311-monitoring-restore", defaults)
+        self.assertIn("START=11", sysctl)
+        self.assertIn("apply_defaults", sysctl)
+        self.assertIn("/usr/bin/timeout -k 1 12", sysctl)
+        self.assertIn("/usr/libexec/8311-monitoring-restore", sysctl)
+        self.assertIn("/ptconf/8311-monitoring/config.json", sysctl)
+        self.assertNotIn("/usr/libexec/8311-monitoring-restore", defaults)
         self.assertIn('require("8311.monitor_restore").run()', entry)
         self.assertIn('source.read()', script)
         self.assertIn('"/sbin/uci", "-q"', script)
@@ -160,6 +163,17 @@ class MonitoringBackendTests(unittest.TestCase):
         self.assertNotIn('os.execute(', script)
         self.assertNotIn("ubus", script)
         self.assertNotIn("firmware-install", defaults)
+        # The source-only package forbids symlinks. Use the already
+        # provisioned vendor S11sysctl symlink instead.
+        self.assertFalse((ROOT/"overlay/etc/rc.d/S118311-monitoring").exists())
+        self.assertFalse((ROOT/"overlay/etc/init.d/8311-monitoring").exists())
+
+    def test_vendor_s11_sysctl_logic_remains_byte_equivalent_before_hook(self):
+        source = (ROOT / "overlay/etc/init.d/sysctl").read_text()
+        self.assertTrue(source.startswith("#!/bin/sh /etc/rc.common"))
+        self.assertEqual(source.count("apply_defaults"), 2)
+        self.assertLess(source.index("sysctl -e -p"), source.index("8311-monitoring-restore"))
+        self.assertEqual(source.count("/usr/libexec/8311-monitoring-restore"), 1)
 
     def test_private_vendor_cli_harness_enforces_chroot_isolation(self):
         source = (ROOT / "tests/test_vendor_boot_cli_v2r8.py").read_text()
@@ -180,7 +194,7 @@ class MonitoringBackendTests(unittest.TestCase):
             "usr/lib/lua/8311/monitor_store.lua",
             "usr/lib/lua/8311/monitor_restore.lua",
             "usr/libexec/8311-monitoring-restore",
-            "etc/init.d/8311-monitoring",
+            "etc/init.d/sysctl",
         ):
             self.assertIn(path, entries)
 

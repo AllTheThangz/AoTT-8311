@@ -31,7 +31,14 @@ The draft implements a canonical JSON record and validates every field, size, ow
 
 ## Boot restoration
 
-An r8 startup restore runs at START=11 after the stock START=10 boot and before the vendor START=12 logger. The existing UCI defaults enable the hook and invoke a first-boot restore. Its implementation:
+The r8 candidate runs a bounded restoration step from the existing
+vendor S11 sysctl script, after the stock S10 boot and before the
+vendor S12 logger. The vendor's original /etc/rc.d/S11sysctl symlink
+already exists in the immutable image, so the operation does not rely
+on first-boot link registration or a new source symlink. The original
+S11 sysctl operations run first and are otherwise preserved. The
+added restore call is optional, requires a durable record, and has
+a 12-second outer timeout. Its implementation:
 
 1. Confirm `/ptconf` is mounted as the expected persistent UBIFS volume; otherwise leave remote monitoring **disabled** and report a safe error.
 2. Validate the private directory and record type, ownership, mode, schema, complete field list, and bounded size. Never `source` configuration data into a shell.

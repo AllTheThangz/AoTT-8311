@@ -29,7 +29,7 @@ class ManagementAccessContractTests(unittest.TestCase):
         overlay=ROOT/"overlay"
         self.assertFalse((overlay/"etc/config/firewall").exists())
         for candidate in (overlay/"etc/uci-defaults/zzz-8311",
-                          overlay/"etc/init.d/8311-monitoring"):
+                          overlay/"etc/init.d/sysctl"):
             text=candidate.read_text()
             self.assertNotIn("iptables -I",text)
             self.assertNotIn("firewall.@rule",text)
