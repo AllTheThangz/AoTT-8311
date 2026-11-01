@@ -25,11 +25,33 @@ The base is the committed v2r7 source for the qualified PRX126-SFP-PON hardware 
 
 **Important:** this is not firmware qualification. The private size-only filesystem still carries the v2r7 runtime integrity profile. Its hashes are not updated for new files, it is not eligible for an upgrade archive, and it must not be installed onto a device.
 
+## Persistence and vendor-runtime qualification findings
+
+The vendor source explicitly documents that stock boot can delete rootfs_data
+while the separate ptconf volume survives. Monitoring settings stored only
+in UCI system configuration are therefore not yet guaranteed durable.
+
+- The extracted vendor LuCI UCI model passed synthetic configuration,
+  token rotation/revocation and default-value tests under host Lua 5.1 and
+  the real vendor MIPS Lua interpreter under QEMU.
+- The exact vendor uhttpd Lua request handler passed synthetic TLS, socket
+  address and custom HTTP-header mapping checks under both interpreters.
+- The host-only atomic private record prototype passed six negative and
+  round-trip tests, including symlinks, unsafe permissions, duplicate JSON
+  keys, malformed addresses and invalid token states.
+- A disposable vendor-runtime lab parsed the proposed record with target
+  MIPS jsonfilter and round-tripped settings through the actual target
+  MIPS UCI CLI using a fresh temporary configuration.
+- The prototype exists under tools only. No early boot restoration or
+  persistent-write integration has been added to the firmware.
+
+See [durable monitoring design](V2R8-PERSISTENCE-DESIGN.md).
+
 ## Remaining release-blocking work
 
 1. **Collector authorization qualification:** A separate HTTPS-only, read-only token and exact IPv4 allowlist exist in offline source. Verify actual target HTTP header/TLS and management socket behavior, credential permissions, negative requests and persistence in an isolated recoverable environment.
 2. **Access network:** Verify management-interface firewall ACLs and the absence of untrusted/WAN exposure on recoverable hardware. The request-level socket destination and source-IP checks are defense in depth, not a substitute for firewall testing.
-3. **Persistence:** test UCI reload, readback and log forwarding against the actual vendor build, including an unreachable receiver, failed reload, configuration conflict, reboot and bank switch. Lua mocks do not prove a procd runtime behavior.
+3. **Persistence:** implement and qualify a small root-owned persistent store, an early boot restore step and fail-closed dual-record collector authentication. The synthetic UCI/jsonfilter tests prove parser compatibility, not live boot behavior. Validate logging and A/B persistence on recoverable hardware.
 4. **Performance:** benchmark concurrent basic metrics scrapes, expensive detailed `pontop` reads, idle memory and active CPU usage. Do not implement new background polling before measuring.
 5. **Browser UX:** run real Chromium form submission/failure/test-event scenarios at desktop and mobile widths. Resolve all accessibility and styling defects before GUI signoff.
 6. **Release freeze:** assign canonical r8 release identity, refresh all source manifest and runtime-integrity pins, verify actual compressed image archive and original vendor ABI, independently rebuild twice and complete full native regression tests.

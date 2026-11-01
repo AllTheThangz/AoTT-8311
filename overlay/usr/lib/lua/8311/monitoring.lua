@@ -231,7 +231,7 @@ function M.apply(form)
     local committed = u:commit("system")
     local logging_changed = false
     for _, key in ipairs({"log_remote","log_ip","log_port","log_proto"}) do
-        if before.original[key] ~= values[key] then logging_changed = true end
+        if before[key] ~= values[key] then logging_changed = true end
     end
     if committed and (not logging_changed or reload_logger()) then
         local after = M.snapshot(uci_lib.cursor())

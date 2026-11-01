@@ -169,6 +169,7 @@ To build actual firmware, obtain a **legally authorized, clean, compatible vendo
 | `docs/V2R7-HARDWARE-ACCEPTANCE.md` | v2r7 hardware trial, verified permanent commit and qualification limits. |
 | `docs/V2R8-PLAN.md` | r8 architecture, prioritization, implementation order and release gates. |
 | `docs/V2R8-IMPLEMENTATION-STATUS.md` | Current candidate, offline tests, limitations and remaining blockers. |
+| `docs/V2R8-PERSISTENCE-DESIGN.md` | Durable monitoring configuration design and offline vendor-runtime evidence; not yet deployed. |
 | `docs/MONITORING-AND-TELEMETRY.md` | Deployment-neutral syslog and metrics integration design. |
 | `CHANGELOG.md` | Version-by-version development and deployment history. |
 
@@ -201,7 +202,7 @@ The original v2r7 source and private archive build-time markers (`offline-candid
 
 **Included in v2r7 source:** responsive LuCI interface, improved light/dark realtime graph contrast, optical/PON/OMCI/GEM and Ethernet diagnostics, security-state reporting, management routing compatibility, and guarded A/B firmware lifecycle tooling.
 
-**v2r8 development:** Initial remote syslog and authenticated metrics source is under offline review, not merged into stable firmware and not hardware-qualified. Dedicated collector authorization, workload validation and A/B hardware acceptance remain open. See [the implementation plan](docs/V2R8-PLAN.md) and [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md).
+**v2r8 development:** Initial remote syslog and authenticated metrics source is under offline review, not merged into stable firmware and not hardware-qualified. Collector HTTP and management-ACL qualification, durable settings restoration, workload validation and A/B hardware acceptance remain open. See the [persistence design](docs/V2R8-PERSISTENCE-DESIGN.md). See [the implementation plan](docs/V2R8-PLAN.md) and [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md).
 
 **Deferred:** kernel/VPE activation, UBI resizing, vendor PON stack replacement, unsupported ONU hardware and automatic disruptive upgrades. A source-only update is not a firmware image or throughput guarantee.
 

@@ -1,7 +1,7 @@
 # AoTT-8311 v2r8 implementation plan
 
 Implementation status: **first offline monitoring candidate under review**, not yet qualified or merged (2026-11-01). See [candidate implementation status](V2R8-IMPLEMENTATION-STATUS.md).
-The draft implementation adds a separately rotatable read-only HTTPS collector token, exact peer IP restriction and management-destination check. This design still requires target HTTP integration and firewall qualification.
+The draft implementation adds a separately rotatable read-only HTTPS collector token, exact peer IP restriction and management-destination check. This design still requires target HTTP integration and firewall qualification. The stock boot path may discard rootfs_data. See [persistence design](V2R8-PERSISTENCE-DESIGN.md) for the required durable store and dual-record fail-closed authorization. This has not been wired into the firmware.
 Baseline: privately committed v2r7 source and its independently verified A/B recovery contract on one qualified LL-XS1010 / PRX126-SFP-PON device. Public GitHub remains source-only.
 
 ## Release objective

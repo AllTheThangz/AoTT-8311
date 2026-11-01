@@ -24,6 +24,7 @@ DOCS=[
     "docs/V2R7-HARDWARE-ACCEPTANCE.md",
     "docs/V2R8-PLAN.md",
     "docs/V2R8-IMPLEMENTATION-STATUS.md",
+    "docs/V2R8-PERSISTENCE-DESIGN.md",
     "docs/MONITORING-AND-TELEMETRY.md",
     "CHANGELOG.md",
 ]

@@ -152,10 +152,10 @@
       "sha256": "0a48626907448eef0c8f45802ad635cd42e661a297b555640c41646920ee1fda"
     },
     {
-      "bytes": 17174,
+      "bytes": 17165,
       "executable": false,
       "path": "usr/lib/lua/8311/monitoring.lua",
-      "sha256": "899f36c56de3985e7aa2a899d002e3a322e766886ce6d552e93ab09c8437403c"
+      "sha256": "985c30be54a9328e2adfa868e45a19a22253057626b45c39926a760c84594788"
     },
     {
       "bytes": 5472,
