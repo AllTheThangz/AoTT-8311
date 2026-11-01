@@ -441,3 +441,31 @@ print_bank_status() {
 	done
 	printf '}}\n'
 }
+
+# A bank-status fingerprint is not an authorization secret. It binds
+# receipt/selector state, this boot instance, and a short expiry window to
+# one guarded operation under both firmware/environment locks.
+# Five-minute windows expire at the boundary; a near-boundary submission
+# can legitimately fail and must be explicitly reviewed again.
+# Independent privileged writers that bypass locks remain out of scope.
+bank_state_fingerprint() {
+    local boot_id epoch bucket
+    print_bank_status > "$WORKDIR/state-snapshot" || return 1
+    boot_id=$(cat /proc/sys/kernel/random/boot_id) || return 1
+    [ "${#boot_id}" -eq 36 ] || return 1
+    case "$boot_id" in
+        ????????-????-????-????-????????????) ;;
+        *) return 1 ;;
+    esac
+    case "$boot_id" in *[!0-9a-f-]*) return 1 ;; esac
+    epoch=$(date +%s) || return 1
+    case "$epoch" in ''|*[!0-9]*) return 1 ;; esac
+    [ "${#epoch}" -le 12 ] || return 1
+    bucket=$((epoch / 300))
+    {
+        printf 'aott-8311-bank-state-guard-v2\n' &&
+        cat "$WORKDIR/state-snapshot" &&
+        printf 'boot-id=%s\nfive-minute-window=%s\n' "$boot_id" "$bucket"
+    } > "$WORKDIR/state-precondition" || return 1
+    sha_file "$WORKDIR/state-precondition"
+}

@@ -13,6 +13,18 @@ DOCS=[
     "docs/EXTERNAL-REFERENCE-PROJECTS.md",
     "docs/UPSTREAM-ARCHITECTURE.md",
     "docs/UPSTREAM-FORKS.md",
+    "docs/V2R5-SECURITY-AND-SIZE.md",
+    "docs/V2R5-HARDWARE-TRIAL-READINESS.md",
+    "docs/V2R6-BOOT-PLAN.md",
+    "docs/V2R6-REPRODUCIBLE-PAIR.md",
+    "docs/V2R6-STATE-GUARD.md",
+    "docs/V2R6-HARDWARE-STAGING.md",
+    "docs/V2R6-HARDWARE-ACCEPTANCE.md",
+    "docs/V2R7-RELEASE.md",
+    "docs/V2R7-HARDWARE-ACCEPTANCE.md",
+    "docs/V2R8-PLAN.md",
+    "docs/MONITORING-AND-TELEMETRY.md",
+    "CHANGELOG.md",
 ]
 
 

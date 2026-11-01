@@ -98,7 +98,7 @@ class OverviewContrastTest(unittest.TestCase):
         self.assertGreaterEqual(contrast("#8dea9d",bg),3.0)
 
     def test_realtime_graph_axes_text_and_container_contrast(self):
-        pattern='#view div[style*="height:300px"][style*="background:#fff"]'
+        pattern='#view.aott-overview-live div:is([style*="height:300px"],[style*="height: 300px"])[style*="background"]'
         container=css_block('[data-aott-theme] '+pattern)
         ticks=css_block('[data-aott-theme] '+pattern+' svg text')
         grid=css_block('[data-aott-theme] '+pattern+' svg line')
@@ -117,7 +117,7 @@ class OverviewContrastTest(unittest.TestCase):
 
     def test_css_version_cache_refresh(self):
         header=(ROOT/"overlay/usr/lib/lua/luci/view/themes/bootstrap/header.htm").read_text()
-        self.assertIn('aott-theme.css?v=aott-8311-v2r2',header)
+        self.assertIn('aott-theme.css?v=aott-8311-v2r7',header)
         self.assertNotIn('aott-theme.css?v=aott-8311-v1-r4',header)
 
     def test_graph_lines_preserve_rx_tx_identity(self):

@@ -10,13 +10,13 @@ export MAINT8311_LIBDIR="$MAINT_LIBDIR" MAINT8311_BINDIR="$MAINT_BINDIR"
 . "$MAINT_LIBDIR/8311-upgrade-lib.sh" || exit 1
 . "$MAINT_LIBDIR/8311-env-lock.sh" || exit 1
 usage() {
-	printf 'Usage: %s [--validate] [--install] [--yes] [--trial|--no-commit] [--reboot] FILE\n' "$0"
+	printf 'Usage: %s [--validate] [--install] [--yes] [--trial|--no-commit] [--expect-active BANK --expect-target BANK --expect-state-guard SHA256] [--reboot] FILE\n' "$0"
 	printf '%s\n' 'With no mode, validates and installs. Default install stages a qualified bank without changing boot selection.' \
 		'--trial selects one boot without changing the committed bank.' \
 		'--no-commit is a compatibility alias for the default stage-only behavior.' \
 		'Reboot is never automatic unless --reboot is given.'
 }
-INSTALL=false VALIDATE=false YES=false TRIAL=false NO_COMMIT=true REBOOT=false TAR=
+INSTALL=false VALIDATE=false YES=false TRIAL=false NO_COMMIT=true REBOOT=false TAR= EXPECT_ACTIVE= EXPECT_TARGET= EXPECT_STATE_GUARD=
 while [ "$#" -gt 0 ]; do
 	case "$1" in
 		-h|--help) usage; exit 0 ;;
@@ -26,6 +26,15 @@ while [ "$#" -gt 0 ]; do
 		-r|--reboot) REBOOT=true ;;
 		--trial) TRIAL=true; NO_COMMIT=true ;;
 		--no-commit) NO_COMMIT=true ;;
+        --expect-active)
+            [ "$#" -ge 2 ] && [ -z "$EXPECT_ACTIVE" ] || exit 2
+            EXPECT_ACTIVE=$2; shift ;;
+        --expect-target)
+            [ "$#" -ge 2 ] && [ -z "$EXPECT_TARGET" ] || exit 2
+            EXPECT_TARGET=$2; shift ;;
+        --expect-state-guard)
+            [ "$#" -ge 2 ] && [ -z "$EXPECT_STATE_GUARD" ] || exit 2
+            EXPECT_STATE_GUARD=$2; shift ;;
 		--) [ "$#" -eq 2 ] && [ -z "$TAR" ] || exit 2; TAR=$2; break ;;
 		-*) usage >&2; exit 2 ;;
 		*) [ -z "$TAR" ] || exit 2; TAR=$1 ;;
@@ -33,6 +42,16 @@ while [ "$#" -gt 0 ]; do
 	shift
 done
 if ! $INSTALL && ! $VALIDATE; then INSTALL=true; fi
+if [ -n "$EXPECT_ACTIVE$EXPECT_TARGET" ]; then
+    $INSTALL || fail "Inactive-bank expectations are only supported for installation."
+    case "$EXPECT_ACTIVE:$EXPECT_TARGET" in A:B|B:A) ;; *)
+        fail "Expected active and inactive banks must be distinct A/B selectors." ;;
+    esac
+    [ "${#EXPECT_STATE_GUARD}" -eq 64 ] || fail "A fresh 64-character bank-state fingerprint is required."
+    case "$EXPECT_STATE_GUARD" in *[!0-9a-f]*) fail "Invalid expected bank-state fingerprint." ;; esac
+elif [ -n "$EXPECT_STATE_GUARD" ]; then
+    fail "A bank-state fingerprint requires both exact A/B installation selectors."
+fi
 if $REBOOT && { ! $INSTALL || ! $TRIAL; }; then fail "--reboot requires an install that selects the new bank."; fi
 [ -n "$TAR" ] && [ -f "$TAR" ] && [ ! -L "$TAR" ] && [ -r "$TAR" ] || fail "Upgrade must be a readable regular file."
 lock_upgrade
@@ -100,11 +119,24 @@ validate_image rootfs.img rootfs "$SIZE_ROOTFS" "$SHA256_ROOTFS"
 printf 'Archive/profile preflight passed: %s %s %s. Rootfs content qualification is required after writing the inactive bank.\n' "$FW_VERSION" "$FW_VARIANT" "$FW_REVISION"
 $INSTALL || exit 0
 load_environment && check_boot_contract || fail "Cannot establish a compatible boot environment."
+if [ -n "$EXPECT_STATE_GUARD" ]; then
+    ACTUAL_STATE_GUARD=$(bank_state_fingerprint) ||
+        fail "Unable to verify the current firmware-bank fingerprint."
+    [ "$ACTUAL_STATE_GUARD" = "$EXPECT_STATE_GUARD" ] ||
+        fail "Bank state changed or confirmation expired. No image was written."
+fi
 [ "$ACTIVE" = "$COMMITTED" ] || fail "Running and committed banks differ; back up and confirm the current bank or return to the committed bank first."
 [ -z "$ACTIVATE" ] || fail "A one-shot boot is pending; finish or cancel it before installing."
 ACTIVE_VALID=$(env_value "img_valid$ACTIVE") || fail "Missing current-bank validity marker."
 [ "$ACTIVE_VALID" = true ] || fail "The current bank is not marked complete."
 if [ "$ACTIVE" = A ]; then INSTALL_BANK=B; else INSTALL_BANK=A; fi
+# GUI installs must bind the confirmed overwrite target under the firmware
+# and environment locks, before ANY incomplete receipt or flash mutation.
+# Direct administrator stage-only commands retain their original CLI.
+[ -z "$EXPECT_ACTIVE" ] || [ "$ACTIVE" = "$EXPECT_ACTIVE" ] ||
+    fail "The running bank changed since confirmation. No image was written."
+[ -z "$EXPECT_TARGET" ] || [ "$INSTALL_BANK" = "$EXPECT_TARGET" ] ||
+    fail "The inactive bank changed since confirmation. No image was written."
 # Validate the preserved bank before consuming the other bank as an upgrade slot.
 check_bank "$ACTIVE"
 KERNEL_INFO=$(volume_info "kernel$INSTALL_BANK" "$SIZE_KERNEL") || fail "Kernel does not fit its existing inactive volume."
@@ -129,6 +161,12 @@ fi
 OLD_ACTIVE=$ACTIVE
 load_environment && check_boot_contract || fail "Boot environment changed or became unreadable."
 [ "$ACTIVE" = "$OLD_ACTIVE" ] && [ "$COMMITTED" = "$ACTIVE" ] && [ -z "$ACTIVATE" ] || fail "Boot selection changed before installation."
+if [ -n "$EXPECT_STATE_GUARD" ]; then
+    ACTUAL_STATE_GUARD=$(bank_state_fingerprint) ||
+        fail "Unable to reverify firmware bank state immediately before writing."
+    [ "$ACTUAL_STATE_GUARD" = "$EXPECT_STATE_GUARD" ] ||
+        fail "Bank state changed or confirmation expired before the first write."
+fi
 persist_receipt "$INSTALL_BANK" incomplete || fail "Cannot persist the incomplete-bank receipt."
 set_environment "img_valid$INSTALL_BANK" false || fail "Cannot mark target incomplete."
 rm -f /tmp/8311-alt-firmware

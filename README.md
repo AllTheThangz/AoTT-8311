@@ -4,7 +4,7 @@
 
 AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible web interface, deeper optical and network diagnostics, security visibility, and guarded A/B firmware management.
 
-**Hardware-tested firmware:** `AoTT-8311-v2r3` on one qualified LL-XS1010 / PRX126-SFP-PON device. **Public package:** sanitized source overlay only, not a flashable firmware image.
+**Latest privately hardware-qualified and committed firmware:** `AoTT-8311-v2r7` on one qualified LL-XS1010 / PRX126-SFP-PON unit, committed in bank B. Its verified on-device alternative is v2r6 in bank A. The public repository distributes sanitized **v2r7 source only**, not ready-to-flash archives. **v2r8 is planned, not implemented.**
 
 > **Important:** This repository currently provides a **secret-sanitized source overlay, not a ready-to-flash firmware image**. Proprietary vendor components, actual subscriber provisioning, and production credentials are deliberately excluded.
 
@@ -28,12 +28,13 @@ XGS-PON SFP+ ONUs expose far more operational information than their default int
 
 AoTT-8311 **builds on** the existing [8311 Community Firmware](https://github.com/djGrrr/8311-was-110-firmware-builder) rather than replacing it. The comparison below uses the community **v2.8.3 Basic** release as the reference point. Upstream already includes a LuCI interface, PON/OMCI and VLAN diagnostics, monitoring metrics, firmware uploads, and basic firmware-bank switching. Those are established community features, not AoTT inventions.
 
-| Enhancement | What AoTT-8311 v2r3 adds or changes |
+| Enhancement | What AoTT-8311 through v2r7 adds or changes |
 | --- | --- |
 | **Redesigned management experience** | Responsive interface refinements, clearer navigation and explanations, and more readable light/dark styling on top of the community LuCI UI. |
 | **Unified Live Health view** | An authenticated, read-only overview combining optical levels, temperatures, voltage, GEM/allocation details, and Ethernet traffic/error counters. This extends, rather than replaces, the community's existing status and metrics endpoints. |
 | **Security & Access diagnostics** | A dedicated page and structured API identifying risks such as an unset root password, discrepancies in password persistence, and management-access concerns without returning password hashes or key material. These checks **report** issues; they do not silently fix them. |
 | **Guarded A/B upgrade lifecycle** | Additional bank-integrity receipts and compatibility checks, verified full-volume backups, inactive-bank write verification, a one-shot trial boot, and **separate explicit commit or rollback**. The community firmware already supports upgrades and bank selection; AoTT places stronger verification and recovery gates around them. |
+| **Reboot and overwrite preview** | Plain-language next-boot and recovery-bank preview, inactive-bank overwrite warnings, expiring boot-state fingerprints, pre-action state checks and native lock-bound guards for firmware operations. |
 | **Configuration validation and controlled operations** | More structured server-side checks, revision-aware persistence, and bounded status/background-job handling for sensitive web operations. |
 | **Monitoring-friendly health data** | Structured authenticated health/security information for optional external observability, including Prometheus/Grafana integrations. The external collector, dashboards, and alert-delivery infrastructure are **not included** in this source package. |
 | **Source release safeguards** | A curated source-only overlay with per-file SHA-256 manifest, automated secret detection, negative security tests, and intentionally nonfunctional factory credential placeholders. |
@@ -42,9 +43,9 @@ AoTT-8311 **builds on** the existing [8311 Community Firmware](https://github.co
 
 ### Live health and monitoring
 
-The v2r3 source includes authenticated **Live Health** and **Security & Access** views. Health data can be refreshed at selectable intervals without automatically changing configuration.
+The source includes authenticated **Live Health** and **Security & Access** views. Health data can be refreshed at selectable intervals without automatically changing configuration. v2r7 improves light/dark Overview graph contrast.
 
-The diagnostic data can also be integrated into external monitoring systems such as Prometheus and Grafana. **An external monitoring server and notification service are not bundled** with this source-only repository.
+Existing diagnostic JSON can be consumed by external monitoring systems. **v2r8 is planned to add GUI-controlled remote syslog and secure optional metrics integration.** This is not yet implemented. Users supply their own receiver, Prometheus-compatible collector, storage, dashboards and alerting. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and [v2r8 plan](docs/V2R8-PLAN.md).
 
 ### A/B upgrade safety
 
@@ -65,7 +66,9 @@ These operations require a compatible complete firmware build and an independent
 | --- | --- |
 | Primary device | OEM/Potron LL-XS1010 XGS-PON SFP+ ONU |
 | Platform | PRX126-SFP-PON, PRX300-family vendor firmware baseline |
-| Source-only release | `AoTT-8311-v2r3` (version 2, revision 3; privately hardware-tested on one supported target; no public flashable image) |
+| Latest privately tested firmware | `AoTT-8311-v2r7` (version 2, revision 7; hardware trial and permanent bank-B commit independently verified on one qualified PRX126-SFP-PON ONU) |
+| Verified on-device alternative | `AoTT-8311-v2r6` in bank A; earlier versions remain in private off-device backups |
+| Next planned revision | `AoTT-8311-v2r8`, optional syslog and metrics integration, resource and UI improvements, security and reliability checks |
 | Dependencies | Compatible vendor kernel, boot components, PON/OMCI stack, and authorized ISP provisioning |
 | Other ONUs | Not automatically supported; require separate hardware qualification |
 
@@ -99,7 +102,7 @@ subscriber credentials or vendor binaries are committed to GitHub.
 The uncommitted v2r2 trial revealed a management-routing regression: it
 normalized a saved legacy self-address gateway to an empty setting, removing
 a route that some installed PRX126 networks still require to reach the ONU.
-The **hardware-tested v2r3 firmware** preserves that existing value, while still
+The **hardware-tested v2r3 and later firmware** preserve that existing value, while still
 allowing an explicitly blank gateway on new installations. Configuration
 saves never silently clear a legacy route. Read
 [management gateway compatibility and verification](docs/MANAGEMENT-ROUTING.md)
@@ -142,19 +145,31 @@ To build actual firmware, obtain a **legally authorized, clean, compatible vendo
 | --- | --- |
 | `overlay/` | Curated LuCI views, source modules, CSS/JS assets, and firmware/configuration tools arranged by rootfs path. |
 | `examples/` | Non-operational example settings. |
-| `tools/` | Source scanner, offline overlay staging, build profiles and runtime integrity tools. |
+| `tools/` | Source scanner, offline overlay staging, build profiles, runtime integrity checks and independent release-pair auditing. |
 | `tests/` | Manifest checks and tests for detecting common secret patterns. |
 | `MANIFEST.json` | File modes and SHA-256 hashes for the curated overlay files. |
 | `docs/BUILD.md` | Build boundaries and safety qualification. |
-| `docs/RELEASE.md` | v2r3 source scope and hardware qualification boundaries. |
+| `docs/RELEASE.md` | v2r6 reproducible build notes, hardware acceptance, and compatibility boundaries. |
 | `docs/PROVENANCE.md` | Upstream attributions and license review. |
 | `docs/PRIVACY-AUDIT.md` | Disclosure rules for source, screenshots and release history. |
-| `docs/ROADMAP.md` | Prioritized firmware work after v2r3. |
+| `docs/ROADMAP.md` | Prioritized firmware development and release work. |
 | `docs/COMPATIBILITY.md` | Supported hardware and incompatible platforms. |
 | `docs/RESOURCE-ALLOCATION.md` | CPU, RAM and NAND capacity audit. |
 | `docs/BUILD-PROFILES.md` | Offline slimming profiles and qualification. |
 | `docs/MIB-FORMAT.md` | On-repository MIB format documentation. |
 | `docs/FEATURE-PRUNING-AUDIT.md` | Package pruning evidence and risk classification. |
+| `docs/V2R5-HARDWARE-TRIAL-READINESS.md` | v2r5 bank-B trial safety gates, runtime policy compatibility and recovery consequences. |
+| `docs/V2R5-SECURITY-AND-SIZE.md` | Historical v2r5 dependency, binary security and image-size evidence. |
+| `docs/V2R6-BOOT-PLAN.md` | v2r6 reboot preview, stale-state protection, pre-action checks and browser tests. |
+| `docs/V2R6-REPRODUCIBLE-PAIR.md` | Private archive reproducibility, provenance and unsigned checksum evidence. |
+| `docs/V2R6-STATE-GUARD.md` | Server-bound bank-state checks, concurrency protection and qualification limits. |
+| `docs/V2R6-HARDWARE-STAGING.md` | Historical recovery-bank consequences, candidate policy bridge and hardware trial prerequisites. |
+| `docs/V2R6-HARDWARE-ACCEPTANCE.md` | Completed v2r6 hardware trial and commit, sanitized post-commit acceptance, and remaining limits. |
+| `docs/V2R7-RELEASE.md` | Historical v2r7 untried build-stage contract and recovery risks. |
+| `docs/V2R7-HARDWARE-ACCEPTANCE.md` | v2r7 hardware trial, verified permanent commit and qualification limits. |
+| `docs/V2R8-PLAN.md` | r8 architecture, prioritization, implementation order and release gates. |
+| `docs/MONITORING-AND-TELEMETRY.md` | Deployment-neutral syslog and metrics integration design. |
+| `CHANGELOG.md` | Version-by-version development and deployment history. |
 
 ### Publication and privacy boundary
 
@@ -169,16 +184,25 @@ credentials, unreviewed screenshots and personal environment data. It cannot
 replace manual review of Git history, source provenance or future release assets.
 
 See [privacy and publication checks](docs/PRIVACY-AUDIT.md),
-[the verified v2r3 source release](docs/RELEASE.md) and
-[the next firmware roadmap](docs/ROADMAP.md).
+[historical v2r6 release notes](docs/RELEASE.md),
+[the current v2r7 hardware acceptance](docs/V2R7-HARDWARE-ACCEPTANCE.md), and
+[the v2r8 roadmap](docs/ROADMAP.md).
+
+### Privately hardware-qualified releases
+
+**v2r7 is running and permanently committed in bank B** on the single qualified PRX126-SFP-PON unit. Separately authorized staging, one-shot trial and guarded commit passed complete firmware-bank integrity readback, PON O5.1 registration, negotiated 10 Gbps host Ethernet, HTTPS management, WAN, and persistent root/SSH recovery checks. **v2r6 remains a valid on-device fallback in bank A.** Original full-bank backups remain private and off-device. Long-term stress and other board variants remain unqualified.
+
+The original v2r7 source and private archive build-time markers (`offline-candidate`, `UNTRIALED_OFFLINE_ONLY`, `safe_for_live_install=false`) preserve the **immutable build-time** stage. They do not contradict the later independently verified trial and commit. Read [v2r7 hardware acceptance](docs/V2R7-HARDWARE-ACCEPTANCE.md) alongside the [historical build note](docs/V2R7-RELEASE.md).
+
+**v2r6 was separately hardware-qualified and committed in bank A** before v2r7. It added reboot/overwrite previews, expiring bank-state checks, native lock-bound guards and independently audited reproducible private builds. **v2r5** was qualified earlier but is now retained in private off-device recovery archives, not the active on-device fallback. See [v2r6 release notes](docs/RELEASE.md) and [v2r6 hardware acceptance](docs/V2R6-HARDWARE-ACCEPTANCE.md).
 
 ## Project status and roadmap
 
-**Included in v2r3 source:** responsive web UI, optical/PON/OMCI diagnostics, VLAN and Ethernet visibility, security-state reporting, management-routing compatibility, persistent credential validation, and guarded A/B firmware-bank tooling.
+**Included in v2r7 source:** responsive LuCI interface, improved light/dark realtime graph contrast, optical/PON/OMCI/GEM and Ethernet diagnostics, security-state reporting, management routing compatibility, and guarded A/B firmware lifecycle tooling.
 
-**Under evaluation:** reproducible clean-base builds, signed releases, stronger first-boot credential setup, additional diagnostics, broader device compatibility, and qualified fixes for inherited vendor-kernel issues.
+**Planned for v2r8:** GUI-configurable remote syslog, access-controlled metrics for external collection, bounded telemetry overhead, verified management security, diagnostic improvements and UI consistency. See [the implementation plan](docs/V2R8-PLAN.md). Planning a feature does not mean it is implemented.
 
-No new hardware, throughput profile, driver patch, or firmware image is considered supported until independently tested.
+**Deferred:** kernel/VPE activation, UBI resizing, vendor PON stack replacement, unsupported ONU hardware and automatic disruptive upgrades. A source-only update is not a firmware image or throughput guarantee.
 
 ## Contributions and responsible disclosure
 
@@ -196,4 +220,4 @@ AoTT-8311 is an independent community project, not an official vendor or ISP rel
 
 ---
 
-**AoTT-8311 · v2r3 source release**
+**AoTT-8311 | v2r7 source-only release | v2r7 privately hardware-committed | v2r8 planned**

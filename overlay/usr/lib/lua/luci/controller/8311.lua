@@ -935,6 +935,10 @@ function action_save()
 end
 
 function action_pon_explorer()
+    -- Listings may contain private device metadata. Do not allow a shared
+    -- browser or intermediary to retain an authenticated OMCI response.
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
     -- Plain CLI MIB output is UNTRUSTED DATA. Escape content before adding
     -- only strictly numeric, statically constructed ME links.
     local code, output, overflow = web.capture({"/usr/bin/omci_pipe.sh", "md"},262144)
@@ -946,8 +950,10 @@ function action_pon_explorer()
             local class, instance = line:match("^|%s*(%d+)%s*|%s*(%d+)%s*%(")
             local safe = tools.html_escape(line)
             if class and instance and tonumber(class) <= 65535 and tonumber(instance) <= 65535 then
-                local href = "pon_dump/" .. class .. "/" .. instance
-                safe = '<a href="' .. href .. '" data-me-id="' .. class .. '" data-instance-id="' .. instance .. '">' .. safe .. '</a>'
+                local href = dispatcher.build_url("admin", "8311", "pon_dump", class, instance)
+                -- The path comes from LuCI, while class and instance are
+                -- checked decimal values. Escape the final HTML attribute.
+                safe = '<a href="' .. tools.html_escape(href) .. '" data-me-id="' .. class .. '" data-instance-id="' .. instance .. '">' .. safe .. '</a>'
             end
             local marker = class and instance and ' data-me-entry="1"' or ''
             html_lines[#html_lines + 1] = '<div class="aott-me-line"' .. marker .. '>' .. safe .. '</div>'
@@ -957,6 +963,10 @@ function action_pon_explorer()
 end
 
 function action_pon_dump(me_id, instance_id)
+    -- OMCI attributes can contain device/subscriber information. Never let a
+    -- browser or intermediary cache a raw dump, including error responses.
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
 	for _, id in ipairs({me_id or "", instance_id or ""}) do
 		if type(id) ~= "string" or not id:match("^%d+$") or #id > 5 or tonumber(id) > 65535 then
 			return web.reply(http,400,{error="ME and instance IDs must be decimal numbers from 0 to 65535"})
@@ -988,6 +998,9 @@ local function bank_status()
                 and (state.committed == "A" or state.committed == "B")
                 and state.boot_contract == true
                 and type(state.banks) == "table"
+                and type(state.state_guard) == "string"
+                and #state.state_guard == 64
+                and not state.state_guard:find("[^0-9a-f]")
             then
                 return state
             end
@@ -1015,6 +1028,10 @@ local function operation_form(allowed)
 end
 
 function action_bank_status()
+    -- An administrator's boot-state fingerprint is a transient concurrency
+    -- precondition. Never cache it in a proxy or intermediary.
+    http.header("Cache-Control","no-store, private")
+    http.header("X-Content-Type-Options","nosniff")
 	local state, err = bank_status()
 	web.reply(http,state and 200 or 503,state or {success=false,error=err})
 end
@@ -1046,19 +1063,44 @@ function action_firmware()
 			uploads=uploads.list(dispatcher.context.authsession),upload_maximum=uploads.maximum})
 	end
 	if not dispatcher.test_post_security() then return end
-	local values = operation_form({action=true,upload_id=true,sha256=true,bank=true})
+	local values = operation_form({action=true,upload_id=true,sha256=true,bank=true,state_guard=true,expected_active=true,expected_target=true})
 	if not values then return end
 	local action = values.action
 	if action == "discard_upload" then
+        if values.state_guard or values.expected_active or values.expected_target then
+            return web.reply(http,400,{success=false,error="Unexpected bank expectation for upload discard"})
+        end
 		local ok, err = uploads.discard(values.upload_id, dispatcher.context.authsession)
 		return web.reply(http,ok and 200 or 409,{success=not not ok,error=err})
 	elseif action == "validate" or action == "install" then
+        if values.bank then
+            return web.reply(http,400,{success=false,error="Unexpected bank operation field for an archive"})
+        end
+        if action == "install" then
+            if not ((values.expected_active == "A" and values.expected_target == "B") or
+                    (values.expected_active == "B" and values.expected_target == "A")) then
+                return web.reply(http,409,{success=false,
+                    error="Refresh live bank state and review the exact overwrite target."})
+            end
+            if type(values.state_guard) ~= "string" or #values.state_guard ~= 64 or
+                values.state_guard:find("[^0-9a-f]") then
+                return web.reply(http,409,{success=false,
+                    error="A fresh bank-state confirmation is required for installation."})
+            end
+        elseif values.state_guard or values.expected_active or values.expected_target then
+            return web.reply(http,400,{success=false,error="Validation does not change any bank"})
+        end
 		local artifact, err = uploads.get(values.upload_id, dispatcher.context.authsession)
 		if not artifact then return web.reply(http,404,{success=false,error=err}) end
 		if type(values.sha256) ~= "string" or values.sha256 ~= artifact.sha256 then
 			return web.reply(http,409,{success=false,error="Upload digest changed; select and review this upload again"})
 		end
 		local args = {upload_id=artifact.upload_id,path=artifact.path,sha256=artifact.sha256,size=artifact.size}
+        if action == "install" then
+            args.expected_active=values.expected_active
+            args.expected_target=values.expected_target
+            args.state_guard=values.state_guard
+        end
 		local record, why = jobs.start(action == "validate" and "firmware_validate" or "firmware_install",args,dispatcher.context.authsession)
 		return web.reply(http,record and 202 or 409,record or {success=false,error=why})
 	end
@@ -1069,9 +1111,19 @@ function action_firmware()
 		if values.bank ~= "A" and values.bank ~= "B" then return web.reply(http,400,{success=false,error="Select bank A or B"}) end
 		args.action=action == "trial" and "trial" or "verify"; args.bank=values.bank
 	else return web.reply(http,400,{success=false,error="Unsupported firmware operation"}) end
-	if values.upload_id or values.sha256 or (values.bank and not args.bank) then
+	if values.upload_id or values.sha256 or values.expected_active or
+        values.expected_target or (values.bank and not args.bank) then
 		return web.reply(http,400,{success=false,error="Unexpected argument for this bank operation"})
 	end
+    -- The guard comes from a live authenticated bank-status read. It is
+    -- a concurrency precondition, not a credential or CSRF substitute.
+    -- The bank-control utility verifies it under the actual firmware lock.
+    if type(values.state_guard) ~= "string" or #values.state_guard ~= 64 or
+        values.state_guard:find("[^0-9a-f]") then
+        return web.reply(http,409,{success=false,
+            error="Live firmware state confirmation required. Refresh and review before retrying."})
+    end
+    args.state_guard=values.state_guard
 	local record, why = jobs.start("bank_operation", args, dispatcher.context.authsession)
 	return web.reply(http,record and 202 or 409,record or {success=false,error=why})
 end
