@@ -274,8 +274,26 @@ end
 function M.start(kind, args, owner)
 	if not kinds[kind] or not owner_ok(owner) or type(args) ~= "table" then return nil, "Invalid job request" end
 	if kind == "support" and args.full ~= nil and type(args.full) ~= "boolean" then return nil, "Invalid diagnostics mode" end
+    if kind == "firmware_install" then
+        if not ((args.expected_active == "A" and args.expected_target == "B") or
+                (args.expected_active == "B" and args.expected_target == "A")) then
+            return nil, "Unverified firmware overwrite destination"
+        end
+        if type(args.state_guard) ~= "string" or #args.state_guard ~= 64 or
+            args.state_guard:find("[^0-9a-f]") then
+            return nil, "Fresh live bank fingerprint required for installation"
+        end
+    elseif kind == "firmware_validate" and
+            (args.expected_active ~= nil or args.expected_target ~= nil
+             or args.state_guard ~= nil) then
+        return nil, "Archive validation must not select a firmware bank"
+    end
 	if kind == "bank_operation" then
 		if not bank_actions[args.action] then return nil, "Invalid bank action" end
+        if type(args.state_guard) ~= "string" or #args.state_guard ~= 64 or
+            args.state_guard:find("[^0-9a-f]") then
+            return nil, "Fresh live bank precondition required"
+        end
 		if args.action == "verify" or args.action == "trial" then
 			if args.bank ~= "A" and args.bank ~= "B" then return nil, "Select bank A or B" end
 		elseif args.bank ~= nil then return nil, "This action uses the current bank state" end
@@ -302,10 +320,16 @@ function M.start(kind, args, owner)
 	if not fs.mkdir(dir, 700) then dir = nil; return abort("Cannot create job directory") end
 	local request_args
 	if kind == "support" then request_args = {full=args.full == true}
-	elseif kind == "bank_operation" then request_args = {action=args.action, bank=args.bank}
+	elseif kind == "bank_operation" then request_args = {
+        action=args.action, bank=args.bank, state_guard=args.state_guard}
 	else
 		request_args, err = copy_upload(args, owner, dir .. "/firmware.tar")
 		if not request_args then return abort(err) end
+        if kind == "firmware_install" then
+            request_args.expected_active=args.expected_active
+            request_args.expected_target=args.expected_target
+            request_args.state_guard=args.state_guard
+        end
 	end
 	local now = os.time()
 	local request = {schema=1, id=id, owner=owner, kind=kind, args=request_args}
@@ -369,7 +393,15 @@ function M.worker(id)
 		argv = {"/usr/sbin/8311-support.sh", "--output", outpath, "--cancel-file", dir .. "/cancel"}
 		if request.args.full then argv[#argv+1] = "--full" end
 	elseif request.kind == "bank_operation" and bank_actions[request.args.action] then
-		argv = {"/usr/sbin/8311-bankctl.sh", bank_actions[request.args.action]}
+        local guard = request.args.state_guard
+        if type(guard) ~= "string" or #guard ~= 64 or guard:find("[^0-9a-f]") then
+            rc, output = 1, "Bank state precondition missing or malformed"
+        else
+            -- This checked operation compares the bound snapshot under the
+            -- same firmware locks that protect the real selector changes.
+            argv = {"/usr/sbin/8311-bankctl.sh", "guarded",
+                    bank_actions[request.args.action], guard}
+        end
 		if request.args.action == "verify" or request.args.action == "trial" then
 			if request.args.bank ~= "A" and request.args.bank ~= "B" then rc, output = 1, "Invalid private bank request"
 			else argv[#argv+1] = request.args.bank end
@@ -380,7 +412,20 @@ function M.worker(id)
 		if request.kind == "firmware_validate" then
 			argv = {"/usr/sbin/8311-firmware-upgrade.sh", "--validate", dir .. "/firmware.tar"}
 		else
-			argv = {"/usr/sbin/8311-firmware-upgrade.sh", "--yes", "--install", "--trial", dir .. "/firmware.tar"}
+            local active, target = request.args.expected_active, request.args.expected_target
+            local guard = request.args.state_guard
+            if not ((active == "A" and target == "B") or
+                    (active == "B" and target == "A")) then
+                rc, output = 1, "Stored firmware overwrite destination is invalid"
+            elseif type(guard) ~= "string" or #guard ~= 64 or
+                    guard:find("[^0-9a-f]") then
+                rc, output = 1, "Stored firmware bank-state fingerprint is invalid"
+            else
+                argv = {"/usr/sbin/8311-firmware-upgrade.sh", "--yes", "--install",
+                        "--expect-active", active, "--expect-target", target,
+                        "--expect-state-guard", guard,
+                        "--trial", dir .. "/firmware.tar"}
+            end
 		end
 	else rc, output = 1, "Private firmware input failed verification" end
 	local function update(tail)

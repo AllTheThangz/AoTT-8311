@@ -8,7 +8,18 @@ export MAINT8311_LIBDIR="$MAINT_LIBDIR" MAINT8311_BINDIR="$MAINT_BINDIR"
 . "$MAINT_LIBDIR/8311-upgrade-lib.sh" || exit 1
 . "$MAINT_LIBDIR/8311-env-lock.sh" || exit 1
 COMMAND=${1-}; [ "$#" -gt 0 ] && shift
-TARGET= EXPECT_BANK= EXPECT_VERSION= EXPECT_OMCID= BACKUP=
+TARGET= EXPECT_BANK= EXPECT_VERSION= EXPECT_OMCID= BACKUP= EXPECT_STATE_GUARD=
+# GUI jobs bind their reviewed state to the action under the SAME firmware
+# and environment locks used for the actual selector write or reboot.
+# Direct local administrative commands retain the original CLI.
+if [ "$COMMAND" = guarded ]; then
+    [ "$#" -ge 2 ] || exit 2
+    COMMAND=$1 EXPECT_STATE_GUARD=$2
+    shift 2
+    case "$COMMAND" in trial|check-json|commit|cancel-trial|rollback|reboot) ;; *) exit 2 ;; esac
+    [ "${#EXPECT_STATE_GUARD}" -eq 64 ] || exit 2
+    case "$EXPECT_STATE_GUARD" in *[!0-9a-f]*) exit 2 ;; esac
+fi
 case "$COMMAND" in
 	trial|check-json) [ "$#" -eq 1 ] || exit 2; case "$1" in A|B) TARGET=$1 ;; *) exit 2 ;; esac ;;
 	status|check|commit|reboot|rollback|cancel-trial) [ "$#" -eq 0 ] || exit 2 ;;
@@ -39,6 +50,13 @@ WORKDIR=$(mktemp -d /tmp/8311-bankctl.XXXXXX) || exit 1
 trap 'rm -rf "$WORKDIR"' 0
 trap 'exit 1' HUP INT TERM
 load_environment && check_boot_contract || fail "Cannot establish a compatible boot environment."
+
+# The matching fingerprint implementation is shared with the installer.
+if [ -n "$EXPECT_STATE_GUARD" ]; then
+    ACTUAL_STATE_GUARD=$(bank_state_fingerprint) || fail "Unable to check live bank precondition."
+    [ "$ACTUAL_STATE_GUARD" = "$EXPECT_STATE_GUARD" ] ||
+        fail "Bank state changed since approval. No operation was performed."
+fi
 
 check_identity() {
 	local version hash
@@ -87,8 +105,19 @@ backup_current() {
 
 case "$COMMAND" in
 	status)
-		print_bank_status || fail "Cannot serialize bank state."
-		;;
+        STATE_GUARD=$(bank_state_fingerprint) || fail "Cannot serialize bank state."
+        case "$STATE_GUARD" in *[!0-9a-f]*) fail "Invalid bank fingerprint." ;; esac
+        [ "${#STATE_GUARD}" -eq 64 ] || fail "Invalid bank fingerprint."
+        awk -v hash="$STATE_GUARD" '
+            NR == 1 {
+                if (length($0) < 2 || substr($0, length($0), 1) != "}") exit 1
+                print substr($0, 1, length($0) - 1) ",\"state_guard\":\"" hash "\"}"
+                next
+            }
+            {exit 1}
+            END {if (NR != 1) exit 1}
+        ' "$WORKDIR/state-snapshot" || fail "Cannot append the verified bank fingerprint."
+        ;;
 	check-json)
 		if timeout -k 2 90 "$MAINT_BINDIR/8311-bank-check.sh" "$TARGET" >"$WORKDIR/check-output" 2>&1 8>&- 9>&-; then
 			printf '{"schema":1,"bank":"%s","verified":true}\n' "$TARGET"

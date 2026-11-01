@@ -15,6 +15,8 @@ let firmwareBankState = null;
 let firmwareBusy = false;
 let firmwareStatusTimer = null;
 let firmwareRefreshInFlight = null;
+let firmwareBankStateVerifiedAt = 0;
+const FIRMWARE_BANK_STATE_MAX_AGE_MS = 60000;
 
 /* Derive enabled firmware actions from the CURRENT bank state, never page-load HTML. */
 function refreshArtifactControls() {
@@ -22,34 +24,215 @@ function refreshArtifactControls() {
     const selection = document.querySelector('input[name="upload-selection"]:checked');
     const active = firmwareBusy || !!(currentJob && ['queued','running','cancel_requested'].includes(currentJob.state));
     $('#upload-empty').toggle($('#upload-table tbody tr').length === 0);
-    $('.firmware-artifact').prop('disabled', !selection || active);
+    $('.firmware-artifact').each(function() {
+        const action = this.dataset.action;
+        this.disabled = !selection || active ||
+            (action === 'install' &&
+             (!firmwareBankStateFresh() ||
+              !firmwareInstallImpact(firmwareBankState).ready));
+    });
     $('#firmware-upload-btn').prop('disabled', active);
+}
+function verifiedBankSnapshot(state) {
+    if (!state || typeof state.state_guard !== 'string' ||
+        !/^[0-9a-f]{64}$/.test(state.state_guard) ||
+        state.schema !== 1 || state.boot_contract !== true ||
+        !['A','B'].includes(state.active) || !['A','B'].includes(state.committed) ||
+        typeof state.running_trial !== 'boolean' ||
+        !Object.prototype.hasOwnProperty.call(state, 'pending') ||
+        !(state.pending === null || ['A','B'].includes(state.pending)) ||
+        state.running_trial !== (state.active !== state.committed) ||
+        (state.pending !== null &&
+         (state.running_trial || state.pending === state.active ||
+          state.active !== state.committed))) return false;
+    const banks = state.banks;
+    if (!banks || !['A','B'].every(bank => {
+        const record = banks[bank];
+        return !!record && typeof record.valid === 'boolean' &&
+            typeof record.receipt === 'string';
+    })) return false;
+    // Every bank on the running, saved, or pending boot path must be complete.
+    // The other bank may remain invalid while the operator investigates it.
+    const required = [state.active, state.committed, state.pending].filter(Boolean);
+    return required.every(bank =>
+        banks[bank].valid === true && banks[bank].receipt === 'complete');
+}
+function firmwareRebootPlan(state) {
+    if (!verifiedBankSnapshot(state)) return {
+        next: 'Unknown, refresh required',
+        recovery: 'Unverified',
+        explanation: 'The current boot selection is not verified. Bank actions remain locked.'
+    };
+    if (state.pending !== null) return {
+        next: 'Bank ' + state.pending + ' (one-time boot)',
+        recovery: 'Bank ' + state.committed + ' (saved)',
+        explanation: 'The next reboot tries bank ' + state.pending +
+            ' once. Bank ' + state.committed +
+            ' stays committed. A further reset returns to the saved bank unless the trial is committed.'
+    };
+    if (state.running_trial) return {
+        next: 'Bank ' + state.committed + ' (saved)',
+        recovery: 'Bank ' + state.committed + ' (saved)',
+        explanation: 'Bank ' + state.active +
+            ' is running as an uncommitted trial. A reboot returns to bank ' +
+            state.committed + ' unless the trial is explicitly committed.'
+    };
+    return {
+        next: 'Bank ' + state.committed + ' (committed)',
+        recovery: 'Bank ' + state.committed + ' (committed)',
+        explanation: 'Bank ' + state.committed +
+            ' is running and committed. No one-time trial is pending.'
+    };
+}
+function firmwareInstallImpact(state) {
+    if (!verifiedBankSnapshot(state)) return {
+        target: null, ready: false,
+        explanation: 'The inactive bank has not been verified. Refresh live ' +
+            'bank status before considering an installation.'
+    };
+    const target = state.active === 'A' ? 'B' : 'A';
+    const candidate = state.banks[target];
+    const protectedState = state.active === state.committed &&
+        state.pending === null && state.running_trial === false;
+    const description = candidate.valid === true && candidate.receipt === 'complete'
+        ? 'currently contains a valid firmware image'
+        : 'does not have a complete, valid image receipt';
+    const explanation = 'A new firmware archive would OVERWRITE bank ' + target +
+        ', which ' + description + '. The running and committed bank ' +
+        state.active + ' would be preserved by the installer. ' +
+        'Make and independently verify fresh, off-device full-bank backups ' +
+        'of BOTH A and B before proceeding.';
+    return {
+        target: target, ready: protectedState,
+        explanation: protectedState ? explanation :
+            'Installation is locked while a trial or pending boot is ' +
+            'active. Resolve the boot selection before installing. ' + explanation
+    };
+}
+function firmwareBankGuardSignature(state) {
+    if (!verifiedBankSnapshot(state)) return null;
+    const parts = ['A','B'].map(bank => {
+        const item = state.banks[bank];
+        const components = item.components || {};
+        return [bank, item.valid, item.receipt, ['kernel','bootcore','rootfs']
+            .map(part => {
+                const image = components[part] || {};
+                return [image.bytes ?? null, image.sha256 ?? null];
+            })];
+    });
+    return JSON.stringify([state.active, state.committed, state.pending,
+        state.running_trial, state.boot_contract, state.state_guard, parts]);
+}
+function firmwareBankStateFresh() {
+    const elapsed = Date.now() - firmwareBankStateVerifiedAt;
+    return verifiedBankSnapshot(firmwareBankState) &&
+        firmwareBankStateVerifiedAt > 0 &&
+        elapsed >= 0 && elapsed < FIRMWARE_BANK_STATE_MAX_AGE_MS;
+}
+function firmwareBankActionAllowed(state, action, bank) {
+    if (!verifiedBankSnapshot(state)) return false;
+    if (action === 'trial') {
+        const item = state.banks[bank];
+        return !!item && bank !== state.active && state.pending === null &&
+            state.running_trial === false && item.valid === true &&
+            item.receipt === 'complete';
+    }
+    if (action === 'cancel_trial') return state.pending !== null;
+    if (action === 'commit') return state.pending === null && state.running_trial === true;
+    if (action === 'return_saved') return state.active !== state.committed ||
+        state.pending !== null;
+    if (action === 'verify_bank') return !!state.banks[bank] &&
+        state.banks[bank].receipt === 'complete';
+    if (action === 'reboot') return true;
+    // Unknown buttons must never inherit enabled behavior.
+    return false;
 }
 function refreshFirmwareControls() {
     if (!document.getElementById('bank-active')) return;
-    const s = firmwareBankState || {};
-    const safe = ['A','B'].includes(s.active) && ['A','B'].includes(s.committed) && s.boot_contract === true;
-    const pending = ['A','B'].includes(s.pending);
-    const trial = s.running_trial === true;
-    const busy = firmwareBusy || !!(currentJob && ['queued','running','cancel_requested'].includes(currentJob.state));
+    const safe = firmwareBankStateFresh();
+    const busy = firmwareBusy || !!(currentJob &&
+        ['queued','running','cancel_requested'].includes(currentJob.state));
+    const age = Date.now() - firmwareBankStateVerifiedAt;
+    const label = !verifiedBankSnapshot(firmwareBankState)
+        ? 'Live bank state unavailable. Refresh before changing firmware.'
+        : !safe
+            ? 'Bank state is stale. Refresh before changing firmware.'
+            : 'Bank state checked in this browser ' +
+              Math.floor(Math.max(0, age) / 1000) + ' seconds ago.';
+    $('#bank-state-freshness').text(label);
+    const impact = firmwareInstallImpact(firmwareBankState);
+    $('#bank-install-impact').text(safe ? impact.explanation :
+        'The inactive bank is not verified for installation. Refresh ' +
+        'live bank status and independently back up BOTH firmware banks.');
     $('.firmware-bank').each(function() {
-        let enabled = safe && !busy;
-        const action = this.dataset.action, bank = this.dataset.bank;
-        if (action === 'trial') {
-            const item = s.banks && s.banks[bank];
-            enabled = enabled && !pending && !trial && s.active !== bank && item && item.valid === true && item.receipt === 'complete';
-        } else if (action === 'cancel_trial') {
-            enabled = enabled && pending;
-        } else if (action === 'commit') {
-            enabled = enabled && !pending && trial;
-        } else if (action === 'return_saved') {
-            enabled = enabled && (s.active !== s.committed || pending);
-        } else if (action === 'verify_bank') {
-            enabled = enabled && s.banks && s.banks[bank] && s.banks[bank].receipt === 'complete';
-        }
-        this.disabled = !enabled;
+        this.disabled = !safe || busy || !firmwareBankActionAllowed(
+            firmwareBankState, this.dataset.action, this.dataset.bank);
     });
     refreshArtifactControls();
+}
+async function submitCheckedFirmwareBankAction(button) {
+    if (!button || button.disabled || firmwareBusy || !firmwareBankStateFresh()) {
+        return;
+    }
+    const action = button.dataset.action, bank = button.dataset.bank;
+    const observed = firmwareBankGuardSignature(firmwareBankState);
+    if (!observed || !firmwareBankActionAllowed(firmwareBankState, action, bank)) {
+        return;
+    }
+    const reboot = action === 'reboot' || action === 'return_saved';
+    let submitted = false;
+    let liveCheckSucceeded = false;
+    firmwareBusy = true;
+    refreshFirmwareControls();
+    $('#firmware-message').text('Checking live bank state before submitting any operation.');
+    try {
+        // Obtain a fresh, authenticated response immediately before confirmation.
+        // The backend must still independently enforce all boot/flash controls.
+        const current = await request8311('bank_status');
+        liveCheckSucceeded = true;
+        if (!verifiedBankSnapshot(current)) {
+            updateBankState(null);
+            throw {error: 'The live bank state is invalid. No operation was sent.'};
+        }
+        const currentSignature = firmwareBankGuardSignature(current);
+        updateBankState(current);
+        if (currentSignature !== observed) {
+            throw {error: 'Bank state changed since the page was reviewed. ' +
+                'Inspect the updated bank selection and confirm again. No operation was sent.'};
+        }
+        if (!firmwareBankActionAllowed(current, action, bank) ||
+                firmwareBankGuardSignature(firmwareBankState) !== currentSignature) {
+            throw {error: 'The selected bank action is no longer permitted. No operation was sent.'};
+        }
+        const prompt = $(button).attr('data-confirm');
+        const consequence = reboot ? '\n' + firmwareRebootPlan(current).explanation : '';
+        if (prompt && !window.confirm(prompt + consequence)) {
+            $('#firmware-message').text('Cancelled. No bank operation was submitted.');
+            return;
+        }
+        if (reboot) sessionStorage.setItem(jobKey() + '-reboot', '1');
+        else sessionStorage.removeItem(jobKey() + '-reboot');
+        submitted = true;
+        $('#firmware-message').text('Submitting bank operation after fresh verification.');
+        const values = {action: action, state_guard: current.state_guard};
+        if (bank) values.bank = bank;
+        const record = await post8311('firmware', values);
+        $('#firmware-message').text('Bank job accepted. ' +
+            (reboot ? 'A disconnect is expected if the checked reboot proceeds.' : ''));
+        monitorJob(record);
+    } catch (error) {
+        if (!liveCheckSucceeded) updateBankState(null);
+        $('#firmware-message').text(errorMessage(error) +
+            ' Review the bank status before another operation.');
+        if (reboot && submitted && !error._httpStatus) recoverBankAfterReboot();
+        else if (reboot) sessionStorage.removeItem(jobKey() + '-reboot');
+    } finally {
+        if (!currentJob || !['queued','running','cancel_requested'].includes(currentJob.state)) {
+            firmwareBusy = false;
+            if (submitted) refreshFirmwareState();
+        }
+        refreshFirmwareControls();
+    }
 }
 function refreshFirmwareState() {
     if (!document.getElementById('bank-active')) return Promise.resolve();
@@ -63,8 +246,7 @@ function refreshFirmwareState() {
         for (let attempt = 1; attempt <= 3; attempt++) {
             try {
                 const state = await request8311('bank_status');
-                if (!state || state.schema !== 1 || !['A','B'].includes(state.active)
-                    || !['A','B'].includes(state.committed) || state.boot_contract !== true) {
+                if (!verifiedBankSnapshot(state)) {
                     throw {error:'The device returned incomplete bank information.',_httpStatus:503};
                 }
                 updateBankState(state);
@@ -80,8 +262,7 @@ function refreshFirmwareState() {
                     await new Promise(resolve => setTimeout(resolve, attempt * 650));
                     continue;
                 }
-                firmwareBankState = null;
-                refreshFirmwareControls();
+                updateBankState(null);
                 message.removeClass('aott-success').addClass('aott-error')
                     .text('Cannot verify bank state: ' + errorMessage(error) +
                         ' Firmware operations are locked until a successful refresh.');
@@ -316,10 +497,24 @@ function filterPonMe() {
 }
 function showPonMe(meId, instanceId) {
     const sequence = ++meRequest;
+    const validId = value => /^\d{1,5}$/.test(String(value)) && Number(value) <= 65535;
+    if (!validId(meId) || !validId(instanceId)) {
+        $('#me-status').text('Invalid Managed Entity identifier. No request was sent.');
+        $('#me_dump').hide().attr('aria-busy','false');
+        return;
+    }
+    const base = String($('#me-list').attr('data-dump-base') || '').replace(/\/+$/, '');
+    if (!base || !base.startsWith('/') || base.startsWith('//') ||
+            /[?#\\\s]/.test(base) || !/\/admin\/8311\/pon_dump$/.test(base)) {
+        $('#me-status').text('Managed Entity read endpoint is unavailable.');
+        $('#me_dump').hide().attr('aria-busy','false');
+        return;
+    }
     $('#me_label').text('Class ' + meId + ' · Instance ' + instanceId);
     $('#me-status').text('Reading selected Managed Entity…');
     $('#me_dump').text('Loading…').show().attr('aria-busy','true');
-    $.ajax({url:'pon_dump/' + encodeURIComponent(meId) + '/' + encodeURIComponent(instanceId),dataType:'text',timeout:20000}).done(data => {
+    $.ajax({url:base + '/' + encodeURIComponent(meId) + '/' + encodeURIComponent(instanceId),
+            dataType:'text',cache:false,timeout:20000}).done(data => {
         if (sequence !== meRequest) return;
         $('#me_dump').text(data || 'No entity attributes were returned.').show();
         $('#me-status').text('Live OMCI attributes retrieved; no changes made.');
@@ -330,16 +525,28 @@ function showPonMe(meId, instanceId) {
     }).always(() => { if (sequence === meRequest) $('#me_dump').attr('aria-busy','false'); });
 }
 function updateBankState(state) {
-    if (!state || state.schema !== 1) {
+    if (!verifiedBankSnapshot(state)) {
         firmwareBankState = null;
+        firmwareBankStateVerifiedAt = 0;
+        $('#bank-active,#bank-committed,#bank-pending,#bank-contract').text('unknown');
+        $('#bank-receipts').text('Live bank state unavailable.');
+        $('#receipt-A,#receipt-B,#valid-A,#valid-B').text('unknown');
+        const plan = firmwareRebootPlan(null);
+        $('#bank-next-reboot').text(plan.next);
+        $('#bank-recovery').text(plan.recovery);
+        $('#bank-explanation').text(plan.explanation);
         refreshFirmwareControls();
         return;
     }
     firmwareBankState = state;
+    firmwareBankStateVerifiedAt = Date.now();
 	$('#bank-active').text(state.active || 'unknown'); $('#bank-committed').text(state.committed || 'unknown');
 	$('#bank-pending').text(state.pending || 'none'); $('#bank-contract').text(state.boot_contract === true ? 'verified' : 'unknown');
 	$('#bank-receipts').text(JSON.stringify(state.banks || {}, null, 2));
-	$('#bank-explanation').text(state.pending ? 'The next reboot boots the pending bank once. Later resets return to the saved bank unless the trial is kept.' : state.running_trial ? 'This is a trial boot. A reset returns to the saved bank unless the running firmware is kept.' : 'No one-time trial is scheduled.');
+    const plan = firmwareRebootPlan(state);
+    $('#bank-next-reboot').text(plan.next);
+    $('#bank-recovery').text(plan.recovery);
+    $('#bank-explanation').text(plan.explanation);
 	['A','B'].forEach(name => {
 		const bank = state.banks && state.banks[name] || {};
 		$('#receipt-' + name).text(bank.receipt || 'unknown');
@@ -407,6 +614,68 @@ function appendUpload(upload) {
         input.checked = input === radio;
     });
     refreshArtifactControls();
+}
+async function submitCheckedFirmwareInstall(button, selection) {
+    if (!button || button.disabled || firmwareBusy || !selection ||
+            !firmwareBankStateFresh()) return;
+    const observed = firmwareBankGuardSignature(firmwareBankState);
+    const preview = firmwareInstallImpact(firmwareBankState);
+    if (!observed || !preview.ready) return;
+    const selectedId = selection.value;
+    const selectedSha256 = selection.dataset.sha256;
+    firmwareBusy = true;
+    refreshFirmwareControls();
+    $('#firmware-message').text(
+        'Refreshing bank selection before confirming the inactive-bank overwrite.');
+    try {
+        const fresh = await request8311('bank_status');
+        if (!verifiedBankSnapshot(fresh)) {
+            updateBankState(null);
+            throw {error: 'Live firmware bank status is not verified. No installation was sent.'};
+        }
+        const fingerprint = firmwareBankGuardSignature(fresh);
+        updateBankState(fresh);
+        const consequence = firmwareInstallImpact(fresh);
+        if (fingerprint !== observed || consequence.target !== preview.target) {
+            throw {error: 'The inactive bank or firmware receipts changed. ' +
+                'Review the current bank state and choose the upload again. ' +
+                'No installation was sent.'};
+        }
+        if (!consequence.ready) {
+            throw {error: 'A pending or running firmware trial prevents installation.'};
+        }
+        const currentSelection = document.querySelector(
+            'input[name="upload-selection"]:checked');
+        if (currentSelection !== selection ||
+                currentSelection.value !== selectedId ||
+                currentSelection.dataset.sha256 !== selectedSha256) {
+            throw {error: 'The selected upload changed. No installation was sent.'};
+        }
+        const prompt = $(button).attr('data-confirm') || 'Install this archive?';
+        if (!window.confirm(prompt + '\n' + consequence.explanation)) {
+            $('#firmware-message').text('Installation cancelled. No firmware was written.');
+            return;
+        }
+        // The installer itself independently verifies active/committed bank
+        // selection and flash locks; the browser warning is not a substitute.
+        const record = await post8311('firmware', {
+            action: 'install', upload_id: selectedId, sha256: selectedSha256,
+            expected_active: fresh.active, expected_target: consequence.target,
+            state_guard: fresh.state_guard
+        });
+        $('#firmware-message').text(
+            'Firmware installation job accepted. Verify its progress and bank receipts.');
+        monitorJob(record);
+    } catch (error) {
+        $('#firmware-message').text(errorMessage(error) +
+            ' Inspect current bank state before any new installation request.');
+    } finally {
+        if (!currentJob || !['queued','running','cancel_requested'].includes(currentJob.state)) {
+            firmwareBusy = false;
+            refreshFirmwareState();
+        }
+        refreshFirmwareControls();
+    }
 }
 function uploadFirmware(form) {
 	const file = document.getElementById('firmware-file').files[0];
@@ -511,32 +780,16 @@ $(document).ready(function() {
 			++hookGeneration; hookOpen = false; hookRevision = null; $('#hook-script-modal').hide();
 		});
 	}
-	$('.firmware-bank').on('click', function() {
-		const prompt = $(this).attr('data-confirm'); if (prompt && !window.confirm(prompt)) return;
-		const action = $(this).attr('data-action'), values = {action: action};
-		if ($(this).attr('data-bank')) values.bank = $(this).attr('data-bank');
-		const reboot = action === 'reboot' || action === 'return_saved';
-		if (reboot) sessionStorage.setItem(jobKey() + '-reboot', '1'); else sessionStorage.removeItem(jobKey() + '-reboot');
-        firmwareBusy = true;
-        refreshFirmwareControls();
-        $('#firmware-message').text('Submitting checked bank job…');
-        post8311('firmware', values).then(record => {
-            $('#firmware-message').text('Bank job accepted. ' + (reboot ? 'Expect a disconnect if the checked reboot proceeds.' : ''));
-            monitorJob(record);
-        }).catch(error => {
-            $('#firmware-message').text(errorMessage(error) + ' Refresh live bank status before trying another operation.');
-            if (reboot && !error._httpStatus) recoverBankAfterReboot();
-            else if (reboot) sessionStorage.removeItem(jobKey() + '-reboot');
-        }).finally(() => {
-            if (!currentJob || !['queued','running','cancel_requested'].includes(currentJob.state)) {
-                firmwareBusy = false; refreshFirmwareState();
-            }
-            refreshFirmwareControls();
-        });
-	});
+    $('.firmware-bank').on('click', function() {
+        submitCheckedFirmwareBankAction(this);
+    });
 	$('.firmware-artifact').on('click', function() {
 		const selection = document.querySelector('input[name="upload-selection"]:checked');
 		if (!selection) { $('#firmware-message').text('Select an upload first.'); return; }
+        if (this.dataset.action === 'install') {
+            submitCheckedFirmwareInstall(this, selection);
+            return;
+        }
 		const prompt = $(this).attr('data-confirm'); if (prompt && !window.confirm(prompt)) return;
 		const action = $(this).attr('data-action');
         firmwareBusy = true;
@@ -566,7 +819,9 @@ $(document).ready(function() {
         refreshFirmwareControls();
         refreshFirmwareState();
         firmwareStatusTimer = setInterval(() => {
-            if (!firmwareBusy && !(currentJob && ['queued','running','cancel_requested'].includes(currentJob.state))) {
+            refreshFirmwareControls();
+            if (!firmwareBusy && !(currentJob &&
+                    ['queued','running','cancel_requested'].includes(currentJob.state))) {
                 refreshFirmwareState();
             }
         }, 30000);

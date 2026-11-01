@@ -559,26 +559,26 @@
  * The inherited graph loader inserts a white inline background, pale
  * labels, and nearly invisible hairline grid rules. Target only the
  * known 300px LuCI graph containers and preserve RX/TX series identities. */
-[data-aott-theme] #view div[style*="height:300px"][style*="background:#fff"] {
+[data-aott-theme] #view.aott-overview-live div:is([style*="height:300px"],[style*="height: 300px"])[style*="background"] {
   background:var(--aott-pane-alt)!important;
   border:1px solid var(--aott-border)!important;
   color:var(--aott-text)!important;
 }
-[data-aott-theme] #view div[style*="height:300px"][style*="background:#fff"] svg text {
+[data-aott-theme] #view.aott-overview-live div:is([style*="height:300px"],[style*="height: 300px"])[style*="background"] svg text {
   fill:var(--aott-text)!important;
   text-shadow:none!important;
 }
-[data-aott-theme] #view div[style*="height:300px"][style*="background:#fff"] svg line {
+[data-aott-theme] #view.aott-overview-live div:is([style*="height:300px"],[style*="height: 300px"])[style*="background"] svg line {
   stroke:var(--aott-muted)!important;
   stroke-width:.65!important;
 }
-[data-aott-theme="dark"] #view div[style*="height:300px"][style*="background:#fff"] svg polyline#rx {
+[data-aott-theme="dark"] #view.aott-overview-live div:is([style*="height:300px"],[style*="height: 300px"])[style*="background"] svg polyline#rx {
   stroke:#77cfff!important;
   fill:#77cfff!important;
   fill-opacity:.24!important;
   stroke-width:1.5!important;
 }
-[data-aott-theme="dark"] #view div[style*="height:300px"][style*="background:#fff"] svg polyline#tx {
+[data-aott-theme="dark"] #view.aott-overview-live div:is([style*="height:300px"],[style*="height: 300px"])[style*="background"] svg polyline#tx {
   stroke:#8dea9d!important;
   fill:#8dea9d!important;
   fill-opacity:.24!important;

@@ -19,6 +19,8 @@ jobs:
         run: python3 tools/verify_release.py .
       - name: Reject identifiers, secrets, screenshots and binary artifacts
         run: python3 tools/check_disclosure.py .
+      - name: Verify inactive-bank stage-only installer contract
+        run: python3 tools/audit_stage_only_contract.py overlay/usr/sbin/8311-firmware-upgrade.sh
       - name: Run isolated Python security, gateway and boot tests
         run: python3 -m unittest discover -s tests -v
       - name: Check POSIX and BusyBox-style shell parsing
@@ -30,6 +32,11 @@ jobs:
               sh -n "$file"
             fi
           done < <(find overlay -type f -print0)
+      - name: Validate browser JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find overlay/www -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
       - name: Install Lua 5.1 for compatibility checks
         run: |
           sudo apt-get update -qq
@@ -41,3 +48,24 @@ jobs:
           find overlay -type f -name '*.lua' -print0 | xargs -0 -r -n1 luac5.1 -p
           luac5.1 -p tests/gateway_config.lua
           lua5.1 tests/gateway_config.lua overlay/usr/lib/lua/8311/config.lua
+          luac5.1 -p tests/pon_me_fixture.lua
+          lua5.1 tests/pon_me_fixture.lua overlay/usr/lib/lua/luci/controller/8311.lua
+
+      - name: Install synthetic browser testing dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y --no-install-recommends libjs-jquery
+          python3 -m venv "$RUNNER_TEMP/aott-browser-env"
+          "$RUNNER_TEMP/aott-browser-env/bin/python" -m pip install --disable-pip-version-check --no-cache-dir "playwright==1.57.0"
+          if ! command -v google-chrome-stable >/dev/null && ! command -v google-chrome >/dev/null && ! command -v chromium >/dev/null; then
+            echo "No installed Chrome/Chromium executable; refusing a skipped browser test."
+            exit 1
+          fi
+      - name: Test real Explorer UI in isolated headless Chromium
+        shell: bash
+        env:
+          AOTT_REQUIRE_BROWSER: "1"
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/aott-browser-env/bin/python" -m unittest discover -s tests -p 'test_browser_*.py' -v

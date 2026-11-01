@@ -8,9 +8,9 @@ local safe = (state.active == "A" or state.active == "B") and
 local running_trial = state.running_trial == true
 -%>
 <%+header%>
-<link rel="stylesheet" href="<%=resource%>/view/8311.css?v=aott-8311-v1-r3" />
+<link rel="stylesheet" href="<%=resource%>/view/8311.css?v=aott-8311-v2-r7" />
 <script src="<%=resource%>/jquery-3.7.1.min.js?v=3.7.1"></script>
-<script src="<%=resource%>/view/8311.js?v=aott-8311-v1-r3"></script>
+<script src="<%=resource%>/view/8311.js?v=aott-8311-v2-r7"></script>
 
 <h2>Firmware & recovery</h2>
 <p>Installed firmware: <strong><%=esc(version.display or version.version or "unknown")%></strong> | <%=esc(version.variant or "unknown")%> profile.</p>
@@ -25,8 +25,11 @@ local running_trial = state.running_trial == true
     <dl class="aott-fw-kpi"><dt>Committed firmware bank</dt><dd id="bank-committed"><%=esc(state.committed or "unknown")%></dd></dl>
     <dl class="aott-fw-kpi"><dt>Next one-time boot</dt><dd id="bank-pending"><%=esc(pending and state.pending or "none")%></dd></dl>
     <dl class="aott-fw-kpi"><dt>Boot contract</dt><dd id="bank-contract"><%=state.boot_contract == true and "verified" or "unknown"%></dd></dl>
+    <dl class="aott-fw-kpi"><dt>Next reboot boots</dt><dd id="bank-next-reboot">Checking live bank state...</dd></dl>
+    <dl class="aott-fw-kpi"><dt>Recovery on reset</dt><dd id="bank-recovery">Checking live bank state...</dd></dl>
   </div>
   <p class="aott-fw-status" id="bank-explanation"><% if not safe then %>Live firmware-bank state is unverified. Bank actions stay locked until a successful refresh.<% elseif pending then %>A one-time boot into bank <%=esc(state.pending)%> is scheduled. The committed bank remains the fallback.<% elseif running_trial then %>This is an uncommitted trial. Another reset returns to the saved bank unless the trial is explicitly kept.<% else %>Running and committed selections match; no trial is scheduled.<% end %></p>
+  <p class="aott-fw-status" id="bank-state-freshness" role="status" aria-live="polite">Awaiting a fresh live bank-state check.</p>
   <button class="cbi-button aott-fw-refresh" type="button" id="bank-refresh-btn">Refresh live bank state</button>
   <div class="aott-fw-table-wrap">
     <table class="table aott-fw-table" aria-label="Firmware bank health">
@@ -59,6 +62,7 @@ local running_trial = state.running_trial == true
 <section class="aott-fw-panel" aria-labelledby="fw-upload-title">
   <h3 id="fw-upload-title">Firmware archive upload</h3>
   <p>Archives are limited to 24 MiB and scoped to the current authenticated session. Verify the exact filename, byte count and SHA-256 before installation. Installing a selected archive targets the inactive bank and does not automatically reboot or commit.</p>
+  <p class="aott-fw-status" id="bank-install-impact" role="status" aria-live="polite">Checking which inactive firmware bank an installation would overwrite. Keep verified full-bank backups off-device.</p>
   <form id="firmware-upload" class="aott-fw-upload" onsubmit="return uploadFirmware(this)" method="post" enctype="multipart/form-data">
     <label for="firmware-file">Firmware archive</label>
     <input id="firmware-file" type="file" accept=".tar,application/x-tar" required />

@@ -16,6 +16,16 @@ nonfunctional placeholders. The default device setup, if required by an
 unmodified upstream file, must be reviewed as a generic factory setting rather
 than a private site configuration.
 
+Public documentation, issues, examples, workflow logs and release notes
+must also be deployment-neutral. Do not publish personal internal project
+names, private monitoring platform names, storage hosts, topology, endpoint
+details or organization-specific collector settings. Use nonfunctional
+placeholders and reserved example domains.
+
+GitHub issue edit history and prior Git objects can remain accessible after
+the current description is corrected. Review historical revisions and
+public artifacts separately; editing current text alone is not sufficient.
+
 ## Screenshots and embedded media
 
 No device screenshots, photos, PDFs, exported dashboards, recorded sessions,
