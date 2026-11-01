@@ -66,7 +66,7 @@ vendor MIPS UCI CLI using only disposable configuration directories.
 It covers successful restore, idempotence, unrelated settings, missing
 records, and injected set/commit failures with staged-state cleanup.
 
-The expanded local suite now passes **301 tests** (four browser-dependent skips), including generic external collector, vendor syslog transport and management ACL contracts. These are not power-loss, real UBIFS, or A/B hardware acceptance tests.
+The expanded local suite now passes **312 tests** (four browser-dependent skips), including generic external collector, vendor syslog transport, management ACL and r8 critical runtime-profile pin contracts. These are not power-loss, real UBIFS, or A/B hardware acceptance tests.
 
 ### Fully isolated vendor UCI commit tests
 
@@ -136,7 +136,11 @@ runtime candidate pins passed inspection. Independent r8 SquashFS images
 and complete private upgrade archives were byte-identical. The standard
 five-component archive, exact kernel and bootcore hashes, hardware
 profile and release labels passed separate offline qualification.
-The r8 image is **5,697,536 bytes** with **512 KiB** fixed-bank headroom.
+After pinning eight critical runtime files and the existing S11/S12
+startup links, the current private r8 image measures **5,701,632 bytes**
+with **508 KiB** fixed-bank headroom. The earlier 5,697,536-byte
+archive and associated private kit were superseded and are blocked
+from staging.
 
 All private outputs remain marked **UNTRIALED_OFFLINE_ONLY**. See
 [V2R8-BOOT-READINESS-AUDIT.md](V2R8-BOOT-READINESS-AUDIT.md) for the

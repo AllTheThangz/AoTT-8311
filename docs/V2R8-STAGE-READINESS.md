@@ -34,8 +34,8 @@ an expired native bank-state fingerprint or a former revision's approval.
 - Two independently assembled rootfs images matched byte-for-byte.
 - Two private five-member upgrade archives matched byte-for-byte.
 - The archive's kernel and bootcore match the previously qualified vendor
-  components. The aligned rootfs occupies **5,697,536 of 6,221,824 bytes**,
-  leaving **524,288 bytes (512 KiB)** free.
+  components. The aligned rootfs occupies **5,701,632 of 6,221,824 bytes**,
+  leaving **520,192 bytes (508 KiB)** free.
 - The current r7 upgrade script's **validation-only** path accepted the
   r8 archive within an isolated MIPS chroot, with no accessible UBI device
   nodes or network connectivity. No live flash command ran.
@@ -44,11 +44,18 @@ an expired native bank-state fingerprint or a former revision's approval.
   correctly rejected the changed r8 runtime file pins. Staging must
   therefore use a separately reviewed candidate profile rather than
   assuming the installed profile is sufficient.
-- A private off-device kit now holds only the exact hashed candidate
-  archive and required local policy inputs. Its offline checker verifies
-  file hashes, modes, archive component set, bank direction and
-  non-authorized status. Attempts to reverse bank direction, modify a
-  policy file, introduce a symlink or claim authorization fail closed.
+- The current private off-device kit pins the exact revised archive,
+  eight security-critical runtime files and the vendor's existing S11/S12
+  boot links, in addition to the normal policy inputs. Its checker
+  validates these against the archive and refuses altered hashes, omitted
+  critical pins, symlinks, reversed banks and false approval.
+- The older kit without these explicit r8 runtime pins was superseded
+  and deliberately fails its offline gate. Do not use older archived
+  copies for hardware staging.
+- A private operator-run, **read-only** preflight has also been prepared
+  and passed synthetic negative tests. It does not request authorization
+  or stage anything. Live operation remains unperformed because a direct
+  authorized device management target is not available here.
 - The private kit checker cannot transfer, stage, flash, reboot, approve
   or contact a device. No executable flash command is included in this
   public document.

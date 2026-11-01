@@ -43,9 +43,9 @@ a universal flashability guarantee for other ONU chipsets or boards.
 
 - Two independently assembled **private** r8 rootfs images matched
   byte-for-byte.
-- Aligned XZ SquashFS: **5,697,536 bytes**.
+- Aligned XZ SquashFS: **5,701,632 bytes**.
 - Fixed bank capacity: **6,221,824 bytes**.
-- Remaining rootfs headroom: **524,288 bytes (512 KiB)**.
+- Remaining rootfs headroom: **520,192 bytes (508 KiB)**.
 - Kernel and bootcore bytes match previously accepted vendor hashes.
 - Two private complete upgrade archives match byte-for-byte.
 - The archive's standard five components, hardware target, ABI profile,
@@ -89,11 +89,16 @@ candidate's six changed pins. The independently refreshed **r8 profile**
 passed the same native qualifier and must accompany the private kit.
 Never stage r8 with stale candidate pins.
 
-An off-device bank-A preparation kit now pins the private r8 archive and
-three reviewed policy inputs. Its offline checker confirms file hashes,
-safe file modes, release identity, component SHA values and conditional
-preserve-B/overwrite-A direction. Tampered files, symlinks, reversed
-bank selection and false authorization claims were all rejected.
+The updated private bank-A preparation kit pins the r8 archive and
+three reviewed policy inputs. Its release profile now also explicitly
+checks eight security/monitoring runtime files and both pre-existing
+vendor S11/S12 boot links. The native r7 postwrite qualifier accepts
+the hardened candidate profile and rejects the old profile. Tampering,
+missing critical pins, symlinks, reversed bank selection and false
+authorization are all rejected.
+
+The initial archive and kit without these extra runtime pins have been
+superseded and are not usable for staging.
 
 The kit has no stage authorization and no live hardware backup attestation.
 Historical r7 acceptance and older pre-r7 backups **do not satisfy** those
