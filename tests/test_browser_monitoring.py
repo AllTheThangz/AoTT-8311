@@ -7,6 +7,7 @@ monitoring host, or syslog service is used.
 import json
 import os
 from pathlib import Path
+from urllib.parse import parse_qs
 import re
 import shutil
 import unittest
@@ -185,7 +186,10 @@ class MonitoringBrowserTests(unittest.TestCase):
         self.assertFalse(self.page.locator("#aott-r8-token-revoke").is_disabled())
         self.assertTrue(self.received[0][0].endswith("/monitoring_credential"))
         self.assertIn("credential_action=rotate", self.received[0][1])
-        self.assertNotIn("a"*64, self.received[0][1])
+        submitted = parse_qs(self.received[0][1])
+        self.assertEqual(set(submitted), {"token", "revision", "credential_action"})
+        self.assertEqual(submitted["credential_action"], ["rotate"])
+        self.assertNotIn("collector_token", submitted)
         self.assertEqual(self.errors, [])
 
     def test_revoke_removes_token_and_disables_metrics(self):
