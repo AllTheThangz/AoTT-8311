@@ -18,7 +18,15 @@ MONITOR = ROOT / "overlay/usr/lib/lua/8311/monitoring.lua"
 class VendorMonitoringIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        if not (VENDOR / "usr/lib/lua/luci/model/uci.lua").is_file():
+        required = os.getenv("AOTT_VENDOR_ROOTFS") is not None
+        files = (
+            "usr/lib/lua/luci/model/uci.lua",
+            "usr/lib/lua/luci/sgi/uhttpd.lua",
+            "usr/bin/lua",
+        )
+        if not all((VENDOR / path).is_file() for path in files):
+            if required:
+                raise AssertionError("Explicit vendor rootfs is missing required runtime inputs")
             raise unittest.SkipTest("Compatible private vendor rootfs was not supplied")
 
     def command(self, args):
