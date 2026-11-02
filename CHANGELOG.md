@@ -20,6 +20,11 @@
 
 See docs/V2R8-HARDWARE-TRIAL-ACCEPTANCE.md for sanitized hardware evidence.
 
+- A small read-only native metrics load test on live r8 passed ten reads,
+  including two concurrent clients; all eight metrics and PON O5.1 remained
+  available. Authorized HTTPS collector and prolonged stress still await
+  separate qualification.
+
 ### Posttrial draft-only fix, not deployed
 
 - Distinguished a clean, default-disabled monitoring setup with no durable

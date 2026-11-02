@@ -65,6 +65,26 @@ credential, syslog receiver, or firmware bank was modified.
   load average was near **0.3 to 0.4**. These are observations, not
   concurrent load or throughput benchmarks.
 
+### Bounded live native metric-function load test
+
+A follow-up used four sequential reads and six additional reads with two
+simultaneous clients on the actual running uncommitted r8 image. Every read
+returned all eight valid numeric metrics and reported PON O5.1. The
+median end-to-end read was **1.016 seconds** sequentially and **1.776 seconds**
+with two concurrent readers. The slowest observed concurrent read was
+**2.657 seconds**.
+
+Available memory remained approximately **386 MiB** before and after.
+The one-minute load average increased from **0.29** to **0.69** during the
+short test. This is not a controlled CPU percentage measurement and does
+not prove long-term stability, throughput, authorized HTTPS scrape
+performance or the behavior of many simultaneous clients.
+
+The read-only probes did not change settings, token state or firmware
+selection. Avoid aggressive scrape concurrency; the optional off-device
+cache and modest collection intervals remain recommended until a real
+collector is qualified.
+
 ### Collector default-denial test
 
 An external client on the trusted management side made unauthenticated
@@ -88,8 +108,11 @@ collector success were not tested.
 The vendor web service binds wildcard IPv4 interfaces. The local
 configuration has default input **ACCEPT** and a WAN zone with input
 **REJECT**. A compatible firewall frontend and kernel IPv4 tables were
-present, but a live applied-rule comparison was not completed. The WAN
-and IPv6 ingress exposure matrix remains **unqualified**.
+present. The read-only generated `fw3 print` output included WAN-input,
+reject and drop rule references, but this is a proposed rule listing, not
+proof of the actual applied kernel rules. A live applied-rule comparison
+was not completed. The WAN and IPv6 ingress exposure matrix
+remains **unqualified**.
 
 No firewall rules were added or removed during these tests.
 

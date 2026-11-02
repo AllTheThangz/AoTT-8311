@@ -168,6 +168,17 @@ running in A with v2r7 still committed in B. No permanent commit or
 additional reboot was requested. See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md)
 and the historical [stage readiness](V2R8-STAGE-READINESS.md).
 
+## Read-only native metrics concurrency qualification
+
+Four sequential and six two-client concurrent reads ran on the trial-booted
+r8 ONU with all eight numeric metrics present and PON O5.1 throughout.
+Median end-to-end native metric-function read times were **1.016 seconds**
+sequentially and **1.776 seconds** with two clients. Available memory
+remained near 386 MiB and the one-minute load average ranged from 0.29
+before to 0.69 after the short test. These results do not yet qualify
+authenticated HTTPS collectors, larger concurrency or long-term load.
+See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md).
+
 ## Posttrial source-only Monitoring page correction
 
 The live r8 trial has a valid ptconf UBIFS mount and no configured monitoring
