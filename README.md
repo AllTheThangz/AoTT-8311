@@ -221,3 +221,11 @@ AoTT-8311 is an independent community project, not an official vendor or ISP rel
 ---
 
 **AoTT-8311 | v2r7 source-only release | v2r7 privately hardware-committed | v2r8 planned**
+
+## Current development handoff and future direction
+
+The [dated project continuity checkpoint](docs/PROJECT-CONTINUITY.md) records the difference between public r7, privately trial-booted security-enhanced r8, and source-only vNext work as of November 2, 2026. This private hardware work is not a public ready-to-flash firmware release.
+
+For continuity, feature planning and acceptance, read the [complete desired product requirements](docs/TARGET-STATE-AND-REQUIREMENTS.md), [configuration coverage baseline](docs/CONFIGURATION-COVERAGE.md), [ID-based delivery plan](docs/DELIVERY-PLAN-AND-ACCEPTANCE.md), [decision register](docs/ENGINEERING-DECISIONS.md), and [resume checklist](docs/RESUME-CHECKLIST.md). The [machine-readable dated checkpoint](docs/PROJECT-STATE-CHECKPOINT-2026-11-02.json) is a historical summary, not a substitute for current live bank readback.
+
+The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
