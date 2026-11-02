@@ -21,6 +21,7 @@ local effective_probe = require "8311.effective_probe"
 local effective_device_probe = require "8311.effective_device_probe"
 local effective_pon_probe = require "8311.effective_pon_probe"
 local effective_vlan_probe = require "8311.effective_vlan_probe"
+local effective_hardware_probe = require "8311.effective_hardware_probe"
 local config = require "8311.config"
 local uploads = require "8311.uploads"
 local jobs = require "8311.jobs"
@@ -58,6 +59,8 @@ function index()
           call("action_effective_pon")).leaf=true
     entry({"admin", "8311", "effective_vlan"},
           call("action_effective_vlan")).leaf=true
+    entry({"admin", "8311", "effective_hardware"},
+          call("action_effective_hardware")).leaf=true
     entry({"admin", "8311", "security"}, call("action_r5_security"), translate("Security & access"), 8)
     entry({"admin", "8311", "security_data"}, call("action_r5_security_data")).leaf=true
 	entry({"admin", "8311", "bank_status"}, call("action_bank_status"))
@@ -818,6 +821,22 @@ function action_effective_vlan()
        snapshot.contains_registration_secret ~= false then
         return web.reply(http, 503,
             {success=false,error="VLAN service readback unavailable; no settings changed"})
+    end
+    return web.reply(http, 200, {success=true,data=snapshot})
+end
+
+function action_effective_hardware()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405,
+            {success=false,error="Read-only GET required"})
+    end
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    local ok, snapshot = pcall(effective_hardware_probe.live_hardware)
+    if not ok or type(snapshot) ~= "table" or snapshot.schema ~= 1 or
+       snapshot.contains_credential_material ~= false then
+        return web.reply(http, 503,
+            {success=false,error="Hardware settings readback unavailable; no settings changed"})
     end
     return web.reply(http, 200, {success=true,data=snapshot})
 end
