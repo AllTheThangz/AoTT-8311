@@ -78,6 +78,55 @@ This work leaves the existing `8311-fix-vlans.sh`, kernel traffic
 control, provider OMCI provisioning, native hook script and current
 network routes untouched.
 
+## Scoped native kernel rule readback extension
+
+A later C-011 source enhancement adds a **manually invoked strict
+read-only comparison of the built-in VLAN flower rules**, but only
+where sufficient evidence exists:
+
+1. The root-owned native reconciliation receipt is present, bounded
+   and validated.
+2. All required built-in plan fields (two local VLANs, OLT unicast
+   VLAN, pmapper names, optional services mapping, optional multicast
+   and topology hash) pass strict validation.
+3. The saved mode is explicitly built-in (\`fix_vlans=1\`). Disabled
+   or custom-hook modes are not treated as equivalent.
+4. A fresh read-only native topology hash matches the recorded hash.
+5. A bounded helper calls the existing upstream strict
+   \`tc_flower_matches\` **reader**, with fixed selected handles and
+   rule shapes. It does not call \`tc filter add\`, \`delete\`,
+   \`replace\`, \`flush\` or any VLAN/OMCI setter.
+6. Every expected rule must match. A failed, partial, malformed or
+   timed-out read returns unavailable evidence, never success.
+
+The helper \`/usr/sbin/8311-tc-readonly-verify.sh\` returns only a
+validated count of the selected rules. Raw TC output, interface
+identities, full provider provisioning and shell-sourced receipt data
+are not returned to the browser. A standard tagged Internet plus
+services profile uses 8 selected rule checks; untagged and multicast
+profiles have different counts.
+
+A complete match is **independent evidence of the selected built-in
+kernel TC rule content**, not necessarily hardware forwarding,
+all installed rules, unknown priority conflicts, subscriber Internet
+health, or service bandwidth. An individual saved Internet/services
+VLAN is marked runtime-observed only when its override matches the
+validated receipt and the relevant rule set is confirmed. Translation
+mode itself is not marked runtime-proven by process existence or
+rule presence. All settings retain unqualified reboot-persistence,
+recovery and full-hardware-support flags.
+
+The source provides a strict Lua 5.1 model, a small POSIX shell
+read-only verifier and synthetic tests. The existing public/native
+\`tc_flower_matches\` function remains unchanged. No production
+kernel rule is touched by these tests.
+
+**On the currently running residential ONU, the required last
+reconciliation receipt is absent.** Consequently the new verifier
+must report **not attempted/unavailable** on that unit rather than
+claim the Internet/service VLAN is independently verified. This is
+a meaningful, explicit limit, not a failure of PON O5.1 registration.
+
 ## Validation requirements and failures checked
 
 The deterministic host and vendor-MIPS Lua fixture verifies saved
@@ -99,11 +148,13 @@ source branch before any public merge.
 
 ## Known limitations and next work
 
-- **Not an independently verified traffic rule reader yet.** For
-  actual A-to-Z VLAN functionality, add safe fixed-selector
-  `tc filter get` readbacks and compare full installed rule
-  content, without changing any unrelated traffic-classification
-  rule or assuming a target VLAN from the OLT.
+- **Scoped selector readback exists, but full A-to-Z verification
+  remains open.** The source can now check all expected built-in
+  selectors through native read-only flower matching when a validated
+  receipt is available. It does not prove unrelated filters, kernel
+  hardware offload, service traffic flow, router WAN uptime or
+  postreboot persistence. The live stick lacks the required receipt,
+  so that specific hardware verification is still unavailable.
 - No Internet routing test is performed by a bridging ONU. Real
   subscriber availability requires a separately configured
   routable probe or router-side integration.
