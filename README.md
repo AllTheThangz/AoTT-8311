@@ -16,6 +16,19 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### C-011 scoped native VLAN TC rule readback
+
+A [read-only native TC verification enhancement](docs/C-011-ISP-VLAN-READONLY-EVIDENCE.md)
+can independently inspect the exact built-in VLAN flower selectors
+when a root-owned validated native reconciliation receipt, matching
+topology hash, and explicit built-in mode are present. It uses the
+firmware's existing strict tc_flower_matches reader and never
+installs, removes or modifies rules. A selected-rule match does not
+prove hardware offload, all rule priorities or Internet connectivity.
+On the privately trialed r8 stick the last reconciliation receipt is
+absent, so no native TC success is claimed. Public r7 remains
+source-only and this helper is not installed on the running device.
+
 ### C-011 ISP VLAN readback milestone
 
 The [ISP/VLAN C-011 extension](docs/C-011-ISP-VLAN-READONLY-EVIDENCE.md)

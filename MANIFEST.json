@@ -170,16 +170,16 @@
       "sha256": "7b8f9cca8f11f3eea410483b777dcaaacf88ac7b7bcb91c8e712533397052a97"
     },
     {
-      "bytes": 3798,
+      "bytes": 5112,
       "executable": false,
       "path": "usr/lib/lua/8311/effective_vlan_probe.lua",
-      "sha256": "e3ffd95b67ac8f8076f3549410c6d4ab21fac28fc9c982d096d5068292dc9737"
+      "sha256": "3d6da7f88542964313cee18874eb5268fa0b4ebfb9f8a8bcee8f79174b0e7729"
     },
     {
-      "bytes": 6514,
+      "bytes": 11284,
       "executable": false,
       "path": "usr/lib/lua/8311/effective_vlan_state.lua",
-      "sha256": "fc7887459c8ef5b54e76dd86a9ce173184e2f75ad54d693f300d2a015a730a73"
+      "sha256": "b4e3f1f4c5376d336164666c54099f2befc858ddf166a9492abe792dcb26c16e"
     },
     {
       "bytes": 10131,
@@ -428,6 +428,12 @@
       "sha256": "584c7f0fbd6b2d6d716ca0d006c800c645330dc87e99948c8f5ac511e6982a93"
     },
     {
+      "bytes": 3321,
+      "executable": true,
+      "path": "usr/sbin/8311-tc-readonly-verify.sh",
+      "sha256": "5142f6b4cab8e41d849e5c645bb0f4812f8bda2db8b64c70fb29605a2958cf68"
+    },
+    {
       "bytes": 918,
       "executable": true,
       "path": "usr/sbin/8311-vlansd.sh",
@@ -452,10 +458,10 @@
       "sha256": "0dacc1bed3bb683f2b07a5832589ff8060b042efe7080a4f9c709b0b8d2bc9d8"
     },
     {
-      "bytes": 64220,
+      "bytes": 65353,
       "executable": false,
       "path": "www/luci-static/resources/view/8311.js",
-      "sha256": "66caddc0edd48b19bacb61fed9a5d44a12a567cdb516376c3b54c39f810fdb6a"
+      "sha256": "330adb3a515bf60b8c5b83281b771f6553c3d73e26e129718d7491babe427a83"
     }
   ],
   "product": "AoTT-8311",

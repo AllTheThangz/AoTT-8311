@@ -47,9 +47,9 @@ class VlanSourceTests(unittest.TestCase):
         s=MODEL.read_text()
         self.assertIn('{"fix_vlans","internet_vlan","services_vlan"}',s)
         self.assertIn("source_only_not_hardware_qualified=true",s)
-        self.assertIn("runtime_effect_proven=false",s)
+        self.assertIn("runtime_effect_proven=specific_rule_verified",s)
         self.assertIn("internet_path_verified=false",s)
-        self.assertIn("current_traffic_control_rules_verified=false",s)
+        self.assertIn("current_traffic_control_rules_verified=verified",s)
         self.assertIn("topology_match_proves_rules_current=false",s)
 
     def test_readonly_only_fixed_three_environment_keys(self):
@@ -84,7 +84,7 @@ class VlanSourceTests(unittest.TestCase):
         self.assertIn("if parsed then",s)
         self.assertIn("safe(adapter.network_hash)",s)
         self.assertIn("model.parse_last_reconciliation(snapshot)",s)
-        self.assertIn("return model.inspect(saved,snapshot,current_hash,daemon)",s)
+        self.assertIn("return model.inspect(saved,snapshot,current_hash,daemon,",s)
         self.assertIn("local st=fs.lstat(path)",s)
         self.assertIn("fs.readfile(path,4097)",s)
 
@@ -115,7 +115,7 @@ class VlanSourceTests(unittest.TestCase):
         self.assertIn("request8311(url,{method:'GET',cache:'no-store'})",body)
         self.assertIn("cell.textContent=value",body)
         self.assertIn("not independently verified",body)
-        self.assertIn("None of these indicators proves current traffic-control rules",body)
+        self.assertIn("Even a selected-rule match does not prove all rules",body)
         for bad in ("innerHTML","setInterval","post8311","localStorage",
                     "fwenv_set","gpon_sn","reg_id","loid","lpwd"):
             with self.subTest(disallowed=bad):
