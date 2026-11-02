@@ -188,10 +188,10 @@
       "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
     },
     {
-      "bytes": 47622,
+      "bytes": 47640,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "e68c4246a37cf81242026cb01562d3eda71b4d716df16b24ae3e05ad3f838091"
+      "sha256": "fe3f102d2c312ad54d41eea7e0d6e8298f50d4e1f479fae3af64fcd524786686"
     },
     {
       "bytes": 14509,
@@ -416,10 +416,10 @@
       "sha256": "0dacc1bed3bb683f2b07a5832589ff8060b042efe7080a4f9c709b0b8d2bc9d8"
     },
     {
-      "bytes": 49570,
+      "bytes": 49704,
       "executable": false,
       "path": "www/luci-static/resources/view/8311.js",
-      "sha256": "b83c732576a07e79055e61b49b49115a39ff486d260ad7cf932b5da551f09234"
+      "sha256": "b3e5e3157f05348c4dbf337719467f6d36f1c6dec739696d43e7648c0fc5ddff"
     }
   ],
   "product": "AoTT-8311",
