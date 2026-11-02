@@ -3,6 +3,11 @@
 -- No device, HTTP server, PON identity, or configuration writer is contacted.
 
 local capture_mode = "listing"
+local collector_allowed = false
+local collector_enabled = true
+local collector_method = "GET"
+local collector_metrics_calls = 0
+local collector_metrics_fail = false
 local captured = {}
 local headers, messages, last_response, last_status = {}, {}, nil, nil
 
@@ -19,20 +24,42 @@ local function escape(value)
 end
 
 package.preload["8311.tools"] = function()
-    return {html_escape=escape}
+    return {
+        html_escape=escape,
+        metrics=function(bounded)
+            collector_metrics_calls = collector_metrics_calls + 1
+            assert(bounded == true)
+            if collector_metrics_fail then
+                error("SYNTHETIC_INTERNAL_SENSOR_ERROR_MUST_NOT_LEAK")
+            end
+            return {rx_power_dBm=-13.8, ploam_state=51}
+        end,
+        metric_names=function()
+            return {"rx_power_dBm", "ploam_state"}
+        end,
+        is_finite=function(v)
+            return type(v) == "number" and v == v and math.abs(v) < math.huge
+        end
+    }
 end
 package.preload["luci.util"] = function() return {} end
 package.preload["luci.template"] = function()
     return {render=function(name, values) captured.name=name;captured.values=values end}
 end
 package.preload["luci.http"] = function()
-    return {
+    luci = luci or {}
+    local implementation = {
         formvalue=function() return nil end,
+        getenv=function(name)
+            return name == "REQUEST_METHOD" and collector_method or nil
+        end,
         header=function(name, value) headers[name]=value end,
         status=function(code) last_status=code end,
         prepare_content=function(content_type) captured.content_type=content_type end,
         write=function(text) messages[#messages+1]=text end,
     }
+    luci.http = implementation
+    return implementation
 end
 package.preload["luci.dispatcher"] = function()
     return {
@@ -65,6 +92,12 @@ package.preload["8311.webutil"] = function()
     }
 end
 package.preload["8311.health"] = function() return {} end
+package.preload["8311.monitoring"] = function()
+    return {
+        collector_authorized=function() return collector_allowed end,
+        metrics_enabled=function() return collector_enabled end
+    }
+end
 package.preload["8311.config"] = function() return {} end
 package.preload["8311.uploads"] = function() return {} end
 package.preload["8311.jobs"] = function() return {} end
@@ -119,4 +152,54 @@ assert(messages[1] == "Managed entity lookup did not complete successfully.",
     "Lookup error leaked a raw OMCI response")
 assert(headers["Cache-Control"] == "no-store, private", "Failure response must not be cached")
 
-print("PON ME Explorer: 7 offline privacy and routing checks passed")
+-- The public-path collector route may exist, but without bearer credentials
+-- its action must deny requests before any optical metrics are read.
+last_response = nil
+controller.action_collector_metrics()
+assert(last_response and last_response.status == 403,
+       "Collector endpoint must deny unauthenticated requests")
+assert(headers["Cache-Control"] == "no-store, private")
+assert(headers["X-Content-Type-Options"] == "nosniff")
+-- Invalid HTTP method must fail before executing metrics.
+collector_method = "POST"
+local checked = collector_metrics_calls
+last_response = nil
+controller.action_collector_metrics()
+assert(last_response and last_response.status == 405)
+assert(collector_metrics_calls == checked)
+collector_method = "GET"
+
+-- A successfully authorized request may expose only bounded numeric data.
+collector_allowed = true
+messages = {}
+last_response = nil
+controller.action_collector_metrics()
+assert(last_response == nil)
+assert(collector_metrics_calls == checked + 1)
+assert(captured.content_type == "application/json")
+local response_json = table.concat(messages)
+assert(response_json:find('"rx_power_dBm": %-13%.80'))
+assert(response_json:find('"ploam_state": 51'))
+assert(not response_json:find("secret", 1, true))
+assert(not response_json:find("SYNTHETIC_INTERNAL_SENSOR_ERROR", 1, true))
+assert(headers["Referrer-Policy"] == "no-referrer")
+assert(headers["Cache-Control"] == "no-store, private")
+
+-- An administrator-disabled exporter must fail closed even with a valid
+-- token: no optical read, no exception details.
+collector_enabled = false
+messages = {}
+last_response = nil
+controller.action_collector_metrics()
+assert(last_response and last_response.status == 403)
+assert(collector_metrics_calls == checked + 1)
+collector_enabled = true
+
+-- An internal sensor failure is 503, never a leaked raw device error.
+collector_metrics_fail = true
+last_response = nil
+controller.action_collector_metrics()
+assert(last_response and last_response.status == 503)
+assert(not tostring(last_response.body.error):find("SYNTHETIC_INTERNAL_SENSOR",1,true))
+
+print("PON ME Explorer: 7 offline privacy and routing checks passed; collector authorized and denied cases passed")

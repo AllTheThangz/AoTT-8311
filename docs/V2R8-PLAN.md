@@ -1,6 +1,7 @@
 # AoTT-8311 v2r8 implementation plan
 
-Planning status: **scope defined, implementation not started** (2026-11-01).
+Implementation status: **first offline monitoring candidate under review**, not yet qualified or merged (2026-11-01). See [candidate implementation status](V2R8-IMPLEMENTATION-STATUS.md).
+The draft implementation adds a separately rotatable read-only HTTPS collector token, exact peer IP restriction and management-destination check. The rootfs startup hook is called from the existing vendor S11sysctl path with a bounded timeout, rather than adding a dynamically registered rc.d symlink. This design still requires target HTTP integration and firewall qualification. The stock boot path may discard rootfs_data. See [persistence design](V2R8-PERSISTENCE-DESIGN.md) for the required durable store and dual-record fail-closed authorization. This has not been wired into the firmware.
 Baseline: privately committed v2r7 source and its independently verified A/B recovery contract on one qualified LL-XS1010 / PRX126-SFP-PON device. Public GitHub remains source-only.
 
 ## Release objective
@@ -28,7 +29,7 @@ No P1/P2 feature may displace a P0 security or recovery gate. A feature not qual
 - Existing LuCI/uhttpd and Lua form the management UI and read-only telemetry surface. No new always-on metrics agent is bundled.
 - Use the vendor/OpenWrt logging service when its exact version supports remote forwarding. Do not claim TCP support until verified on the targeted image; UDP is the baseline transport if supported.
 - The stick **does not** store historical metrics, run Prometheus/Loki/Grafana, maintain long-term persistent logs or include collector-specific client binaries.
-- Users bring their own monitoring system and configure the destination; a collector may translate the existing JSON into Prometheus exposition.
+- Users bring their own monitoring system and configure the destination; a collector may translate the existing JSON into Prometheus exposition. A generic, source-only [external adapter](../examples/monitoring/README.md) and [management ACL checklist](V2R8-MANAGEMENT-ACL-AUDIT.md) provide tested integration guidance without bundling collector software on the stick.
 - Default: remote forwarding and optional export disabled until a trusted management path and receiver are configured. Existing local Live Health remains available to authenticated admins.
 - No shipped address, hostname, network topology, deployment label or special-case logic for a developer's own infrastructure.
 - Detailed protocol, example configuration, safety and naming contracts: [MONITORING-AND-TELEMETRY.md](MONITORING-AND-TELEMETRY.md).
@@ -60,6 +61,7 @@ Do not invent a GUI control for a protocol, persistence mechanism or source unav
 
 - Reuse `8311.tools.metrics()` for basic optical values. Extend from the existing authenticated `8311.health.performance()` for uptime, Ethernet/GEM counters and link details only when safe.
 - Keep inexpensive optical status polls separate from costly `pontop` and `ethtool` subprocess calls. Bound process timeouts, output bytes, response sizes and concurrent work.
+- The draft JSON collector path bounds the basic pon psg command using the existing BusyBox timeout and a 1 KiB output cap. This does not replace concurrent-scrape and GEM workload measurements.
 - Suggested external scrape guidance: around 60 seconds for basic optics/PON, around 300 seconds for heavy diagnostic counters; measure before choosing firm defaults.
 - Use explicit status for unavailable counters, resets, reboot boundaries and omitted samples. Do not invent zeros or derive data rates from a single sample.
 - Prefer metric names with units and Prometheus `_total` suffixes for monotonic counters if text exposition is implemented.
@@ -82,6 +84,8 @@ Do not invent a GUI control for a protocol, persistence mechanism or source unav
 4. **Metrics mapping and external recipes.** Make data sources explicit, implement access controls, publish vendor-neutral Prometheus/syslog examples and optional off-device JSON translation. No private collectors in examples.
 5. **UI and performance pass.** Consolidate navigation, improve charts, benchmark both light/heavy polls and verify bounded service impact. Defer native text exposition if it costs too much.
 6. **Qualification and release.** Run privacy/manifest/provenance checks, Lua 5.1, shell, JavaScript, isolated native MIPS, browser, regression, independent offline image/archive rebuilds and a hardware-recoverable staged trial. A distinct authorized permanent commit comes only after acceptance.
+
+The conditional bank layout, fresh full-bank backup requirements, r8 candidate runtime pins and separately approved stage-only handoff are specified in [stage readiness](V2R8-STAGE-READINESS.md). Validation-only checks do not grant flashing approval.
 
 ## Acceptance matrix
 
