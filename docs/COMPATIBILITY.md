@@ -9,14 +9,9 @@
 - Potron PTXG_CX_V0.03 firmware line and compatible kernel 4.9.308+.
 - Winbond WN25N01GV 1-Gbit SLC SPI NAND and approximately 1 GB RAM.
 - The tested dual-bank UBI partition names and component hashes.
-- XGS-PON O5.1 registration and 10G host Ethernet link were confirmed
-  on the tested unit. AoTT-8311-v2r1 is committed to bank A.
+- XGS-PON O5.1 registration and 10G host Ethernet link were confirmed on the tested unit. As of the November 2, 2026 checkpoint, the privately tested security-enhanced r8 ran in bank B as an **uncommitted one-shot trial**, with original r8 committed in bank A as fallback. The older v2r1 and v2r7 acceptance milestones are historical; no public r8 full firmware image is distributed.
 
-The current source overlay and installation contract are tied to this
-board and vendor ABI. **An archive header with the string WAS-110 is not
-a declaration that every WAS-110 or PRX126 device is compatible.**
-The original archive validator also pins a specific kernel and bootcore
-SHA-256 profile. A matching SoC alone is insufficient.
+The publicly available r7 source and privately tested r8 firmware images are tied to this tested board and its vendor ABI. **An archive header with the string WAS-110 is not a declaration that every WAS-110 or PRX126 device is compatible.** The firmware validator pins specific kernel and bootcore SHA-256 profiles. A matching SoC alone is insufficient. Native compatibility requires a separately qualified board image; management-plane compatibility may be implemented through a read-only board adapter without flashing the module.
 
 ## Compatibility candidates, not directly qualified
 
@@ -46,6 +41,10 @@ NAND or bootloader without changing the marketing name.
 
 A physical SFP+ fit or the ability to negotiate 10Gbps Ethernet does not
 establish firmware compatibility or authorize an OLT service profile.
+
+## Planned cross-platform architecture
+
+The desired vNext platform will separate the common GUI, configuration schema, monitoring/history model and API from board-specific adapters. Each adapter must report actual supported, read-only, experimental and unsupported capabilities with tested native getters/setters, persistence and recovery. The next native compatibility expansion should start with an independent PRX126 test device. Different SoC families need distinct firmware ports or management-only adapters. See [target-state requirements](TARGET-STATE-AND-REQUIREMENTS.md) and [delivery plan](DELIVERY-PLAN-AND-ACCEPTANCE.md).
 
 ## Pre-install acceptance checklist for any new device
 

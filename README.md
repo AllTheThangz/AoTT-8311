@@ -4,9 +4,17 @@
 
 AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible web interface, deeper optical and network diagnostics, security visibility, and guarded A/B firmware management.
 
-**Latest privately hardware-qualified and committed firmware:** `AoTT-8311-v2r7` on one qualified LL-XS1010 / PRX126-SFP-PON unit, committed in bank B. Its verified on-device alternative is v2r6 in bank A. The public repository distributes sanitized **v2r7 source only**, not ready-to-flash archives. **v2r8 is planned, not implemented.**
+**Public firmware source:** `AoTT-8311-v2r7` is the latest source-only release on `main`. **Private hardware state as of November 2, 2026:** original `AoTT-8311-v2r8` is committed in bank A and security-enhanced `AoTT-8311-v2r8` is successfully trial-booted in bank B, but **bank B is not permanently committed**. The private r8 builds are not public source or ready-to-flash releases. See [the dated project checkpoint](docs/PROJECT-CONTINUITY.md).
 
 > **Important:** This repository currently provides a **secret-sanitized source overlay, not a ready-to-flash firmware image**. Proprietary vendor components, actual subscriber provisioning, and production credentials are deliberately excluded.
+
+## Current development handoff and future direction
+
+The [dated project continuity checkpoint](docs/PROJECT-CONTINUITY.md) records the difference between public r7, privately trial-booted security-enhanced r8, and source-only vNext work as of November 2, 2026. This private hardware work is not a public ready-to-flash firmware release.
+
+For continuity, feature planning and acceptance, read the [complete desired product requirements](docs/TARGET-STATE-AND-REQUIREMENTS.md), [configuration coverage baseline](docs/CONFIGURATION-COVERAGE.md), [ID-based delivery plan](docs/DELIVERY-PLAN-AND-ACCEPTANCE.md), [decision register](docs/ENGINEERING-DECISIONS.md), and [resume checklist](docs/RESUME-CHECKLIST.md). The [machine-readable dated checkpoint](docs/PROJECT-STATE-CHECKPOINT-2026-11-02.json) is a historical summary, not a substitute for current live bank readback.
+
+The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
 ## Why AoTT-8311?
 
@@ -45,7 +53,7 @@ AoTT-8311 **builds on** the existing [8311 Community Firmware](https://github.co
 
 The source includes authenticated **Live Health** and **Security & Access** views. Health data can be refreshed at selectable intervals without automatically changing configuration. v2r7 improves light/dark Overview graph contrast.
 
-Existing diagnostic JSON can be consumed by external monitoring systems. **v2r8 is planned to add GUI-controlled remote syslog and secure optional metrics integration.** This is not yet implemented. Users supply their own receiver, Prometheus-compatible collector, storage, dashboards and alerting. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and [v2r8 plan](docs/V2R8-PLAN.md).
+Existing diagnostic JSON can be consumed by external monitoring systems. The **private r8 hardware-trial build** adds GUI-controlled optional remote syslog and authenticated read-only metrics source functionality; its complete collector delivery and persistence paths have not been fully qualified. **Public main still contains r7 source only.** Users supply their own receiver, collector, storage, dashboards and alerts. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and the [dated project checkpoint](docs/PROJECT-CONTINUITY.md).
 
 ### A/B upgrade safety
 
@@ -66,9 +74,10 @@ These operations require a compatible complete firmware build and an independent
 | --- | --- |
 | Primary device | OEM/Potron LL-XS1010 XGS-PON SFP+ ONU |
 | Platform | PRX126-SFP-PON, PRX300-family vendor firmware baseline |
-| Latest privately tested firmware | `AoTT-8311-v2r7` (version 2, revision 7; hardware trial and permanent bank-B commit independently verified on one qualified PRX126-SFP-PON ONU) |
-| Verified on-device alternative | `AoTT-8311-v2r6` in bank A; earlier versions remain in private off-device backups |
-| Next planned revision | `AoTT-8311-v2r8`, optional syslog and metrics integration, resource and UI improvements, security and reliability checks |
+| Public main source | `AoTT-8311-v2r7` source-only; no public full firmware image |
+| Latest privately trial-booted firmware | Security-enhanced `AoTT-8311-v2r8` in bank B, **uncommitted** as of November 2, 2026 |
+| Verified on-device fallback | Original `AoTT-8311-v2r8` committed in bank A; earlier r7/r6 images preserved privately off-device |
+| Next-generation development | vNext capability, history, reliability and broader hardware support; source-only, not installed |
 | Dependencies | Compatible vendor kernel, boot components, PON/OMCI stack, and authorized ISP provisioning |
 | Other ONUs | Not automatically supported; require separate hardware qualification |
 
@@ -185,12 +194,12 @@ replace manual review of Git history, source provenance or future release assets
 
 See [privacy and publication checks](docs/PRIVACY-AUDIT.md),
 [historical v2r6 release notes](docs/RELEASE.md),
-[the current v2r7 hardware acceptance](docs/V2R7-HARDWARE-ACCEPTANCE.md), and
+[the historical v2r7 hardware acceptance](docs/V2R7-HARDWARE-ACCEPTANCE.md), and
 [the v2r8 roadmap](docs/ROADMAP.md).
 
 ### Privately hardware-qualified releases
 
-**v2r7 is running and permanently committed in bank B** on the single qualified PRX126-SFP-PON unit. Separately authorized staging, one-shot trial and guarded commit passed complete firmware-bank integrity readback, PON O5.1 registration, negotiated 10 Gbps host Ethernet, HTTPS management, WAN, and persistent root/SSH recovery checks. **v2r6 remains a valid on-device fallback in bank A.** Original full-bank backups remain private and off-device. Long-term stress and other board variants remain unqualified.
+**Historical v2r7 acceptance:** v2r7 was privately hardware-tested and permanently committed in bank B with v2r6 then present as bank-A fallback. Its independently verified bank readbacks, PON O5.1, 10 Gbps host Ethernet, management and recovery checks are documented in [the v2r7 acceptance](docs/V2R7-HARDWARE-ACCEPTANCE.md). **Later private r8 transition:** original r8 was committed in A without an intermediate boot to r7; security-enhanced r8 was staged in B and successfully trial-booted. At the November 2 checkpoint B remained uncommitted, A remained the original-r8 fallback, and both banks passed integrity checks. Full historical recovery backups remain private. Other board families and long-duration stress remain unqualified.
 
 The original v2r7 source and private archive build-time markers (`offline-candidate`, `UNTRIALED_OFFLINE_ONLY`, `safe_for_live_install=false`) preserve the **immutable build-time** stage. They do not contradict the later independently verified trial and commit. Read [v2r7 hardware acceptance](docs/V2R7-HARDWARE-ACCEPTANCE.md) alongside the [historical build note](docs/V2R7-RELEASE.md).
 
@@ -200,7 +209,7 @@ The original v2r7 source and private archive build-time markers (`offline-candid
 
 **Included in v2r7 source:** responsive LuCI interface, improved light/dark realtime graph contrast, optical/PON/OMCI/GEM and Ethernet diagnostics, security-state reporting, management routing compatibility, and guarded A/B firmware lifecycle tooling.
 
-**Planned for v2r8:** GUI-configurable remote syslog, access-controlled metrics for external collection, bounded telemetry overhead, verified management security, diagnostic improvements and UI consistency. See [the implementation plan](docs/V2R8-PLAN.md). Planning a feature does not mean it is implemented.
+**Private r8 trial:** GUI-configurable optional remote syslog, authenticated collector metrics and additional diagnostic/security UI are implemented in private source and tested on one PRX126 stick. This does not establish complete delivery to external collectors, all-setting end-to-end qualification or a public release. **vNext goals:** genuine control of every supported configuration item, local throughput and connectivity history, safe measurable performance improvements, SSL management, optional remote GUI firewall and independently qualified additional stick hardware. See [complete target requirements](docs/TARGET-STATE-AND-REQUIREMENTS.md) and [delivery plan](docs/DELIVERY-PLAN-AND-ACCEPTANCE.md).
 
 **Deferred:** kernel/VPE activation, UBI resizing, vendor PON stack replacement, unsupported ONU hardware and automatic disruptive upgrades. A source-only update is not a firmware image or throughput guarantee.
 
@@ -220,4 +229,4 @@ AoTT-8311 is an independent community project, not an official vendor or ISP rel
 
 ---
 
-**AoTT-8311 | v2r7 source-only release | v2r7 privately hardware-committed | v2r8 planned**
+**AoTT-8311 | public v2r7 source-only | private original-r8 committed fallback | private enhanced-r8 uncommitted trial | vNext source-only**
