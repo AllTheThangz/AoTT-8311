@@ -153,6 +153,15 @@ local label = named and option.name or option
 <div id="aott-device-effective-status" role="status" aria-live="polite"></div>
 <div id="aott-device-effective-results" role="region" aria-label="Read-only device and SFP comparison" hidden></div>
 </section>
+<section id="aott-pon-effective" class="cbi-section"
+         data-effective-url="<%=esc(url('admin/8311/effective_pon'))%>"
+         aria-label="PON and OMCI configuration readback">
+<h3>PON and OMCI configuration readback</h3>
+<p>Compare four noncredential PON/OMCI overrides with configured vendor values and the separate live PON registration state. A UCI match or O5.1 association does not prove the OLT applied an individual setting or that Internet service works. This is read-only.</p>
+<button id="aott-pon-effective-refresh" type="button" class="cbi-button">Check PON configuration</button>
+<div id="aott-pon-effective-status" role="status" aria-live="polite"></div>
+<div id="aott-pon-effective-results" role="region" aria-label="Read-only PON and OMCI comparison" hidden></div>
+</section>
 <div id="config-review" role="region" aria-label="Reviewed configuration changes" style="display:none">
 <h3>Step 2: Confirm reviewed changes</h3><div id="config-diff"></div>
 <p><%:Saving writes settings sequentially with readback. If storage fails, the response identifies verified writes and asks you to reload the durable state.%></p>
