@@ -100,8 +100,32 @@ and intentionally invalid-token GET requests. Results:
 
 These responses show default-denial behavior for the tested management
 path. They do **not** prove that the listening sockets are unreachable
-from untrusted network segments. Certificate trust and authorized
-collector success were not tested.
+from untrusted network segments. Authorized collector success has not
+been tested.
+
+### Expanded HTTP denial and TLS inspection
+
+A second bounded check from the same trusted management side returned
+**403** for an anonymous collector GET, a deliberately invalid collector
+token, a spoofed X-Forwarded-For header, a fake bearer credential, and
+an unauthenticated administrator metrics GET. HEAD and POST to the
+collector route returned **405**. Plain HTTP redirected with **307**,
+and the ordinary HTTPS management root returned **200**.
+
+TLS **1.2** and **1.3** both negotiated successfully with the web service.
+Those protocol tests deliberately skipped certificate trust verification.
+The presented certificate was self-issued and had no Subject Alternative
+Name. Default certificate-chain verification **failed** with a self-signed
+certificate error. The dates on the certificate were current at the
+time of testing; this does not establish trusted server identity.
+
+This is a management certificate trust/identity hardening item. Plan a
+properly scoped management certificate and trust distribution separately,
+and verify the existing r7 fallback before changing production TLS files.
+No certificate or listener settings were changed.
+
+Untrusted or WAN-side reachability has **not** been tested by these
+management-side requests.
 
 ## Firewall visibility and unresolved exposure
 
@@ -114,7 +138,24 @@ proof of the actual applied kernel rules. A live applied-rule comparison
 was not completed. The WAN and IPv6 ingress exposure matrix
 remains **unqualified**.
 
-No firewall rules were added or removed during these tests.
+The live kernel socket table listed both **IPv4 and IPv6 wildcard
+HTTP/HTTPS listeners**. IPv6 was enabled and forwarding was enabled.
+A privacy-safe kernel address-scope count reported **seven link-local
+IPv6 addresses**, **zero global IPv6 addresses**, and one loopback/host
+address. No IPv6 default route was present. The usual ip6tables inspection
+tools were absent and the kernel ip6tables names interface was unavailable,
+so an applied IPv6 filtering policy could not be established.
+
+These observations do **not** prove external IPv6 reachability. In
+particular, no global address or default route was observed. However,
+link-local addresses on multiple interfaces plus wildcard listeners
+warrant controlled same-link and isolated-network ingress tests from a
+real independent vantage point. Generated fw3 rules are not proof of
+kernel-installed rules, and a successful TLS handshake from the trusted
+management side is not a WAN firewall test.
+
+No firewall, certificate, listener or network rule was added or removed
+during these tests.
 
 ## Posttrial source-only UX correction
 
@@ -150,7 +191,9 @@ any future deployment. No live configuration, bank or reboot was changed.
    restart, mismatched UCI/UBIFS denial, and interruption/low-space
    behavior. The current absence of a persistent record is not a failure.
 4. Independent effective runtime firewall and network-segment exposure
-   checks for both IPv4 and IPv6, including legacy fallback behavior.
+   checks for both IPv4 and IPv6, including link-local access and legacy
+   fallback behavior. Inspect actual kernel-installed rules, not only the
+   generated fw3 plan. Establish management-certificate identity/trust.
 5. Extended PON/WAN stability observation, load/thermal behavior, real
    browser monitoring UI checks, and an independently approved eventual
    permanent commit if the operator chooses one.

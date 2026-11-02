@@ -24,6 +24,12 @@ See docs/V2R8-HARDWARE-TRIAL-ACCEPTANCE.md for sanitized hardware evidence.
   including two concurrent clients; all eight metrics and PON O5.1 remained
   available. Authorized HTTPS collector and prolonged stress still await
   separate qualification.
+- Live default-denial probes rejected forged forwarded headers and bearer
+  requests. TLS 1.2/1.3 negotiate, but management certificate identity
+  is not trusted by the default certificate verifier.
+- HTTP/HTTPS bind wildcard IPv4 and IPv6 listeners. Seven IPv6 link-local
+  addresses, no global IPv6 address and no default route were observed.
+  Applied firewall behavior and untrusted ingress still require testing.
 
 ### Posttrial draft-only fix, not deployed
 

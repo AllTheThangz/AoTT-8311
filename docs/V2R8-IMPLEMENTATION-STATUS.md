@@ -179,6 +179,23 @@ before to 0.69 after the short test. These results do not yet qualify
 authenticated HTTPS collectors, larger concurrency or long-term load.
 See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md).
 
+## Live collector-denial, TLS and IPv6 socket checks
+
+An extended management-side read-only check confirmed collector 403
+denials for anonymous and invalid-token requests, forged forwarded
+addresses, and fake bearer authorization. Unsupported HEAD/POST returned
+405; plain HTTP redirected with 307. TLS 1.2/1.3 negotiated, but the
+self-issued certificate lacks a Subject Alternative Name and fails
+default certificate-chain verification.
+
+The real IPv4 and IPv6 socket tables show wildcard HTTP/HTTPS listeners.
+The ONU has seven IPv6 link-local addresses, no global IPv6 addresses
+and no IPv6 default route at this snapshot. Applied IPv6 filtering,
+same-link reachability and untrusted/WAN ingress are not independently
+verified. The configured WAN reject policy is not proof of active
+kernel enforcement. See [management ACL audit](V2R8-MANAGEMENT-ACL-AUDIT.md)
+and [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md).
+
 ## Posttrial source-only Monitoring page correction
 
 The live r8 trial has a valid ptconf UBIFS mount and no configured monitoring

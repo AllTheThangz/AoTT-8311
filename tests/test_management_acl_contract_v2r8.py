@@ -42,6 +42,33 @@ class ManagementAccessContractTests(unittest.TestCase):
         self.assertIn("previous firmware bank",audit)
         self.assertIn("not proof",audit.lower())
 
+    def test_sanitized_live_hardware_security_limits_are_preserved(self):
+        """Document observations without inventing WAN exposure or trust."""
+        audit = (ROOT/"docs/V2R8-MANAGEMENT-ACL-AUDIT.md").read_text()
+        hardware = (ROOT/"docs/V2R8-HARDWARE-TRIAL-ACCEPTANCE.md").read_text()
+        implementation = (ROOT/"docs/V2R8-IMPLEMENTATION-STATUS.md").read_text()
+        for term in (
+            "IPv4 and IPv6", "link-local", "no global IPv6",
+            "no IPv6 default route", "unverified", "TLS 1.2",
+            "TLS 1.3", "Subject Alternative Name",
+            "certificate-chain verification", "applied",
+        ):
+            self.assertIn(term.lower(), (audit+"\n"+hardware).lower())
+        normalized = re.sub(r"\s+", " ", hardware.replace("**", ""))
+        self.assertIn("seven link-local IPv6 addresses", normalized)
+        self.assertIn("zero global IPv6 addresses", normalized)
+        self.assertIn("do not prove external IPv6 reachability", normalized)
+        for code in ("403","405","307"):
+            self.assertIn(code, hardware)
+        self.assertIn("forged forwarded", implementation)
+        for content in (audit,hardware,implementation):
+            self.assertNotIn(chr(0x2014),content)
+            for private_prefix in ("192"+".168.", "66"+".119.", "/var/tmp/"):
+                self.assertNotIn(private_prefix,content)
+        self.assertIn("could not be established", hardware.lower())
+        self.assertIn("No firewall, certificate, listener or network rule was added",
+                      hardware)
+
     def test_actual_vendor_baseline_has_wildcard_web_and_wan_reject(self):
         f=VENDOR/"etc/config/firewall"
         h=VENDOR/"etc/config/uhttpd"
