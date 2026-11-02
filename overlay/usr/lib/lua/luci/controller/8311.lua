@@ -17,6 +17,7 @@ local uci = require "luci.model.uci"
 local json = require "luci.jsonc"
 local web = require "8311.webutil"
 local health = require "8311.health"
+local effective_probe = require "8311.effective_probe"
 local config = require "8311.config"
 local uploads = require "8311.uploads"
 local jobs = require "8311.jobs"
@@ -45,6 +46,9 @@ function index()
 	entry({"admin", "8311", "job_cancel"}, post("action_job_cancel"))
     entry({"admin", "8311", "health"}, call("action_r5_health"), translate("Live health"), 7)
     entry({"admin", "8311", "health_data"}, call("action_r5_health_data")).leaf=true
+    -- C-011 authenticated-only readback, never an anonymous collector
+    entry({"admin", "8311", "effective_management"},
+          call("action_effective_management")).leaf=true
     entry({"admin", "8311", "security"}, call("action_r5_security"), translate("Security & access"), 8)
     entry({"admin", "8311", "security_data"}, call("action_r5_security_data")).leaf=true
 	entry({"admin", "8311", "bank_status"}, call("action_bank_status"))
@@ -344,7 +348,7 @@ function fwenvs_8311()
 					maxlength=72,
 					pattern='^([A-Fa-f0-9]{2})*$',
 					type="text",
-                    secret=true
+                    secret=[REDACTED]
 				},{
 					id="loid",
 					name=translate("Logical ONU identifier (LOID)"),
@@ -357,7 +361,7 @@ function fwenvs_8311()
 					description=translate("Optional LOID authentication password in OMCI ONU-G Managed Entity 256 (up to 12 characters). Treat this value as a secret."),
 					maxlength=12,
 					type="text",
-                    secret=true
+                    secret=[REDACTED]
 				},{
 					id="mib_file",
 					name=translate("OMCI device profile (MIB)"),
@@ -499,7 +503,7 @@ function fwenvs_8311()
 					maxlength=255,
 					pattern="^\\$(1\\$[A-Za-z0-9.\\/]{0,8}\\$[A-Za-z0-9.\\/]{22}|5\\$(rounds=([1-9][0-9]{3,5}|1000000)\\$)?[A-Za-z0-9.\\/]{0,16}\\$[A-Za-z0-9.\\/]{43}|6\\$(rounds=([1-9][0-9]{3,5}|1000000)\\$)?[A-Za-z0-9.\\/]{0,16}\\$[A-Za-z0-9.\\/]{86})$",
 					type="text",
-                    secret=true
+                    secret=[REDACTED]
 				},{
 					id="ethtool_speed",
 					name=translate("Ethernet link speed override (advanced)"),
@@ -744,6 +748,22 @@ function action_r5_health_data()
         return web.reply(http, 503, {success=false,error="Telemetry is unavailable; no values were inferred."})
     end
     web.reply(http, 200, result)
+end
+
+function action_effective_management()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405,
+            {success=false,error="Read-only GET required"})
+    end
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    local ok, snapshot = pcall(effective_probe.live_management)
+    if not ok or type(snapshot) ~= "table" or snapshot.schema ~= 1 then
+        return web.reply(http, 503,
+            {success=false,error="Effective management readback unavailable; no settings changed"})
+    end
+    -- Never report a UCI-only read as a kernel-verified effect.
+    return web.reply(http, 200, {success=true,data=snapshot})
 end
 
 function action_r5_security()
