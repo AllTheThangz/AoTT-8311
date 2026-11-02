@@ -149,7 +149,7 @@ To build actual firmware, obtain a **legally authorized, clean, compatible vendo
 ## Default access and security
 
 - **Default account name:** `root`.
-- **Default password=[REDACTED] None is provided in this repository. Set a **unique, device-specific password** before deployment and verify that it survives reboot.
+- **Initial credentials:** No login password is supplied by this source repository. Configure unique device credentials and verify persistence after reboot.
 - **Factory example settings:** [examples/factory-defaults.env.example](examples/factory-defaults.env.example) contains intentionally unusable placeholders, not active credentials.
 - **PON identity:** Use only your own authorized registration details from your provider. Never publish a real PON serial, registration ID, LOID, or password.
 - **Recovery access:** Verify a separate management path and key-based recovery before restricting password login.
