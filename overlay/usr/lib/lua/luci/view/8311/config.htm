@@ -162,6 +162,15 @@ local label = named and option.name or option
 <div id="aott-pon-effective-status" role="status" aria-live="polite"></div>
 <div id="aott-pon-effective-results" role="region" aria-label="Read-only PON and OMCI comparison" hidden></div>
 </section>
+<section id="aott-vlan-effective" class="cbi-section"
+         data-effective-url="<%=esc(url('admin/8311/effective_vlan'))%>"
+         aria-label="Local ISP service VLAN readback">
+<h3>ISP VLAN configuration and reconciliation</h3>
+<p>Compare the three saved VLAN settings with any last successful built-in reconciliation record. The running VLAN daemon and a recorded topology hash do not prove live traffic-control rules, ISP throughput or Internet access. Nothing is changed.</p>
+<button id="aott-vlan-effective-refresh" type="button" class="cbi-button">Check VLAN service state</button>
+<div id="aott-vlan-effective-status" role="status" aria-live="polite"></div>
+<div id="aott-vlan-effective-results" role="region" aria-label="Read-only VLAN service comparison" hidden></div>
+</section>
 <div id="config-review" role="region" aria-label="Reviewed configuration changes" style="display:none">
 <h3>Step 2: Confirm reviewed changes</h3><div id="config-diff"></div>
 <p><%:Saving writes settings sequentially with readback. If storage fails, the response identifies verified writes and asks you to reload the durable state.%></p>
