@@ -82,12 +82,100 @@ function M.parse_last_reconciliation(body)
     }
 end
 
+-- Validate a full, native-built-in rule plan without executing the shell
+-- reconciliation file. All fields become fixed whitelisted argv, never
+-- arbitrary command text or a general-purpose rule editor.
+local function pmapper(value)
+    if type(value)~="string" or #value>15 then return nil end
+    local digits=value:match("^pmapper(%d+)$")
+    if not digits or #digits>8 then return nil end
+    return value
+end
+
+local function gem(value)
+    if type(value)~="string" or #value>15 then return nil end
+    local digits=value:match("^gem(%d+)$")
+    if not digits or #digits>8 then return nil end
+    return value
+end
+
+function M.parse_rule_plan(body)
+    local last,why=M.parse_last_reconciliation(body)
+    if not last then return nil,why end
+    local allowed={
+        UNICAST_VLAN=true, INTERNET_PMAP=true,
+        SERVICES_PMAP=true, DEFAULT_SERVICES_VLAN=true,
+        MULTICAST_GEM=true,
+    }
+    local found={}
+    for line in (body.."\n"):gmatch("(.-)\n") do
+        local name,value=line:match("^([A-Z_]+)=(.*)$")
+        if name and allowed[name] then
+            if found[name]~=nil then return nil,"duplicate_rule_plan_key" end
+            if #value>80 or value:find("[%z\1-\31\127]") then
+                return nil,"invalid_rule_plan_value"
+            end
+            found[name]=value
+        end
+    end
+    local unicast=uint(found.UNICAST_VLAN,1,4095)
+    local internet_map=pmapper(found.INTERNET_PMAP)
+    if not unicast or not internet_map or found.SERVICES_PMAP==nil
+       or found.DEFAULT_SERVICES_VLAN==nil
+       or found.MULTICAST_GEM==nil then
+        return nil,"incomplete_rule_plan"
+    end
+    local service_map, olt_services, multicast
+    if found.SERVICES_PMAP=="" then
+        if found.MULTICAST_GEM~="" then
+            return nil,"invalid_unmapped_multicast"
+        end
+        service_map="-"
+        olt_services="-"
+        multicast="0"
+    else
+        service_map=pmapper(found.SERVICES_PMAP)
+        olt_services=services(found.DEFAULT_SERVICES_VLAN)
+        if not service_map or service_map==internet_map or
+           not olt_services then
+            return nil,"invalid_services_rule_plan"
+        end
+        if found.MULTICAST_GEM~="" and not gem(found.MULTICAST_GEM) then
+            return nil,"invalid_multicast_gem"
+        end
+        multicast=(found.MULTICAST_GEM~="" and "1" or "0")
+    end
+    local count=(last.internet_vlan=="0" and 3 or 4)
+    if service_map~="-" then
+        count=count+4+(multicast=="1" and 1 or 0)
+    end
+    return {
+        internet_vlan=last.internet_vlan,
+        services_vlan=last.services_vlan,
+        unicast_vlan=unicast,
+        internet_pmap=internet_map,
+        services_pmap=service_map,
+        original_services_vlan=olt_services,
+        multicast=multicast,
+        expected_rule_count=count,
+        topology_hash=last.topology_hash,
+    }
+end
+
+function M.strict_rule_evidence(output, plan)
+    if type(plan)~="table" or type(plan.expected_rule_count)~="number" or
+       type(output)~="string" or #output>40 then return false end
+    local expected="VERIFIED_RULES="..tostring(plan.expected_rule_count).."\n"
+    return output==expected
+end
+
 local function valid_hash(v)
     return type(v)=="string" and #v==64 and
            v:match("^[0-9a-f]+$")~=nil
 end
 
-function M.inspect(saved, last_body, current_hash, daemon)
+function M.inspect(saved, last_body, current_hash, daemon, tc_output,
+                   rule_read_attempted)
     if type(saved)~="table" then
         return nil,"invalid_vlan_source"
     end
@@ -100,11 +188,15 @@ function M.inspect(saved, last_body, current_hash, daemon)
     if last and valid_hash(current_hash) then
         unchanged=(last.topology_hash==current_hash)
     end
+    local plan=last and M.parse_rule_plan(last_body) or nil
+    local eligible=plan~=nil and mode(saved.fix_vlans)=="1" and
+                   unchanged==true
+    local verified=eligible and M.strict_rule_evidence(tc_output,plan) or false
     local summary={
         saved_fields_valid=0,invalid_saved_fields=0,
         recorded_fields=0,saved_match_recorded=0,
         saved_drift_from_recorded=0,
-        live_tc_rules_verified=0
+        live_tc_rules_verified=verified and plan.expected_rule_count or 0
     }
     local fields={}
     for _,id in ipairs(IDS) do
@@ -142,6 +234,16 @@ function M.inspect(saved, last_body, current_hash, daemon)
         if last and (id=="internet_vlan" or id=="services_vlan") then
             notes[#notes+1]="last_native_reconcile_receipt_not_current_TC_proof"
         end
+        -- Only a complete strict native read of every expected builtin
+        -- kernel flower rule counts as independently observed. This
+        -- is NOT verified WAN forwarding or a successful ISP data path.
+        local specific_rule_verified=verified and compared=="match" and
+             (id=="internet_vlan" or
+              (id=="services_vlan" and plan.services_pmap~="-")) or false
+        if specific_rule_verified then
+            notes[#notes+1]="live_builtin_kernel_flower_rules_match"
+            notes[#notes+1]="ISP_forwarding_and_other_TC_rules_unverified"
+        end
         fields[id]={
             id=id,
             saved_value=normalized,
@@ -151,8 +253,10 @@ function M.inspect(saved, last_body, current_hash, daemon)
             saved_to_last_recorded=compared,
             last_recorded_source=recorded and
                 "root_owned_native_reconciliation_receipt" or "unavailable",
-            observed_effective_value=nil,
-            runtime_effect_proven=false,
+            observed_effective_value=specific_rule_verified and recorded or nil,
+            observed_source=specific_rule_verified and
+                "independent_kernel_tc_flower_readback" or "unavailable",
+            runtime_effect_proven=specific_rule_verified,
             reboot_persistence_proven=false,
             recovery_proven=false,
             hardware_qualified=false,
@@ -180,7 +284,17 @@ function M.inspect(saved, last_body, current_hash, daemon)
             absent_reason=last and nil or reason,
             topology_matches_record=unchanged,
             topology_match_proves_rules_current=false,
-            current_traffic_control_rules_verified=false,
+            current_traffic_control_rules_verified=verified,
+        },
+        kernel_tc={
+            read_attempted=eligible and rule_read_attempted==true or false,
+            full_owned_rules_match=verified,
+            strict_expected_count=plan and plan.expected_rule_count or nil,
+            verified_rules_count=verified and plan.expected_rule_count or 0,
+            rules_scope="builtin_owned_selectors_only",
+            proves_hardware_offload=false,
+            proves_subscriber_internet=false,
+            proves_all_traffic_rules_correct=false,
         },
         summary=summary,
         internet_path_verified=false
