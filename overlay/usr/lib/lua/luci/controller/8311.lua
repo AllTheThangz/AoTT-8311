@@ -348,7 +348,7 @@ function fwenvs_8311()
 					maxlength=72,
 					pattern='^([A-Fa-f0-9]{2})*$',
 					type="text",
-                    secret=[REDACTED]
+                    ["secret"] = true
 				},{
 					id="loid",
 					name=translate("Logical ONU identifier (LOID)"),
@@ -361,7 +361,7 @@ function fwenvs_8311()
 					description=translate("Optional LOID authentication password in OMCI ONU-G Managed Entity 256 (up to 12 characters). Treat this value as a secret."),
 					maxlength=12,
 					type="text",
-                    secret=[REDACTED]
+                    ["secret"] = true
 				},{
 					id="mib_file",
 					name=translate("OMCI device profile (MIB)"),
@@ -503,7 +503,7 @@ function fwenvs_8311()
 					maxlength=255,
 					pattern="^\\$(1\\$[A-Za-z0-9.\\/]{0,8}\\$[A-Za-z0-9.\\/]{22}|5\\$(rounds=([1-9][0-9]{3,5}|1000000)\\$)?[A-Za-z0-9.\\/]{0,16}\\$[A-Za-z0-9.\\/]{43}|6\\$(rounds=([1-9][0-9]{3,5}|1000000)\\$)?[A-Za-z0-9.\\/]{0,16}\\$[A-Za-z0-9.\\/]{86})$",
 					type="text",
-                    secret=[REDACTED]
+                    ["secret"] = true
 				},{
 					id="ethtool_speed",
 					name=translate("Ethernet link speed override (advanced)"),
