@@ -23,7 +23,7 @@ All later tasks are open unless specifically updated with new test artifacts. Ea
 | ID | Status | Deliverable | Pass criteria and dependencies |
 | --- | --- | --- | --- |
 | R8-010 | NOT_STARTED | Current residential trial acceptance | Confirm relevant OLT service, router Internet functionality where testable, operational UI, stable PON/host link and live recovery. No automatic B commit |
-| C-010 | NOT_STARTED | Unified capability registry, platform schema | Enumerates all known settings and backend ownership, types, units, support state, constraints, source and consumer. Source and GUI counts agree |
+| C-010 | DONE_SOURCE | Reproducible source-derived capability registry | All 54 current GUI fields, backend namespace, source/line references, 4 hidden/missing candidates, 2 legacy aliases and 13 offline vendor UCI domains inventoried. 16 targeted tests pass on private r8 and public r7 source. Native runtime-qualified setters/effective states still belong to C-011/C-012. |
 | C-011 | NOT_STARTED | Backend read/effective-value contract | For every property, separately identify saved vs running value and failure/unavailable state; no false successful toggles |
 | C-012 | NOT_STARTED | Table-driven positive/negative setting tests | Each exposed field validates, previews, writes, durably reads back and actually applies or clearly marks deferred effect |
 | C-013 | NOT_STARTED | Persistence and recovery test matrix | Cover service restart, full boot, A/B transition where applicable, power loss/partial write and alternate management recovery |

@@ -1,6 +1,6 @@
 # AoTT-8311 configuration coverage and functional audit baseline
 
-**Source baseline:** security-enhanced private r8 source audited 2026-11-02.
+**Source baseline:** security-enhanced private r8 source audited 2026-11-02. The C-010 source-only registry implementation additionally inventories four hidden or missing candidates, including optical TX-enable mode, and includes static native code references, 13 vendor UCI files and 89 offline option names. See [C-010 implementation](C-010-CAPABILITY-REGISTRY-IMPLEMENTATION.md).
 **Important:** This is a static source inventory, not an assertion that every setting works in the real device. Runtime evidence and platform qualification must be added field by field.
 
 ## Baseline counts
@@ -88,6 +88,7 @@ Test management changes with an independent alternate recovery route. A saved IP
 | lct_vlan | Field is commented out and the controller marks it broken. Startup helper references it. | Trace UCI interface creation, VLAN tagging, management reachability, restart persistence, reverse recovery and hardware test before enabling |
 | device_sn | Supported in internal boot helper source, but not present in the GUI schema. | Determine actual vendor setter effect and safety, display/identity context, and whether it belongs in expert settings |
 | factory_mode | Listed as an upstream-documented potential setting, not confirmed functional in current AoTT. | Confirm upstream vendor path and hardware applicability; include only if meaningful, testable and recoverable |
+| tx_en_mode | Source helper and PON initialization consume optical TX-enable mode, but the GUI has no control. | Verify supported optical mode enumerations, module-specific electrical behavior, signal-pin conflicts and recovery on spare hardware before exposing |
 
 No item above should be called fixed merely by uncommenting or adding a GUI field.
 

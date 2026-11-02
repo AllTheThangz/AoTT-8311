@@ -16,6 +16,10 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### Source-only capability registry milestone
+
+The [C-010 capability registry implementation](docs/C-010-CAPABILITY-REGISTRY-IMPLEMENTATION.md) now provides source-derived configuration coverage tooling and tests. It inventories all 54 current GUI settings, traces static native references, and records missing/hidden options without claiming that each setter works on physical hardware. C-011/C-012 effective-state and persistence qualification remain open. The firmware on this stick was not changed by this source milestone.
+
 ## Why AoTT-8311?
 
 XGS-PON SFP+ ONUs expose far more operational information than their default interfaces make convenient to access. AoTT-8311 aims to provide **more visibility, more control, and safer recovery** without obscuring the fact that the ISP's OLT controls service provisioning.

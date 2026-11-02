@@ -1,4 +1,4 @@
-"""Public documentation assertions for the accepted v2r7 and planned v2r8."""
+"""Public r7 source, historical r7 acceptance and private r8 trial records."""
 
 import json
 import re
@@ -23,8 +23,14 @@ class CurrentReleaseDocumentationTests(unittest.TestCase):
         cls.manifest = json.loads((ROOT / "MANIFEST.json").read_text())
 
     def test_latest_hardware_status_and_fallback(self):
-        self.assertIn("v2r7 is running and permanently committed in bank B", self.readme)
-        self.assertIn("v2r6 remains a valid on-device fallback in bank A", self.readme)
+        # The public release remains r7, but the private hardware has since
+        # moved to original r8/A committed and enhanced r8/B as a trial.
+        self.assertIn("Public firmware source:", self.readme)
+        self.assertIn("source-only release on `main`", self.readme)
+        self.assertIn("security-enhanced", self.readme)
+        self.assertIn("bank B is not permanently committed", self.readme)
+        self.assertIn("original-r8 fallback", self.readme)
+        self.assertIn("historical v2r7 acceptance", self.readme.lower())
         self.assertIn("v2r7 (privately hardware-qualified and committed", self.changelog)
         self.assertIn("v2r7 is committed on firmware bank B", self.changelog)
         self.assertNotIn("v2r7 is an offline-only development candidate", self.readme)
@@ -45,11 +51,15 @@ class CurrentReleaseDocumentationTests(unittest.TestCase):
         self.assertIn("V2R6-HARDWARE-ACCEPTANCE.md", self.readme)
         self.assertIn("V2R7-HARDWARE-ACCEPTANCE.md", self.readme)
 
-    def test_r8_is_planned_not_claimed_delivered(self):
-        self.assertIn("v2r8 is planned, not implemented", self.readme)
+    def test_r8_trial_is_distinct_from_public_source_and_future_work(self):
+        self.assertIn("Public main still contains r7 source only", self.readme)
+        self.assertIn("private r8 hardware-trial build", self.readme)
+        self.assertIn("source-only", self.readme)
         self.assertIn("scope defined, implementation not started", self.plan)
-        self.assertIn("v2r8: Observability", self.roadmap)
+        self.assertIn("Security-enhanced v2r8", self.roadmap)
+        self.assertIn("not permanently committed", self.roadmap)
         self.assertIn("MONITORING-AND-TELEMETRY.md", self.readme)
+        self.assertEqual(self.meta["revision"], "r7")
 
     def test_public_source_preserves_privacy_and_manifest(self):
         data = self.readme + self.changelog + self.r7accept + self.roadmap + self.plan
