@@ -171,6 +171,15 @@ local label = named and option.name or option
 <div id="aott-vlan-effective-status" role="status" aria-live="polite"></div>
 <div id="aott-vlan-effective-results" role="region" aria-label="Read-only VLAN service comparison" hidden></div>
 </section>
+<section id="aott-hardware-effective" class="cbi-section"
+         data-effective-url="<%=esc(url('admin/8311/effective_hardware'))%>"
+         aria-label="Advanced device and host setting evidence">
+<h3>Advanced system and host readback</h3>
+<p>Read saved boot, SFP pin and Ethernet override settings. Pin voltages, process presence and negotiated host speed are observations, not proof that an advanced setting was applied. Root credentials and hashes are excluded. No settings are changed.</p>
+<button id="aott-hardware-effective-refresh" type="button" class="cbi-button">Check advanced hardware settings</button>
+<div id="aott-hardware-effective-status" role="status" aria-live="polite"></div>
+<div id="aott-hardware-effective-results" role="region" aria-label="Read-only advanced hardware setting comparison" hidden></div>
+</section>
 <div id="config-review" role="region" aria-label="Reviewed configuration changes" style="display:none">
 <h3>Step 2: Confirm reviewed changes</h3><div id="config-diff"></div>
 <p><%:Saving writes settings sequentially with readback. If storage fails, the response identifies verified writes and asks you to reload the durable state.%></p>
