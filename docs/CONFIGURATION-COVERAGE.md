@@ -86,7 +86,7 @@ Test management changes with an independent alternate recovery route. A saved IP
 | Identifier | Current evidence | Next action |
 | --- | --- | --- |
 | lct_vlan | Field is commented out and the controller marks it broken. Startup helper references it. | Trace UCI interface creation, VLAN tagging, management reachability, restart persistence, reverse recovery and hardware test before enabling |
-| device_sn | Supported in internal boot helper source, but not present in the GUI schema. | Determine actual vendor setter effect and safety, display/identity context, and whether it belongs in expert settings |
+| device_sn | Startup source reads the option, but the inspected vendor backend setter is an explicit no-op. It is absent from the GUI. | Treat as unimplemented. Only expose if a board-specific actual setter and effective readback are independently proven; do not promise identity changes from a successful no-op |
 | factory_mode | Listed as an upstream-documented potential setting, not confirmed functional in current AoTT. | Confirm upstream vendor path and hardware applicability; include only if meaningful, testable and recoverable |
 | tx_en_mode | Source helper and PON initialization consume optical TX-enable mode, but the GUI has no control. | Verify supported optical mode enumerations, module-specific electrical behavior, signal-pin conflicts and recovery on spare hardware before exposing |
 
