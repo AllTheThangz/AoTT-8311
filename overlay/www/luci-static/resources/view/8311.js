@@ -316,7 +316,10 @@ async function request8311(url, options) {
 	return record;
 }
 function post8311(url, values) {
-	const body = new URLSearchParams(Object.assign({token=[REDACTED] values));
+	const tokenField = document.querySelector('input[name="token"]');
+	const defaults = {};
+	defaults['token'] = tokenField ? tokenField.value : '';
+	const body = new URLSearchParams(Object.assign(defaults, values));
 	return request8311(url, {method: 'POST', body: body});
 }
 function showFieldErrors(record) {
