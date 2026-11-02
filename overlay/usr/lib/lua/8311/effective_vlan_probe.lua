@@ -44,7 +44,19 @@ function M.capture(adapter)
     end
     local daemon=safe(adapter.daemon_status)
     if type(daemon)~="boolean" then daemon=nil end
-    return model.inspect(saved,snapshot,current_hash,daemon)
+    local plan=parsed and model.parse_rule_plan(snapshot) or nil
+    local tc_status
+    local rule_read_attempted=false
+    -- Fail closed: no native rule calls if receipt is absent/invalid,
+    -- topology changed, or the user selected disabled/hook-only mode.
+    if plan and current_hash==plan.topology_hash and
+       saved.fix_vlans=="1" and
+       type(adapter.verify_rules)=="function" then
+        rule_read_attempted=true
+        tc_status=safe(adapter.verify_rules,plan)
+    end
+    return model.inspect(saved,snapshot,current_hash,daemon,
+                         tc_status,rule_read_attempted)
 end
 
 -- Only for authenticated LuCI administrator GET handler.
@@ -92,6 +104,20 @@ function M.live_vlan()
             network_hash=function()
                 local output=bounded({"/usr/bin/timeout","-k","1","5",
                     "/usr/sbin/8311-detect-config.sh","-H"},96)
+                return output
+            end,
+            verify_rules=function(plan)
+                -- The rule verifier only calls the existing strict
+                -- read-only tc_flower_matches backend with fixed shapes.
+                -- No raw tc output or pmapper identifier is returned.
+                if type(plan)~="table" or
+                   plan.expected_rule_count==nil then return nil end
+                local output=bounded({"/usr/bin/timeout","-k","1","12",
+                    "/usr/sbin/8311-tc-readonly-verify.sh",
+                    plan.internet_vlan,plan.services_vlan,
+                    plan.unicast_vlan,plan.internet_pmap,
+                    plan.services_pmap,plan.original_services_vlan,
+                    plan.multicast},64)
                 return output
             end,
         })
