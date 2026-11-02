@@ -428,7 +428,7 @@ function refreshVlanEffective() {
             record.data.contains_registration_secret!==false ||
             record.data.source_only_not_hardware_qualified!==true ||
             !record.data.fields || !record.data.last_reconciliation ||
-            !record.data.daemon || !record.data.summary) {
+            !record.data.daemon || !record.data.summary || !record.data.kernel_tc) {
             throw {error:'Incomplete VLAN read-only response.'};
         }
         const names=[
@@ -450,15 +450,24 @@ function refreshVlanEffective() {
         names.forEach(([id,label]) => {
             const field=record.data.fields[id];
             if (!field || field.id!==id ||
-                field.runtime_effect_proven!==false ||
+                (field.runtime_effect_proven!==true &&
+                 field.runtime_effect_proven!==false) ||
                 field.hardware_qualified!==false) {
                 throw {error:'Incomplete VLAN evidence for '+id};
             }
+            if (field.runtime_effect_proven===true &&
+                (record.data.kernel_tc.full_owned_rules_match!==true ||
+                 field.observed_source!=='independent_kernel_tc_flower_readback' ||
+                 typeof field.observed_effective_value!=='string')) {
+                throw {error:'Unsupported claim of verified live VLAN rules'};
+            }
             const row=document.createElement('tr');
             let evidence='Live traffic-control rules not independently verified';
-            if (field.last_recorded_value!=null) {
+            if (field.runtime_effect_proven===true) {
+                evidence='Installed built-in kernel TC selectors match; forwarding and Internet unverified';
+            } else if (field.last_recorded_value!=null) {
                 evidence=field.saved_to_last_recorded==='mismatch'
-                    ? 'Saved override differs from historical record; live TC unverified'
+                    ? 'Saved override differs from historical record; selected TC proof unavailable'
                     : field.saved_to_last_recorded==='match'
                       ? 'Saved/recorded match; live TC still unverified'
                       : 'Historical record available; effective rules unverified';
@@ -482,11 +491,19 @@ function refreshVlanEffective() {
             ?'same as last recorded topology'
             :last.topology_matches_record===false
               ?'changed since last record':'not verified';
+        const tc=record.data.kernel_tc;
+        const tcText=tc.full_owned_rules_match===true
+            ? 'selected built-in kernel rules independently matched ('+
+              String(tc.verified_rules_count||0)+' selectors)'
+            : tc.read_attempted===true
+              ? 'attempted but no complete match'
+              : 'not verified';
         meta.textContent='VLAN daemon: '+daemonText+
             '. Last validated native receipt: '+
             (last.present===true?'present':'absent or unverified')+
             '. Topology comparison: '+hashText+
-            '. None of these indicators proves current traffic-control rules, PON service mapping, or Internet connectivity.';
+            '. Native read-only TC verification: '+tcText+
+            '. An unchanged topology or daemon alone proves nothing about current TC rules. Even a selected-rule match does not prove all rules, hardware forwarding, ISP service mapping or Internet connectivity.';
         results.appendChild(meta);
         results.appendChild(table);
         results.hidden=false;
