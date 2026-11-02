@@ -16,6 +16,17 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### C-011 noncredential PON/OMCI readback
+
+The [PON/OMCI C-011 extension](docs/C-011-PON-OMCI-READONLY-READBACK.md)
+adds a manual authenticated, read-only comparison for four existing
+configuration fields: optical access mode, OMCI channel version, IOP mask
+and MIB profile. It separately reports PON registration state without
+claiming O5.1 proves Internet connectivity or that the OLT applied
+individual values. No PON registration identities or credentials are
+read. C-011 source coverage is now 24 of 54 fields and remains unqualified
+on live hardware until separately installed and tested.
+
 ### Source-only device and SFP effective-state extension
 
 The [device/SFP C-011 extension](docs/C-011-DEVICE-AND-SFP-SOURCE-READBACK.md) adds a manual authenticated comparison for four system fields and seven virtual SFP EEPROM fields, bringing source readbacks to 20 of 54 GUI controls. A kernel hostname is independently observed; LuCI language, NTP synchronization, active time zone and host-router EEPROM presentation remain explicitly unverified. Source-only, not installed on the running ONU.

@@ -19,6 +19,7 @@ local web = require "8311.webutil"
 local health = require "8311.health"
 local effective_probe = require "8311.effective_probe"
 local effective_device_probe = require "8311.effective_device_probe"
+local effective_pon_probe = require "8311.effective_pon_probe"
 local config = require "8311.config"
 local uploads = require "8311.uploads"
 local jobs = require "8311.jobs"
@@ -52,6 +53,8 @@ function index()
           call("action_effective_management")).leaf=true
     entry({"admin", "8311", "effective_device"},
           call("action_effective_device")).leaf=true
+    entry({"admin", "8311", "effective_pon"},
+          call("action_effective_pon")).leaf=true
     entry({"admin", "8311", "security"}, call("action_r5_security"), translate("Security & access"), 8)
     entry({"admin", "8311", "security_data"}, call("action_r5_security_data")).leaf=true
 	entry({"admin", "8311", "bank_status"}, call("action_bank_status"))
@@ -780,6 +783,22 @@ function action_effective_device()
     if not ok or type(snapshot) ~= "table" or snapshot.schema ~= 1 then
         return web.reply(http, 503,
             {success=false,error="Device and SFP readback unavailable; no settings changed"})
+    end
+    return web.reply(http, 200, {success=true,data=snapshot})
+end
+
+function action_effective_pon()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405,
+            {success=false,error="Read-only GET required"})
+    end
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    local ok, snapshot = pcall(effective_pon_probe.live_pon)
+    if not ok or type(snapshot) ~= "table" or snapshot.schema ~= 1 or
+       snapshot.contains_registration_secret ~= false then
+        return web.reply(http, 503,
+            {success=false,error="PON configuration readback unavailable; no settings changed"})
     end
     return web.reply(http, 200, {success=true,data=snapshot})
 end

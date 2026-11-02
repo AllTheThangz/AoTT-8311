@@ -400,6 +400,97 @@ function saveConfig(form) {
  * verified live service. All device-supplied strings use textContent. */
 /* C-011 system/SFP: manual, authenticated read-only comparison.
  * UCI SFP values are NOT independently measured host EEPROM bytes. */
+/* C-011 noncredential PON/OMCI: one manual admin GET, no writer.
+ * O5.1 is an independent optical association observation, NOT proof
+ * that the four configured values were consumed or that WAN is working.
+ * Never render raw native status, PON identity, authentication or HTML. */
+function refreshPonEffective() {
+    const panel=document.getElementById('aott-pon-effective');
+    const button=document.getElementById('aott-pon-effective-refresh');
+    const status=document.getElementById('aott-pon-effective-status');
+    const results=document.getElementById('aott-pon-effective-results');
+    if (!panel || !button || !status || !results) return;
+    const url=panel.getAttribute('data-effective-url') || '';
+    if (!url.startsWith('/') || url.startsWith('//')) {
+        status.textContent='The local PON read-only endpoint is invalid.';
+        return;
+    }
+    button.disabled=true;
+    status.textContent='Checking configured PON values and registration. No settings will be changed.';
+    results.hidden=true;
+    results.textContent='';
+    request8311(url,{method:'GET',cache:'no-store'}).then(record => {
+        if (record.success!==true || !record.data || record.data.schema!==1 ||
+            record.data.no_device_write!==true ||
+            record.data.contains_registration_secret!==false ||
+            record.data.source_only_not_hardware_qualified!==true ||
+            !record.data.fields || !record.data.registration ||
+            !record.data.summary) {
+            throw {error:'Incomplete noncredential PON status response.'};
+        }
+        const list=[
+            ['pon_mode','Optical access mode'],
+            ['omcc_version','OMCI channel version'],
+            ['iop_mask','OMCI interoperability mask'],
+            ['mib_file','OMCI MIB profile']
+        ];
+        const table=document.createElement('table');
+        table.className='table';
+        const top=document.createElement('tr');
+        ['Setting','Saved override','Vendor configuration','Effective-state evidence'].forEach(title => {
+            const cell=document.createElement('th');
+            cell.textContent=title;
+            top.appendChild(cell);
+        });
+        table.appendChild(top);
+        const printable=(v,fallback) =>
+            typeof v==='string' && v.length ? v : fallback;
+        list.forEach(([key,label]) => {
+            const field=record.data.fields[key];
+            if (!field || field.id!==key || field.runtime_effect_proven!==false ||
+                field.hardware_qualified!==false) {
+                throw {error:'Incomplete or unqualified PON field: '+key};
+            }
+            const line=document.createElement('tr');
+            let evidence='OMCI runtime effect unverified';
+            if (field.configured_value==null) {
+                evidence='Vendor configuration unavailable';
+            } else if (field.saved_to_configured==='mismatch') {
+                evidence='Saved value differs from UCI; OMCI effect unverified';
+            } else if (field.saved_to_configured==='match') {
+                evidence='Saved/UCI match; OMCI effect unverified';
+            }
+            [label,
+             printable(field.saved_value,'(unset or unavailable)'),
+             printable(field.configured_value,'(not available)'),
+             evidence].forEach(value => {
+                const cell=document.createElement('td');
+                cell.textContent=value;
+                line.appendChild(cell);
+            });
+            table.appendChild(line);
+        });
+        const code=record.data.registration.state;
+        if (!(code==null || (Number.isInteger(code) && code>=0 && code<=255))) {
+            throw {error:'PON registration state was not verified.'};
+        }
+        const note=document.createElement('p');
+        note.textContent=code==null
+            ? 'PON state: unavailable. Do not infer Internet connectivity.'
+            : code===51
+              ? 'PON state: O5.1 associated. This does not prove ISP Internet connectivity or individual OMCI setting effects.'
+              : 'PON state: '+String(code)+'. Not O5.1. Internet connectivity remains unverified.';
+        results.appendChild(note);
+        results.appendChild(table);
+        results.hidden=false;
+        status.textContent='Read-only PON/OMCI comparison complete. No settings changed.';
+    }).catch(error => {
+        results.hidden=true;
+        results.textContent='';
+        status.textContent='Readback unavailable: '+errorMessage(error)+
+            ' No settings changed.';
+    }).finally(() => { button.disabled=false; });
+}
 function refreshDeviceEffective() {
     const panel=document.getElementById('aott-device-effective');
     const button=document.getElementById('aott-device-effective-refresh');
@@ -940,6 +1031,10 @@ $(document).ready(function() {
     $('#aott-device-effective-refresh').on('click',function(event) {
         event.preventDefault();
         refreshDeviceEffective();
+    });
+    $('#aott-pon-effective-refresh').on('click',function(event) {
+        event.preventDefault();
+        refreshPonEffective();
     });
 	$('#config-confirm').on('click', function() {
 		if (!configReview || !configReview.changed || configWriteStarted) return;

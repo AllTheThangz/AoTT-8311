@@ -104,6 +104,10 @@ At the November 2 checkpoint:
 
 An additional authenticated, read-only panel has been implemented for 11 system and virtual SFP fields, bringing C-011 source-level readback coverage to 20 of the current 54 GUI fields. It distinguishes the independently observed kernel hostname from configured-only LuCI language, time zone, NTP server list and seven host-visible virtual SFP UCI entries. Neither NTP synchronization nor host-side EEPROM presentation is inferred. See [the C-011 device/SFP extension](C-011-DEVICE-AND-SFP-SOURCE-READBACK.md). No new firmware image has been installed by this source work.
 
+## Additional noncredential PON/OMCI readback
+
+After the management and system/SFP work, C-011 gained a separate source-only readback for four PON/OMCI configuration fields. Live PON O5.1 is reported independently and does not prove WAN connectivity or any individual OMCI setter. The total current source coverage is 24 of 54 GUI fields; no new source code has been installed on the production stick. See [PON/OMCI readback](C-011-PON-OMCI-READONLY-READBACK.md).
+
 ## Known limitations and next work
 
 - This source change is not installed on the live r8 trial. A real
