@@ -398,6 +398,97 @@ function saveConfig(form) {
 /* C-011: one-shot authenticated read-only effective management comparison.
  * Never poll automatically, send settings, or mistake UCI-only data for a
  * verified live service. All device-supplied strings use textContent. */
+/* C-011 system/SFP: manual, authenticated read-only comparison.
+ * UCI SFP values are NOT independently measured host EEPROM bytes. */
+function refreshDeviceEffective() {
+    const panel=document.getElementById('aott-device-effective');
+    const button=document.getElementById('aott-device-effective-refresh');
+    const status=document.getElementById('aott-device-effective-status');
+    const results=document.getElementById('aott-device-effective-results');
+    if (!panel || !button || !status || !results) return;
+    const url=panel.getAttribute('data-effective-url') || '';
+    if (!url.startsWith('/') || url.startsWith('//')) {
+        status.textContent='The local read-only endpoint is invalid.';
+        return;
+    }
+    button.disabled=true;
+    status.textContent='Reading device and virtual SFP configuration. No settings will be changed.';
+    results.hidden=true;
+    results.textContent='';
+    request8311(url,{method:'GET',cache:'no-store'}).then(record => {
+        if (record.success!==true || !record.data || record.data.schema!==1 ||
+            record.data.no_device_write!==true ||
+            record.data.source_only_not_hardware_qualified!==true ||
+            !record.data.fields || !record.data.summary) {
+            throw {error:'Incomplete device and SFP readback.'};
+        }
+        const fieldList=[
+            ['hostname','System hostname'],
+            ['lang','LuCI language'],
+            ['timezone','Time zone'],
+            ['ntp_servers','NTP servers'],
+            ['sfp_vendor','Host-visible SFP vendor'],
+            ['sfp_oui','Host-visible SFP vendor OUI'],
+            ['sfp_partno','Host-visible SFP part number'],
+            ['sfp_rev','Host-visible SFP revision'],
+            ['sfp_serial','Host-visible SFP serial'],
+            ['sfp_date','Host-visible SFP date code'],
+            ['sfp_vendordata','Host-visible SFP vendor data']
+        ];
+        const table=document.createElement('table');
+        table.className='table';
+        const heading=document.createElement('tr');
+        ['Setting','Saved override','Configured','Observed running value','Evidence'].forEach(label => {
+            const cell=document.createElement('th');
+            cell.textContent=label;
+            heading.appendChild(cell);
+        });
+        table.appendChild(heading);
+        const show=(value,empty) =>
+            typeof value==='string' && value.length ? value : empty;
+        fieldList.forEach(([id,title]) => {
+            const field=record.data.fields[id];
+            if (!field || field.id!==id) throw {error:'Incomplete device field: '+id};
+            const line=document.createElement('tr');
+            let proof='No independent runtime proof';
+            if (field.runtime_effect_proven===true) {
+                proof=field.saved_to_observed==='match'
+                    ? 'Kernel value matches saved'
+                    : field.saved_to_observed==='mismatch'
+                    ? 'Kernel value differs from saved'
+                    : 'Kernel value observed; saved comparison unavailable';
+            } else if (id.startsWith('sfp_') && field.configured_value!==null) {
+                proof='Virtual EEPROM configured; host presentation unverified';
+            } else if (id==='ntp_servers' && field.configured_value!==null) {
+                proof='NTP servers configured; synchronization unverified';
+            } else if (field.configured_value!==null) {
+                proof='Configured only; running effect unverified';
+            }
+            [title,show(field.saved_value,'(unset or unavailable)'),
+             show(field.configured_value,'(not available)'),
+             show(field.observed_value,'(not independently observed)'),
+             proof].forEach(value => {
+                const cell=document.createElement('td');
+                cell.textContent=value;
+                line.appendChild(cell);
+            });
+            table.appendChild(line);
+        });
+        const info=document.createElement('p');
+        info.textContent='Fields observed in running kernel: '+
+            String(record.data.summary.observed_runtime||0)+
+            '. No virtual SFP host EEPROM or time-sync status is inferred.';
+        results.appendChild(info);
+        results.appendChild(table);
+        results.hidden=false;
+        status.textContent='Read-only device and SFP comparison complete. No settings changed.';
+    }).catch(error => {
+        results.hidden=true;
+        results.textContent='';
+        status.textContent='Readback unavailable: '+errorMessage(error)+
+            ' No settings changed.';
+    }).finally(() => { button.disabled=false; });
+}
 function refreshManagementEffective() {
     const panel=document.getElementById('aott-management-effective');
     const button=document.getElementById('aott-management-effective-refresh');
@@ -845,6 +936,10 @@ $(document).ready(function() {
     $('#aott-management-effective-refresh').on('click',function(event) {
         event.preventDefault();
         refreshManagementEffective();
+    });
+    $('#aott-device-effective-refresh').on('click',function(event) {
+        event.preventDefault();
+        refreshDeviceEffective();
     });
 	$('#config-confirm').on('click', function() {
 		if (!configReview || !configReview.changed || configWriteStarted) return;
