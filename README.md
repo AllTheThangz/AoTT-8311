@@ -16,6 +16,18 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### C-011 ISP VLAN readback milestone
+
+The [ISP/VLAN C-011 extension](docs/C-011-ISP-VLAN-READONLY-EVIDENCE.md)
+adds a manually requested authenticated readback for the three
+ISP service VLAN settings. It distinguishes saved overrides, source
+defaults, and any historically validated built-in reconciliation
+receipt. A running VLAN daemon, an unchanged topology hash or O5.1
+registration does not prove current traffic-control rules or Internet
+availability. This source-only milestone expands readback coverage
+to 27 of 54 GUI fields, without installing firmware or changing the
+working provider mapping.
+
 ### C-011 noncredential PON/OMCI readback
 
 The [PON/OMCI C-011 extension](docs/C-011-PON-OMCI-READONLY-READBACK.md)
