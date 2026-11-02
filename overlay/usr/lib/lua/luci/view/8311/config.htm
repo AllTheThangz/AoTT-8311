@@ -144,6 +144,15 @@ local label = named and option.name or option
 <div id="aott-management-effective-status" role="status" aria-live="polite"></div>
 <div id="aott-management-effective-results" role="region" aria-label="Read-only management comparison" hidden></div>
 </section>
+<section id="aott-device-effective" class="cbi-section"
+         data-effective-url="<%=esc(url('admin/8311/effective_device'))%>"
+         aria-label="Device and virtual SFP configuration">
+<h3>Device and virtual SFP configuration</h3>
+<p>View saved and UCI-configured system and host-visible SFP identity settings. Only the kernel hostname can be independently observed here. A configured virtual EEPROM value does not prove that the router sees it. No settings are changed.</p>
+<button id="aott-device-effective-refresh" type="button" class="cbi-button">Check device and SFP values</button>
+<div id="aott-device-effective-status" role="status" aria-live="polite"></div>
+<div id="aott-device-effective-results" role="region" aria-label="Read-only device and SFP comparison" hidden></div>
+</section>
 <div id="config-review" role="region" aria-label="Reviewed configuration changes" style="display:none">
 <h3>Step 2: Confirm reviewed changes</h3><div id="config-diff"></div>
 <p><%:Saving writes settings sequentially with readback. If storage fails, the response identifies verified writes and asks you to reload the durable state.%></p>
