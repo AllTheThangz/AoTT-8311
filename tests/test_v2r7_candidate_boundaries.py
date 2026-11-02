@@ -61,9 +61,12 @@ class V2R7CandidateBoundaries(unittest.TestCase):
         self.assertEqual(rows[0]["bytes"],len(data))
         self.assertEqual(rows[0]["sha256"],hashlib.sha256(data).hexdigest())
 
-    def test_v2r6_production_and_recovery_preservation_is_clear(self):
-        self.assertIn("v2r7 is running and permanently committed",self.readme)
-        self.assertIn("v2r6 remains a valid on-device fallback",self.readme)
+    def test_historical_v2r6_v2r7_and_current_r8_recovery_are_distinct(self):
+        self.assertIn("Historical v2r7 acceptance",self.readme)
+        self.assertIn("permanently committed in bank B with v2r6",self.readme)
+        self.assertIn("original r8 was committed in a",self.readme.lower())
+        self.assertIn("security-enhanced r8",self.readme.lower())
+        self.assertIn("B remained uncommitted",self.readme)
         self.assertIn("bank A",self.readme)
         self.assertIn("bank B",self.readme)
         self.assertIn("v2r5",self.readme)
