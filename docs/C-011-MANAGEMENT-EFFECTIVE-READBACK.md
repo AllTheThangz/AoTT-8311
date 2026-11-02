@@ -100,6 +100,10 @@ At the November 2 checkpoint:
   confirms those native read techniques on the tested device, **not**
   that the new vNext Lua UI/API has been installed or hardware-qualified.
 
+## Source-only device and SFP extension
+
+An additional authenticated, read-only panel has been implemented for 11 system and virtual SFP fields, bringing C-011 source-level readback coverage to 20 of the current 54 GUI fields. It distinguishes the independently observed kernel hostname from configured-only LuCI language, time zone, NTP server list and seven host-visible virtual SFP UCI entries. Neither NTP synchronization nor host-side EEPROM presentation is inferred. See [the C-011 device/SFP extension](C-011-DEVICE-AND-SFP-SOURCE-READBACK.md). No new firmware image has been installed by this source work.
+
 ## Known limitations and next work
 
 - This source change is not installed on the live r8 trial. A real

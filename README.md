@@ -16,6 +16,10 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### Source-only device and SFP effective-state extension
+
+The [device/SFP C-011 extension](docs/C-011-DEVICE-AND-SFP-SOURCE-READBACK.md) adds a manual authenticated comparison for four system fields and seven virtual SFP EEPROM fields, bringing source readbacks to 20 of 54 GUI controls. A kernel hostname is independently observed; LuCI language, NTP synchronization, active time zone and host-router EEPROM presentation remain explicitly unverified. Source-only, not installed on the running ONU.
+
 ### C-011: read-only active management comparison
 
 The [C-011 effective management readback](docs/C-011-MANAGEMENT-EFFECTIVE-READBACK.md) adds a manual, authenticated configuration-page comparison between saved overrides, UCI configuration and independently observed kernel values for nine management settings. It does not claim service success from a configuration match, require external collectors, or alter the ONU. **Source-only until independently hardware qualified.**
