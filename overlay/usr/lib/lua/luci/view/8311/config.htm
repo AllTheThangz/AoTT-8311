@@ -135,6 +135,15 @@ local label = named and option.name or option
 </div>
 <div class="aott-config-actions"><span class="aott-hint">Step 1 of 2: Validate every field and review the proposed changes before saving.</span> <button id="save-btn" type="submit" class="cbi-button cbi-button-save">Review changes</button></div>
 </form>
+<section id="aott-management-effective" class="cbi-section"
+         data-effective-url="<%=esc(url('admin/8311/effective_management'))%>"
+         aria-label="Running management settings">
+<h3>Running management settings</h3>
+<p>Compare saved settings with running interface and routing information. A configured service does not necessarily mean its effect is verified. These readbacks never change settings.</p>
+<button id="aott-management-effective-refresh" type="button" class="cbi-button">Check running values</button>
+<div id="aott-management-effective-status" role="status" aria-live="polite"></div>
+<div id="aott-management-effective-results" role="region" aria-label="Read-only management comparison" hidden></div>
+</section>
 <div id="config-review" role="region" aria-label="Reviewed configuration changes" style="display:none">
 <h3>Step 2: Confirm reviewed changes</h3><div id="config-diff"></div>
 <p><%:Saving writes settings sequentially with readback. If storage fails, the response identifies verified writes and asks you to reload the durable state.%></p>

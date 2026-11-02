@@ -316,7 +316,10 @@ async function request8311(url, options) {
 	return record;
 }
 function post8311(url, values) {
-	const body = new URLSearchParams(Object.assign({token: token8311()}, values));
+	const tokenField = document.querySelector('input[name="token"]');
+	const defaults = {};
+	defaults['token'] = tokenField ? tokenField.value : '';
+	const body = new URLSearchParams(Object.assign(defaults, values));
 	return request8311(url, {method: 'POST', body: body});
 }
 function showFieldErrors(record) {
@@ -391,6 +394,99 @@ function saveConfig(form) {
 	}).catch(error => { if (currentConfigPreview(sequence, body, form)) showFieldErrors(error); })
 		.finally(() => { if (sequence === configGeneration && !configWriteStarted) button.prop('disabled', false); });
 	return false;
+}
+/* C-011: one-shot authenticated read-only effective management comparison.
+ * Never poll automatically, send settings, or mistake UCI-only data for a
+ * verified live service. All device-supplied strings use textContent. */
+function refreshManagementEffective() {
+    const panel=document.getElementById('aott-management-effective');
+    const button=document.getElementById('aott-management-effective-refresh');
+    const status=document.getElementById('aott-management-effective-status');
+    const results=document.getElementById('aott-management-effective-results');
+    if (!panel || !button || !status || !results) return;
+    const url=panel.getAttribute('data-effective-url') || '';
+    if (!url.startsWith('/') || url.startsWith('//')) {
+        status.textContent='The local read-only URL is invalid.';
+        return;
+    }
+    button.disabled=true;
+    status.textContent='Reading current management values. No settings will be changed.';
+    results.hidden=true;
+    results.textContent='';
+    request8311(url, {method:'GET',cache:'no-store'}).then(record => {
+        if (record.success!==true || !record.data || record.data.schema!==1 ||
+            !record.data.fields || !record.data.summary ||
+            record.data.no_device_write!==true) {
+            throw {error:'Incomplete read-only management response.'};
+        }
+        const fieldList=[
+            ['ipaddr','Management IPv4'],
+            ['netmask','Subnet mask'],
+            ['gateway','Management gateway'],
+            ['dns_server','DNS server'],
+            ['pingd','Management keepalive enabled'],
+            ['ping_ip','Keepalive destination'],
+            ['lct_mac','Management MAC'],
+            ['reverse_arp','Reverse ARP enabled'],
+            ['https_redirect','HTTP to HTTPS redirect']
+        ];
+        const table=document.createElement('table');
+        table.className='table';
+        const heading=document.createElement('tr');
+        ['Setting','Saved override','Configured','Running observation','Verification'].forEach(title => {
+            const cell=document.createElement('th');
+            cell.textContent=title;
+            heading.appendChild(cell);
+        });
+        table.appendChild(heading);
+        const valueText=(value,blank) => {
+            if (typeof value==='string' && value.length) return value;
+            return blank;
+        };
+        fieldList.forEach(([id,label]) => {
+            const field=record.data.fields[id];
+            if (!field || field.id!==id) throw {error:'Missing management field: '+id};
+            const line=document.createElement('tr');
+            const observed=field.observed_source==='kernel_no_management_default_route'
+                ? '(no management default route)'
+                : valueText(field.observed_value,'(not observed)');
+            let verification='Not independently verified';
+            if (field.runtime_effect_proven===true) {
+                verification=field.saved_to_observed==='match'
+                    ? 'Running value observed; matches saved'
+                    : field.saved_to_observed==='mismatch'
+                    ? 'Running value observed; differs from saved'
+                    : 'Running value observed; saved comparison unavailable';
+            } else if (field.configured_value!==null) {
+                verification='Configuration found; running effect unverified';
+            }
+            [label,
+             valueText(field.saved_value,'(default or unavailable)'),
+             valueText(field.configured_value,'(not available)'),
+             observed,verification].forEach(value => {
+                const cell=document.createElement('td');
+                cell.textContent=value;
+                line.appendChild(cell);
+            });
+            table.appendChild(line);
+        });
+        const intro=document.createElement('p');
+        intro.textContent='Management path: '+
+            valueText(record.data.management_section,'undetermined')+
+            '. Interface: '+valueText(record.data.management_interface,'undetermined')+
+            '. Kernel-observed fields: '+
+            String(record.data.summary.kernel_observed||0)+
+            '. Saved values alone do not prove active service.';
+        results.appendChild(intro);
+        results.appendChild(table);
+        results.hidden=false;
+        status.textContent='Read-only management comparison complete. No settings changed.';
+    }).catch(error => {
+        results.hidden=true;
+        results.textContent='';
+        status.textContent='Readback unavailable: '+errorMessage(error)+
+            ' No settings changed.';
+    }).finally(() => { button.disabled=false; });
 }
 function openHookEditor() {
 	if (hookSaving) return;
@@ -746,6 +842,10 @@ $(document).ready(function() {
 	$('#8311-config').on('input change', function() {
 		if (!configWriteStarted) invalidateConfigReview('Values changed. Review the complete form before saving.');
 	});
+    $('#aott-management-effective-refresh').on('click',function(event) {
+        event.preventDefault();
+        refreshManagementEffective();
+    });
 	$('#config-confirm').on('click', function() {
 		if (!configReview || !configReview.changed || configWriteStarted) return;
 		const form = document.getElementById('8311-config');
