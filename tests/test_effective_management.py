@@ -61,7 +61,7 @@ class EffectiveManagementSourceTests(unittest.TestCase):
             '"/usr/sbin/fw_printenv"', "system.exec", "os.execute", "io.popen",
             "root_pwhash", "gpon_sn", "reg_id_hex", "lpwd", "loid",
         ):
-            with self.subTest(token=[REDACTED]
+            with self.subTest(label=forbidden):
                 # "reboot" is a permitted *commentary* denial.
                 if forbidden=="reboot":
                     self.assertNotRegex(p,r'["\'](?:/sbin/)?reboot["\']')
