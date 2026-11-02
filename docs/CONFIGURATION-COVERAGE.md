@@ -1,6 +1,6 @@
 # AoTT-8311 configuration coverage and functional audit baseline
 
-**Source baseline:** security-enhanced private r8 source audited 2026-11-02. C-010 inventories four hidden/missing candidates, native code references, 13 vendor UCI files and 89 offline option names. C-011 now adds authenticated source-only readback for 24 of the 54 GUI fields, including four noncredential PON/OMCI UCI values whose native runtime effect is still unverified. See [C-010](C-010-CAPABILITY-REGISTRY-IMPLEMENTATION.md) and [C-011 PON/OMCI](C-011-PON-OMCI-READONLY-READBACK.md).
+**Source baseline:** security-enhanced private r8 source audited 2026-11-02. C-010 inventories four hidden/missing candidates, native references, 13 vendor UCI files and 89 offline option names. C-011 authenticated source-only readback now covers 27 of 54 fields, including three ISP VLAN settings. The native VLAN reconciliation receipt is historical evidence, not proof of current TC rules or Internet access. See [C-010](C-010-CAPABILITY-REGISTRY-IMPLEMENTATION.md), [PON/OMCI](C-011-PON-OMCI-READONLY-READBACK.md) and [ISP/VLAN](C-011-ISP-VLAN-READONLY-EVIDENCE.md).
 **Important:** This is a static source inventory, not an assertion that every setting works in the real device. Runtime evidence and platform qualification must be added field by field.
 
 ## Baseline counts
