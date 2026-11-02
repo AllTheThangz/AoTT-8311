@@ -404,6 +404,100 @@ function saveConfig(form) {
  * O5.1 is an independent optical association observation, NOT proof
  * that the four configured values were consumed or that WAN is working.
  * Never render raw native status, PON identity, authentication or HTML. */
+/* C-011 ISP VLAN: explicit authenticated read-only GET.
+ * A daemon PID, source default or historical reconciler receipt is NOT
+ * independent proof of current TC rules or subscriber Internet service. */
+function refreshVlanEffective() {
+    const panel=document.getElementById('aott-vlan-effective');
+    const button=document.getElementById('aott-vlan-effective-refresh');
+    const status=document.getElementById('aott-vlan-effective-status');
+    const results=document.getElementById('aott-vlan-effective-results');
+    if (!panel || !button || !status || !results) return;
+    const url=panel.getAttribute('data-effective-url') || '';
+    if (!url.startsWith('/') || url.startsWith('//')) {
+        status.textContent='The local read-only VLAN endpoint is invalid.';
+        return;
+    }
+    button.disabled=true;
+    status.textContent='Reading VLAN configuration and last reconciliation. No settings will be changed.';
+    results.hidden=true;
+    results.textContent='';
+    request8311(url,{method:'GET',cache:'no-store'}).then(record => {
+        if (record.success!==true || !record.data || record.data.schema!==1 ||
+            record.data.no_device_write!==true ||
+            record.data.contains_registration_secret!==false ||
+            record.data.source_only_not_hardware_qualified!==true ||
+            !record.data.fields || !record.data.last_reconciliation ||
+            !record.data.daemon || !record.data.summary) {
+            throw {error:'Incomplete VLAN read-only response.'};
+        }
+        const names=[
+            ['fix_vlans','VLAN translation mode'],
+            ['internet_vlan','Local Internet VLAN'],
+            ['services_vlan','Local services VLAN']
+        ];
+        const table=document.createElement('table');
+        table.className='table';
+        const heading=document.createElement('tr');
+        ['Setting','Saved override','Source default','Last recorded reconciliation','Current-effect evidence'].forEach(label => {
+            const cell=document.createElement('th');
+            cell.textContent=label;
+            heading.appendChild(cell);
+        });
+        table.appendChild(heading);
+        const shown=(value,fallback) =>
+            typeof value==='string' && value.length ? value : fallback;
+        names.forEach(([id,label]) => {
+            const field=record.data.fields[id];
+            if (!field || field.id!==id ||
+                field.runtime_effect_proven!==false ||
+                field.hardware_qualified!==false) {
+                throw {error:'Incomplete VLAN evidence for '+id};
+            }
+            const row=document.createElement('tr');
+            let evidence='Live traffic-control rules not independently verified';
+            if (field.last_recorded_value!=null) {
+                evidence=field.saved_to_last_recorded==='mismatch'
+                    ? 'Saved override differs from historical record; live TC unverified'
+                    : field.saved_to_last_recorded==='match'
+                      ? 'Saved/recorded match; live TC still unverified'
+                      : 'Historical record available; effective rules unverified';
+            }
+            [label,shown(field.saved_value,'(unset or unavailable)'),
+             shown(field.source_default,'(not specified)'),
+             shown(field.last_recorded_value,'(not recorded)'),
+             evidence].forEach(value => {
+                const cell=document.createElement('td');
+                cell.textContent=value;
+                row.appendChild(cell);
+            });
+            table.appendChild(row);
+        });
+        const meta=document.createElement('p');
+        const last=record.data.last_reconciliation;
+        const daemon=record.data.daemon;
+        const daemonText=daemon.running===true?'running'
+            :daemon.running===false?'not found':'unknown';
+        const hashText=last.topology_matches_record===true
+            ?'same as last recorded topology'
+            :last.topology_matches_record===false
+              ?'changed since last record':'not verified';
+        meta.textContent='VLAN daemon: '+daemonText+
+            '. Last validated native receipt: '+
+            (last.present===true?'present':'absent or unverified')+
+            '. Topology comparison: '+hashText+
+            '. None of these indicators proves current traffic-control rules, PON service mapping, or Internet connectivity.';
+        results.appendChild(meta);
+        results.appendChild(table);
+        results.hidden=false;
+        status.textContent='Read-only VLAN comparison complete. No settings changed.';
+    }).catch(error => {
+        results.hidden=true;
+        results.textContent='';
+        status.textContent='Readback unavailable: '+errorMessage(error)+
+            ' No settings changed.';
+    }).finally(() => { button.disabled=false; });
+}
 function refreshPonEffective() {
     const panel=document.getElementById('aott-pon-effective');
     const button=document.getElementById('aott-pon-effective-refresh');
@@ -1035,6 +1129,10 @@ $(document).ready(function() {
     $('#aott-pon-effective-refresh').on('click',function(event) {
         event.preventDefault();
         refreshPonEffective();
+    });
+    $('#aott-vlan-effective-refresh').on('click',function(event) {
+        event.preventDefault();
+        refreshVlanEffective();
     });
 	$('#config-confirm').on('click', function() {
 		if (!configReview || !configReview.changed || configWriteStarted) return;
