@@ -164,16 +164,16 @@
       "sha256": "49607947050cde1b465eb8114514724f4c4f0849c783777a148efa500cdd3ee0"
     },
     {
-      "bytes": 8767,
+      "bytes": 9691,
       "executable": false,
       "path": "usr/lib/lua/8311/monitor_store.lua",
-      "sha256": "ca74c46d5d2c8191f12854d550ed8a3001f08d9006debaaf8c9f38ebe9364dbb"
+      "sha256": "472e0f01ec3d70b0f5f9c32bd4ab176338820b4d95a6e10dd5dda5c1e8629c8c"
     },
     {
-      "bytes": 18993,
+      "bytes": 19058,
       "executable": false,
       "path": "usr/lib/lua/8311/monitoring.lua",
-      "sha256": "fc7632fad478483c6fe2a55b1384af4a25f50d52874c4526c4325f22a802728e"
+      "sha256": "ce082885e930320be5d273b24468d31bb5b43d8c4ed04cc5ddfeab85d71c6632"
     },
     {
       "bytes": 6039,
@@ -224,10 +224,10 @@
       "sha256": "d4c5bad01254dfc37392c0417a5e3dec717108dcd2b2b7cd8331ef0fef91d019"
     },
     {
-      "bytes": 14121,
+      "bytes": 14484,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/monitoring.htm",
-      "sha256": "e44e297b65a735f8e5183feb87ad4908de2a1a7ed4d2acbe57fac6eb2f70c6c7"
+      "sha256": "80c0a34fcb0887974b26fee2b1de7a9e0bfc30854c7a8b9c81321ed698b49692"
     },
     {
       "bytes": 1394,

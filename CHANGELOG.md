@@ -20,6 +20,15 @@
 
 See docs/V2R8-HARDWARE-TRIAL-ACCEPTANCE.md for sanitized hardware evidence.
 
+### Posttrial draft-only fix, not deployed
+
+- Distinguished a clean, default-disabled monitoring setup with no durable
+  record directory from genuinely inconsistent persistent configuration.
+- Kept the wrong-mount, unsafe-path, missing-file and non-default-setting
+  cases fail closed. Verified against the actual vendor MIPS Lua runtime.
+- This later source change is not present in the currently trial-booted r8
+  firmware; it requires a separate image build and qualification.
+
 ## v2r7 (privately hardware-qualified and committed on one PRX126)
 
 ### Graph contrast and web UI

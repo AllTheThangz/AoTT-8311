@@ -138,18 +138,32 @@ local function same_live(raw)
  end
  return true
 end
+-- Only the GUI may label a missing, default-only store as fresh.
+local function initial_unconfigured(raw)
+ if durable or type(raw)~="table" then return false end
+ local defaults={
+  log_remote="0",log_ip="",log_port="514",log_proto="udp",
+  aott_metrics="0",aott_metrics_client="",aott_metrics_sha256=""
+ }
+ for _,key in ipairs(fields) do
+  if raw[key] ~= nil and raw[key] ~= defaults[key] then return false end
+ end
+ return true
+end
 package.preload["8311.monitor_store"] = function()
  return {
   write=function(record) durable=clone(record);return true end,
   read=function() return durable and clone(durable) or nil end,
   from_snapshot=from_snapshot,
-  same_live=same_live
+  same_live=same_live,
+  initial_unconfigured=initial_unconfigured
  }
 end
 
 local mon=assert(loadfile(monitoring_path))()
 local state=assert(mon.snapshot())
 assert(state.log_remote=="0" and state.log_port=="514")
+assert(state.first_time_unconfigured == true and state.durable_consistent == false)
 assert(uci.cursor():get("system","cfg0a","not_present")==false,
        "Vendor Lua UCI must report missing field as false")
 local _,why,status=mon.apply({
@@ -162,6 +176,7 @@ assert(#calls>0)
 local issued=assert(mon.change_credential(state.revision,"rotate"))
 assert(issued.collector_token==string.rep("c",64))
 assert(system.aott_metrics_sha256~=issued.collector_token)
+assert(mon.snapshot().first_time_unconfigured == false)
 local form={
     revision=issued.revision,log_remote="0",log_ip="",
     log_port="514",log_proto="udp",aott_metrics="1",

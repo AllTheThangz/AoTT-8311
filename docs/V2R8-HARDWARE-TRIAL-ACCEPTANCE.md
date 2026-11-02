@@ -93,6 +93,28 @@ and IPv6 ingress exposure matrix remains **unqualified**.
 
 No firewall rules were added or removed during these tests.
 
+## Posttrial source-only UX correction
+
+A source review of the Monitoring page found that a new, untouched r8
+installation with no monitoring record displayed the same prominent warning
+as a persistent-store integrity mismatch. This is a presentation issue, not
+an observed collector authorization failure. The running, trial-booted r8
+image still contains that original page.
+
+The draft source now labels the verified-clean state as **Monitoring has not
+been configured yet**, with a neutral notice. It only recognizes this state
+when ptconf is mounted as the expected UBIFS volume, the private monitoring
+directory is genuinely absent, and every active logging/collector option
+is absent or at its disabled default. Missing records inside existing
+directories, incorrect mounts, symlinks, non-default settings and actual
+durable/live mismatches retain an alert and remain denied for metrics access.
+
+Both actual vendor MIPS Lua runtime and synthetic negative tests passed.
+**This posttrial source edit is not on the running ONU**, has not been rebuilt
+into a qualified firmware image and does not inherit the current trial's
+hardware acceptance. It requires its own build and qualification before
+any future deployment. No live configuration, bank or reboot was changed.
+
 ## Tests that remain necessary before release signoff
 
 1. Explicitly authorized configuration of a real syslog receiver, followed

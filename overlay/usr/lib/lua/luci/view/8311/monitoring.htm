@@ -13,7 +13,12 @@ local selected_tcp = monitor.log_proto == "tcp"
   <p>All settings apply to this ONU only. Collector scheduling, storage, dashboards and notification rules are managed externally. Browser metrics use administrator authentication. External collectors require HTTPS, an exact allowed client IP and a separate read-only credential. Remote log reception must be confirmed on the receiving server.</p>
 </div>
 
-<% if not monitor.durable_consistent then %>
+<% if monitor.first_time_unconfigured then %>
+<div class="aott-section-intro" role="note">
+  <strong>Monitoring has not been configured yet.</strong>
+  <p>Remote logging and metrics export are disabled. Configure your own collector or receiver to begin. No persistent monitoring record or collector credential is required until settings are saved.</p>
+</div>
+<% elseif not monitor.durable_consistent then %>
 <div class="aott-section-intro" role="alert">
   <strong>Persistent monitoring configuration is unavailable or differs from active settings.</strong>
   <p>Collector metrics are denied until both configurations agree. Normal saves and token rotation are blocked during a mismatch so a previously revoked credential cannot be restored. Revocation remains available for recovery. On a new installation, generate a collector token, then save settings; after a failed apply, review the durable record and reboot behavior before retrying.</p>

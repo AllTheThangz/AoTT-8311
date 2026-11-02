@@ -78,7 +78,8 @@ function M.snapshot(u)
         transport_udp=true, transport_tcp=true,
         severity_filter_available=false,
         configured=enabled,
-        durable_consistent=store.same_live(raw)
+        durable_consistent=store.same_live(raw),
+        first_time_unconfigured=store.initial_unconfigured(raw)
     }
 end
 

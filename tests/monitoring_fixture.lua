@@ -152,12 +152,26 @@ local function same_live(raw)
  end
  return true
 end
+-- Stub the UI-only first-install classifier; never use it as a
+-- substitute for durable/live credential verification.
+local function initial_unconfigured(raw)
+ if durable or type(raw)~="table" then return false end
+ local defaults={
+  log_remote="0",log_ip="",log_port="514",log_proto="udp",
+  aott_metrics="0",aott_metrics_client="",aott_metrics_sha256=""
+ }
+ for _,key in ipairs(fields) do
+  if raw[key] ~= nil and raw[key] ~= defaults[key] then return false end
+ end
+ return true
+end
 package.preload["8311.monitor_store"] = function()
  return {
   write=function(record) durable=clone(record);return true end,
   read=function() return durable and clone(durable) or nil end,
   from_snapshot=from_snapshot,
-  same_live=same_live
+  same_live=same_live,
+  initial_unconfigured=initial_unconfigured
  }
 end
 
@@ -167,6 +181,8 @@ local old = assert(monitor.snapshot())
 assert(old.log_remote == "0")
 assert(old.aott_metrics == "0")
 assert(old.log_port == "514")
+assert(old.first_time_unconfigured == true)
+assert(old.durable_consistent == false)
 assert(not monitor.metrics_enabled())
 local form = {
     revision=old.revision, token="irrelevant-in-isolated-stub",
@@ -208,6 +224,7 @@ assert(done.log_proto == "tcp" and done.log_port == "5514")
 assert(reload_calls == 1 and not lock_held)
 assert(not monitor.metrics_enabled())
 local latest = assert(monitor.snapshot())
+assert(latest.first_time_unconfigured == false)
 assert(latest.revision ~= old.revision)
 local stale, serr, status = monitor.apply(form)
 assert(stale == nil and status == 409)

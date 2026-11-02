@@ -222,6 +222,27 @@ function M.from_snapshot(snapshot)
     return record
 end
 
+-- UI classification only. This does NOT grant metrics access or permit a
+-- write: all authentication and durable/active consistency gates stay intact.
+-- A clean first installation has no record directory, verified ptconf UBIFS,
+-- and no non-default live logging or collector setting. A missing record
+-- inside an existing directory, an unmounted volume, a symlink, or any
+-- configured/mismatched credential must remain an actionable warning.
+function M.initial_unconfigured(live)
+    if type(live) ~= "table" or not M.mounted() or
+       fs.lstat(M.root) ~= nil then return false end
+    local defaults = {
+        log_remote="0", log_ip="", log_port="514", log_proto="udp",
+        aott_metrics="0", aott_metrics_client="", aott_metrics_sha256=""
+    }
+    for _,key in ipairs(names) do
+        if live[key] ~= nil and live[key] ~= defaults[key] then
+            return false
+        end
+    end
+    return true
+end
+
 function M.same_live(live)
     local durable = M.read()
     if not durable or type(live) ~= "table" then return false end

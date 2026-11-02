@@ -113,6 +113,35 @@ class MonitoringBackendTests(unittest.TestCase):
         self.assertNotIn('name="log_level"', s)
         self.assertNotIn("192.168.0.", s)
 
+    def test_new_install_notice_is_separate_from_integrity_warning(self):
+        template = TEMPLATE.read_text()
+        monitor = MODULE.read_text()
+        store = (ROOT / "overlay/usr/lib/lua/8311/monitor_store.lua").read_text()
+        self.assertIn("function M.initial_unconfigured(live)", store)
+        self.assertIn("first_time_unconfigured=store.initial_unconfigured(raw)", monitor)
+        self.assertIn("<% if monitor.first_time_unconfigured then %>", template)
+        self.assertIn("<% elseif not monitor.durable_consistent then %>", template)
+        self.assertIn("Monitoring has not been configured yet.", template)
+        self.assertIn("Persistent monitoring configuration is unavailable", template)
+        self.assertLess(template.index("<% if monitor.first_time_unconfigured"),
+                        template.index("<% elseif not monitor.durable_consistent"))
+        # The UI state cannot grant collector access. Durable/live equality
+        # remains an independent hard authorization precondition.
+        auth = monitor.split("function M.collector_authorized(", 1)[1]
+        self.assertIn("store.same_live(saved)", auth)
+        self.assertNotIn("initial_unconfigured(", auth)
+
+    def test_clean_install_detection_fails_closed_for_nondefault_values(self):
+        store = (ROOT / "overlay/usr/lib/lua/8311/monitor_store.lua").read_text()
+        fn = store.split("function M.initial_unconfigured(live)", 1)[1].split("\nend", 1)[0]
+        self.assertIn("not M.mounted()", fn)
+        self.assertIn("fs.lstat(M.root) ~= nil", fn)
+        self.assertIn("live[key] ~= defaults[key]", fn)
+        for key in ("log_remote", "log_ip", "log_port", "log_proto",
+                    "aott_metrics", "aott_metrics_client",
+                    "aott_metrics_sha256"):
+            self.assertIn(key, fn)
+
     def test_collector_auth_is_strict_and_never_accepts_query_tokens(self):
         s = MODULE.read_text()
         self.assertIn('function M.collector_authorized(getenv)', s)

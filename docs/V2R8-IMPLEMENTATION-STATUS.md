@@ -168,6 +168,22 @@ running in A with v2r7 still committed in B. No permanent commit or
 additional reboot was requested. See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md)
 and the historical [stage readiness](V2R8-STAGE-READINESS.md).
 
+## Posttrial source-only Monitoring page correction
+
+The live r8 trial has a valid ptconf UBIFS mount and no configured monitoring
+record. The original page conflated that expected clean installation with a
+persistent settings integrity mismatch. A source-only patch now recognizes a
+clean installation **only** when the durable directory is absent, mounted
+ptconf is verified and all active settings are at safe defaults. Broken
+paths, unmounted storage, missing files inside an existing store directory,
+credentials and non-default logging/collector settings remain warnings.
+Collector access still requires a valid matching durable record.
+
+New cases passed in the vendor MIPS Lua implementation. This patch was made
+**after** the r8 trial and is not in the running image. It needs an
+independent firmware rebuild and its own hardware qualification before
+deployment. No on-device state was modified for the fix.
+
 ## Remaining release-blocking work
 
 1. **Collector authorization qualification:** A separate HTTPS-only, read-only token and exact IPv4 allowlist exist in offline source. Verify actual target HTTP header/TLS and management socket behavior, credential permissions, negative requests and persistence in an isolated recoverable environment.

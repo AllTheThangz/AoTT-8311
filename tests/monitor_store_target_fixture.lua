@@ -22,8 +22,34 @@ local record = {
 }
 assert(M.valid(record))
 assert(M.read() == nil, "Absent durable store must fail closed")
+local clean = {log_remote="0",log_ip="",log_port="514",log_proto="udp",
+               aott_metrics="0",aott_metrics_client="",aott_metrics_sha256=""}
+assert(M.initial_unconfigured({}), "Missing directory on verified UBIFS is new")
+assert(M.initial_unconfigured(clean), "Default options are new-install safe")
+for _,bad in ipairs({
+    {log_remote="1"}, {log_ip="collector.example.com"},
+    {log_port="5514"}, {log_proto="tcp"}, {aott_metrics="1"},
+    {aott_metrics_client="192" .. ".0.2.40"},
+    {aott_metrics_sha256=string.rep("a",64)},
+}) do
+ assert(not M.initial_unconfigured(bad),
+        "Nondefault settings must not be classified as new")
+end
+assert(not M.initial_unconfigured(nil))
+assert(fs.writefile(M.mounts_file, "ubi0:wrong /ptconf ubifs rw 0 0\n"))
+assert(not M.initial_unconfigured(clean),
+       "Wrong mount on absent directory cannot look like a clean install")
+assert(fs.writefile(M.mounts_file, "ubi0:ptconf /ptconf ubifs rw 0 0\n"))
+local original_root = M.root
+M.root = scratch .. "/invalid-root-symlink"
+assert(fs.symlink("/dev/null", M.root))
+assert(not M.initial_unconfigured(clean), "Symlinked directory is unsafe")
+assert(fs.unlink(M.root))
+M.root = original_root
 local saved, why = M.write(record)
 assert(saved, why)
+assert(not M.initial_unconfigured(clean),
+       "Protected directory already exists; no longer new")
 local fetched, error = M.read()
 assert(fetched, error)
 assert(fetched.aott_metrics_sha256 == record.aott_metrics_sha256)
@@ -57,11 +83,15 @@ assert(M.read() == nil, "World-readable durable file must fail closed")
 assert(fs.chmod(path,600))
 assert(fs.writefile(M.mounts_file, "ubi0:other /ptconf ubifs rw 0 0\n"))
 assert(M.read()==nil, "Unexpected mount source must fail closed")
+assert(not M.initial_unconfigured(clean), "Wrong UBIFS source is not new")
 assert(fs.writefile(M.mounts_file, "ubi0:ptconf /ptconf ubifs rw 0 0\n"))
 assert(M.read().aott_metrics=="0")
 assert(fs.unlink(path))
+assert(not M.initial_unconfigured(clean),
+       "Missing record in existing private directory is suspicious")
 assert(fs.symlink("/dev/null",path))
 assert(M.read()==nil,"Symlink must fail closed")
+assert(not M.initial_unconfigured(clean), "Symlink stays suspicious")
 assert(M.write(record)==nil,"Symlink overwrite must be rejected")
 assert(fs.unlink(path))
 assert(M.write(record))
