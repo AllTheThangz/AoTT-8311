@@ -86,8 +86,7 @@ an independently proven OMCI daemon runtime readback.
 
 ## Total C-011 scope and remaining work
 
-This addition raises source readback coverage from **20 to 24 of 54**
-existing GUI fields. The other **30** controls still need a truthful
+This addition initially raised source readback coverage from **20 to 24 of 54** existing GUI fields. A later [ISP/VLAN read-only source extension](C-011-ISP-VLAN-READONLY-EVIDENCE.md) adds three more fields, bringing the current total to **27 of 54**. The other **27** controls still need a truthful
 per-setting saved/configured/effective-state contract.
 
 The remaining controls include authentication and reported OLT identity
