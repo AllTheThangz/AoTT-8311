@@ -27,6 +27,7 @@ DOCS=[
     "docs/V2R8-PERSISTENCE-DESIGN.md",
     "docs/V2R8-BOOT-READINESS-AUDIT.md",
     "docs/V2R8-STAGE-READINESS.md",
+    "docs/V2R8-HARDWARE-TRIAL-ACCEPTANCE.md",
     "docs/V2R8-MANAGEMENT-ACL-AUDIT.md",
     "examples/monitoring/README.md",
     "docs/MONITORING-AND-TELEMETRY.md",

@@ -1,4 +1,4 @@
-"""Public documentation assertions for the accepted v2r7 and planned v2r8."""
+"""Public source and history assertions for committed r7 and uncommitted trial r8."""
 
 import json
 import re
@@ -23,10 +23,12 @@ class CurrentReleaseDocumentationTests(unittest.TestCase):
         cls.manifest = json.loads((ROOT / "MANIFEST.json").read_text())
 
     def test_latest_hardware_status_and_fallback(self):
-        self.assertIn("v2r7 is running and permanently committed in bank B", self.readme)
-        self.assertIn("v2r6 remains a valid on-device fallback in bank A", self.readme)
+        self.assertIn("v2r8 is running as an uncommitted one-shot trial in bank A", self.readme)
+        self.assertIn("v2r7 remains permanently committed in bank B", self.readme)
+        self.assertIn("earlier r6 image is preserved **off-device**", self.readme)
         self.assertIn("v2r7 (privately hardware-qualified and committed", self.changelog)
-        self.assertIn("v2r7 is committed on firmware bank B", self.changelog)
+        self.assertIn("At r7 acceptance, v2r7 was committed in bank B", self.changelog)
+        self.assertIn("v2r8 (private one-shot hardware trial passed, not committed)", self.changelog)
         self.assertNotIn("v2r7 is an offline-only development candidate", self.readme)
         for phrase in ("AoTT-8311-v2r7", "bank B", "v2r6 in bank A",
                        "PON O5.1", "10 Gbps", "longer-term", "source overlay only"):

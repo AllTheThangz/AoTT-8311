@@ -1,6 +1,6 @@
 # AoTT-8311 v2r8 inactive-bank staging readiness
 
-Status: **offline kit reviewed, hardware staging NOT authorized**.
+Historical preparation status: **offline kit reviewed, stage not yet authorized at document creation**. The operator subsequently approved stage-only installation into bank A, followed by a successful one-shot hardware trial while committed bank B remained saved. Permanent commit was not performed. See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md).
 
 This document describes a guarded preparation process for the qualified
 LL-XS1010 / PRX126-SFP-PON firmware family. No private archive, full flash

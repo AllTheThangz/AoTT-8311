@@ -1,6 +1,6 @@
 # AoTT-8311 v2r8 boot readiness: independent offline audit
 
-Audit date: 2026-11-01. Status: **OFFLINE QUALIFIED, NOT HARDWARE TRIALED**.
+Audit date: 2026-11-01. Historical preboot status: **OFFLINE QUALIFIED, NOT HARDWARE TRIALED AT AUDIT TIME**. A later approved one-shot trial passed on the qualified hardware. See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md).
 No live ONU, management route, PON identity, firmware selector or flash
 bank was modified in this audit. This report is source-only; private
 firmware images, recovery backups and device-specific data are excluded.

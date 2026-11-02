@@ -1,8 +1,13 @@
 # AoTT-8311 v2r8 management access and external monitoring ACL audit
 
-Status: **offline source and extracted-vendor audit only**. This document does
-not certify that monitoring is unreachable from untrusted interfaces on a
-running ONU. No device firewall or network settings were changed.
+Status: **source audit plus partial read-only hardware checks**. On the
+running r8 trial, the public HTTPS collector route denied anonymous and
+invalid-token requests with HTTP 403. Plain HTTP redirected and the
+management HTTPS root remained accessible. The vendor web listener binds
+wildcard IPv4; the WAN firewall zone is configured REJECT while the global
+default input is ACCEPT. Effective untrusted interface filtering and IPv6
+exposure are **not certified**. No firewall or network settings were changed.
+See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md).
 
 ## Observed vendor configuration
 

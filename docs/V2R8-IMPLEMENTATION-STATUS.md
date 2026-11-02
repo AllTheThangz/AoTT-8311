@@ -1,8 +1,8 @@
-# v2r8 implementation status: first offline candidate
+# v2r8 implementation status: draft source and hardware-trial evidence
 
-Status: **development source only, not merged, not a verified flashable release**.
+Status: **private one-shot hardware trial boot verified, but not permanently committed, merged or publicly released**.
 
-The base is the committed v2r7 source for the qualified PRX126-SFP-PON hardware family. No production ONU, flash bank, boot selector, provisioned PON identity, or private monitoring system was changed to implement this candidate. All public examples use placeholders rather than addresses from a real deployment.
+The base is the committed v2r7 source for the qualified PRX126-SFP-PON hardware family. Initial development was offline. After independently verifying complete A/B backups, an approved stage wrote private r8 to inactive bank A. A separately approved one-shot trial successfully booted r8, while retaining committed r7 in bank B. No permanent commit, ISP identity change or monitoring configuration change was made. Public examples contain no deployment addresses.
 
 ## Implemented in this development branch
 
@@ -31,9 +31,11 @@ The draft monitoring configuration and credential transitions write the durable 
 ## Persistence and vendor-runtime qualification findings
 
 The vendor source explicitly documents that stock boot can delete rootfs_data
-while the separate ptconf volume survives. The r8 draft now
-restores the reviewed settings from a protected persistent record during
-boot. Real hardware persistence and recovery remain unqualified.
+while the separate ptconf volume survives. The r8 draft restores reviewed
+settings from a protected persistent record during boot. The running r8
+trial confirms the mounted UBIFS volume and S11 restore hook, but a durable
+record has not been configured. Configured restore and interrupted writes
+remain unqualified.
 
 - The extracted vendor LuCI UCI model passed synthetic configuration,
   token rotation/revocation and default-value tests under host Lua 5.1 and
@@ -142,9 +144,10 @@ with **508 KiB** fixed-bank headroom. The earlier 5,697,536-byte
 archive and associated private kit were superseded and are blocked
 from staging.
 
-All private outputs remain marked **UNTRIALED_OFFLINE_ONLY**. See
-[V2R8-BOOT-READINESS-AUDIT.md](V2R8-BOOT-READINESS-AUDIT.md) for the
-three-pass evidence, untested risks and the required A/B recovery gates.
+The original private build archives retain build-time **UNTRIALED_OFFLINE_ONLY**
+labels, but the approved stage and one-shot hardware trial have since
+succeeded. Immutable build-time labels do not describe the current boot state.
+See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md).
 
 ## Private stage-only preparation
 
@@ -159,10 +162,11 @@ symlinks, reversed bank selection and false authorization, and marks
 fresh bank state, fresh complete A/B backups and independent stage-only
 approval as missing.
 
-**No live stage was performed.** The most recent accepted device
-record is historical: bank B committed v2r7 and bank A valid v2r6.
-See [stage readiness](V2R8-STAGE-READINESS.md) for the mandatory
-checks before even an inactive-bank write can be contemplated.
+**Subsequent hardware outcome:** Full pre-stage backups passed, r8 was
+successfully staged into A, and a separate one-shot boot confirmed r8
+running in A with v2r7 still committed in B. No permanent commit or
+additional reboot was requested. See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md)
+and the historical [stage readiness](V2R8-STAGE-READINESS.md).
 
 ## Remaining release-blocking work
 
@@ -172,6 +176,6 @@ checks before even an inactive-bank write can be contemplated.
 4. **Performance:** benchmark concurrent basic metrics scrapes, expensive detailed `pontop` reads, idle memory and active CPU usage. Do not implement new background polling before measuring.
 5. **Browser UX:** run real Chromium form submission/failure/test-event scenarios at desktop and mobile widths. Resolve all accessibility and styling defects before GUI signoff.
 6. **Release freeze:** assign canonical r8 release identity, refresh all source manifest and runtime-integrity pins, verify actual compressed image archive and original vendor ABI, independently rebuild twice and complete full native regression tests.
-7. **Hardware:** only after release gating and separately verified full-bank backups, obtain distinct stage-only, one-shot trial and permanent commit authorizations. Long-term reliability still requires evidence.
+7. **Hardware:** complete full-bank backups, stage-only and one-shot trial passed. R8 runs in A with committed r7 in B. Permanent commit is not authorized, and extended stability and monitoring-function testing remain open.
 
 See [v2r8 plan](V2R8-PLAN.md) and the [monitoring integration design](MONITORING-AND-TELEMETRY.md). The r8 branch remains a candidate until every P0 gate is satisfied.

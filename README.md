@@ -4,7 +4,7 @@
 
 AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible web interface, deeper optical and network diagnostics, security visibility, and guarded A/B firmware management.
 
-**Latest privately hardware-qualified and committed firmware:** `AoTT-8311-v2r7` on one qualified LL-XS1010 / PRX126-SFP-PON unit, committed in bank B. Its verified on-device alternative is v2r6 in bank A. The public repository distributes sanitized **v2r7 source only**, not ready-to-flash archives. **v2r8 implementation is underway in a separate development branch, not hardware-qualified or released.**
+**Latest permanently committed firmware:** `AoTT-8311-v2r7` remains saved in bank B. A separate private `AoTT-8311-v2r8` build successfully booted as an **uncommitted one-shot trial in bank A** on the qualified PRX126-SFP-PON unit. The previous r6 bank-A image has complete off-device recovery backups, not a current on-device slot. The public stable repository remains **sanitized v2r7 source only**; v2r8 implementation is underway in a separate draft branch and is not merged or released.
 
 > **Important:** This repository currently provides a **secret-sanitized source overlay, not a ready-to-flash firmware image**. Proprietary vendor components, actual subscriber provisioning, and production credentials are deliberately excluded.
 
@@ -45,7 +45,7 @@ AoTT-8311 **builds on** the existing [8311 Community Firmware](https://github.co
 
 The source includes authenticated **Live Health** and **Security & Access** views. Health data can be refreshed at selectable intervals without automatically changing configuration. v2r7 improves light/dark Overview graph contrast.
 
-Existing diagnostic JSON can be consumed by external monitoring systems. **v2r8 has an offline development candidate for GUI-controlled remote syslog and HTTPS-only, token-protected read-only metrics collection restricted to one configured collector IPv4 address.** It is not released or hardware-qualified. See [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md). Users supply their own receiver, Prometheus-compatible collector, storage, dashboards and alerting. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and [v2r8 plan](docs/V2R8-PLAN.md). A [generic off-device Prometheus adapter](examples/monitoring/README.md) is provided as source and runs only on the user-owned collector.
+Existing diagnostic JSON can be consumed by external monitoring systems. **v2r8 has a successful private hardware one-shot trial for GUI-controlled syslog and HTTPS-only token-protected metrics.** It remains uncommitted, unmerged and not publicly released. Positive collector/syslog/persistence cases remain unqualified. See [hardware trial evidence](docs/V2R8-HARDWARE-TRIAL-ACCEPTANCE.md). See [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md). Users supply their own receiver, Prometheus-compatible collector, storage, dashboards and alerting. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and [v2r8 plan](docs/V2R8-PLAN.md). A [generic off-device Prometheus adapter](examples/monitoring/README.md) is provided as source and runs only on the user-owned collector.
 
 ### A/B upgrade safety
 
@@ -66,9 +66,9 @@ These operations require a compatible complete firmware build and an independent
 | --- | --- |
 | Primary device | OEM/Potron LL-XS1010 XGS-PON SFP+ ONU |
 | Platform | PRX126-SFP-PON, PRX300-family vendor firmware baseline |
-| Latest privately tested firmware | `AoTT-8311-v2r7` (version 2, revision 7; hardware trial and permanent bank-B commit independently verified on one qualified PRX126-SFP-PON ONU) |
-| Verified on-device alternative | `AoTT-8311-v2r6` in bank A; earlier versions remain in private off-device backups |
-| Next planned revision | `AoTT-8311-v2r8`, optional syslog and metrics integration, resource and UI improvements, security and reliability checks |
+| Latest privately trial-booted firmware | `AoTT-8311-v2r8` in bank A, hardware boot verified but uncommitted |
+| Saved committed fallback | `AoTT-8311-v2r7` in bank B; older r6 preserved in private full-bank off-device backup |
+| Current development candidate | `AoTT-8311-v2r8`, successful one-shot trial; monitoring, firewall, durability and load qualification remain |
 | Dependencies | Compatible vendor kernel, boot components, PON/OMCI stack, and authorized ISP provisioning |
 | Other ONUs | Not automatically supported; require separate hardware qualification |
 
@@ -169,9 +169,10 @@ To build actual firmware, obtain a **legally authorized, clean, compatible vendo
 | `docs/V2R7-HARDWARE-ACCEPTANCE.md` | v2r7 hardware trial, verified permanent commit and qualification limits. |
 | `docs/V2R8-PLAN.md` | r8 architecture, prioritization, implementation order and release gates. |
 | `docs/V2R8-IMPLEMENTATION-STATUS.md` | Current candidate, offline tests, limitations and remaining blockers. |
-| `docs/V2R8-PERSISTENCE-DESIGN.md` | Durable monitoring configuration design and offline vendor-runtime evidence; not yet deployed. |
-| `docs/V2R8-BOOT-READINESS-AUDIT.md` | Three-pass private source, runtime, and archive boot-readiness audit; hardware trial still required. |
-| `docs/V2R8-STAGE-READINESS.md` | Conditional A/B bank plan, fresh-backup requirements and stage-only approval gates. |
+| `docs/V2R8-PERSISTENCE-DESIGN.md` | Durable settings and S11 startup-restore design; configured restore remains untested. |
+| `docs/V2R8-BOOT-READINESS-AUDIT.md` | Historical three-pass preboot audit, subsequently followed by a successful hardware trial. |
+| `docs/V2R8-STAGE-READINESS.md` | Historical A/B plan, recovery requirements, and stage-only approval gates. |
+| `docs/V2R8-HARDWARE-TRIAL-ACCEPTANCE.md` | Sanitized trial result, real telemetry, default-denied collector checks and remaining qualifications. |
 | `docs/V2R8-MANAGEMENT-ACL-AUDIT.md` | Explicit security checks and interface/firewall acceptance requirements for public collectors. |
 | `examples/monitoring/README.md` | Optional user-hosted Prometheus JSON adapter, secure token handling and collector configuration. |
 | `docs/MONITORING-AND-TELEMETRY.md` | Deployment-neutral syslog and metrics integration design. |
@@ -196,7 +197,7 @@ See [privacy and publication checks](docs/PRIVACY-AUDIT.md),
 
 ### Privately hardware-qualified releases
 
-**v2r7 is running and permanently committed in bank B** on the single qualified PRX126-SFP-PON unit. Separately authorized staging, one-shot trial and guarded commit passed complete firmware-bank integrity readback, PON O5.1 registration, negotiated 10 Gbps host Ethernet, HTTPS management, WAN, and persistent root/SSH recovery checks. **v2r6 remains a valid on-device fallback in bank A.** Original full-bank backups remain private and off-device. Long-term stress and other board variants remain unqualified.
+**v2r8 is running as an uncommitted one-shot trial in bank A**, and **v2r7 remains permanently committed in bank B** on the qualified PRX126-SFP-PON unit. The current r8 trial passed both-bank readbacks, PON O5.1, 10 Gbps host Ethernet, HTTPS, WAN and persistent root/SSH recovery checks. The earlier r6 image is preserved **off-device**, not as the current bank-A fallback. The r7 stage, trial and permanent commit were independently verified before r8 development. Long-term stress and other boards remain unqualified.
 
 The original v2r7 source and private archive build-time markers (`offline-candidate`, `UNTRIALED_OFFLINE_ONLY`, `safe_for_live_install=false`) preserve the **immutable build-time** stage. They do not contradict the later independently verified trial and commit. Read [v2r7 hardware acceptance](docs/V2R7-HARDWARE-ACCEPTANCE.md) alongside the [historical build note](docs/V2R7-RELEASE.md).
 
@@ -206,7 +207,7 @@ The original v2r7 source and private archive build-time markers (`offline-candid
 
 **Included in v2r7 source:** responsive LuCI interface, improved light/dark realtime graph contrast, optical/PON/OMCI/GEM and Ethernet diagnostics, security-state reporting, management routing compatibility, and guarded A/B firmware lifecycle tooling.
 
-**v2r8 development:** Initial remote syslog and authenticated metrics source is under offline review, not merged into stable firmware and not hardware-qualified. Collector HTTP and management-ACL qualification, hardware verification of the new durable settings restoration, workload validation and A/B hardware acceptance remain open. See the [persistence design](docs/V2R8-PERSISTENCE-DESIGN.md). The r8 development image retains the existing S11 vendor startup link, with an optional bounded restore call; a first-boot-created link is not trusted for post-reset recovery. See [the implementation plan](docs/V2R8-PLAN.md) and [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md).
+**v2r8 development:** The private firmware passed its one-shot trial with r7 preserved as the committed fallback, but has not been merged or permanently committed. Default-denied collector requests, basic live telemetry and code integrity were verified. Authorized collector, syslog delivery, durable restoration, WAN ingress firewall and load tests remain open. See the [persistence design](docs/V2R8-PERSISTENCE-DESIGN.md). The r8 development image retains the existing S11 vendor startup link, with an optional bounded restore call; a first-boot-created link is not trusted for post-reset recovery. See [the implementation plan](docs/V2R8-PLAN.md) and [candidate status](docs/V2R8-IMPLEMENTATION-STATUS.md).
 
 **Deferred:** kernel/VPE activation, UBI resizing, vendor PON stack replacement, unsupported ONU hardware and automatic disruptive upgrades. A source-only update is not a firmware image or throughput guarantee.
 

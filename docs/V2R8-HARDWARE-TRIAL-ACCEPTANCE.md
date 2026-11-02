@@ -1,0 +1,119 @@
+# AoTT-8311 v2r8 hardware trial acceptance and monitoring baseline
+
+Status: **one-shot hardware trial boot verified; permanent commit NOT performed**.
+
+This report describes a controlled test of a qualified PRX126-SFP-PON
+candidate. It deliberately contains no subscriber identity, serial number,
+MAC address, public address, hostname, password, token, private backup,
+private firmware archive, or management address.
+
+## Recovery and boot result
+
+The operator separately approved an inactive-bank stage and one-shot trial.
+The private stage receipt and independent read-only postboot attestation
+confirmed:
+
+| Check | Observed result |
+| --- | --- |
+| Running firmware | AoTT-8311-v2r8 |
+| Active bank | A |
+| Committed fallback | Bank B, AoTT-8311-v2r7 |
+| One-shot boot | Successful; boot identifier changed |
+| PON registration | O5.1 |
+| Ethernet host link | 10 Gbps |
+| Management HTTPS and SSH/root recovery | Available |
+| Primary WAN connectivity | Verified against privately pinned baseline |
+| Both firmware banks | Complete native readback checks passed |
+| Permanent commit | **Not performed** |
+| Additional reboot or flash write during verification | None |
+
+Complete off-device A/B bank backups were independently hashed, including
+all six raw UBI volumes, before staging. The installed bank-A rootfs image
+is **5,701,632 bytes** inside the unchanged **6,221,824-byte** fixed bank,
+leaving **520,192 bytes (508 KiB)**.
+
+These observations prove this *particular* staged image booted on the tested
+hardware. They do not guarantee support for different vendor boards or
+long-term stability.
+
+## Read-only monitoring and telemetry observations
+
+After the first successful r8 boot, the operator ran only read-only
+management and diagnostic checks. No monitoring configuration, firewall,
+credential, syslog receiver, or firmware bank was modified.
+
+- The monitoring Lua module loaded on the real device.
+- The persistent `/ptconf` volume was detected as mounted **UBIFS**.
+- The vendor's pre-existing S11 startup link was present; the optional
+  bounded monitoring restore hook was present in the installed sysctl script.
+- The persistent monitoring directory and its record were both **absent**.
+  This is consistent with an unconfigured monitoring feature, not a
+  demonstration of restored settings.
+- Metrics export and remote syslog forwarding were not configured. No
+  collector token or remote log destination was provisioned.
+- **Three bounded on-device telemetry samples** each returned all eight
+  valid numeric measurements. Every sample reported PON O5.1.
+- Optical receive power was approximately **-13.615 dBm**. Transmit
+  power ranged from **6.226 to 6.261 dBm**. Optics temperature was
+  approximately **40.56 C**. CPU sensor readings ranged from **48.68 to
+  50.08 C**.
+- An independent read-only SHA-256 comparison of **11 deployed runtime
+  files** against the privately qualified r8 filesystem passed. Files
+  included the monitoring modules, optional boot restore, LuCI controller,
+  JS, vendor bank-control utility and runtime profile.
+- Available memory was approximately **386 MiB** in these samples; idle
+  load average was near **0.3 to 0.4**. These are observations, not
+  concurrent load or throughput benchmarks.
+
+### Collector default-denial test
+
+An external client on the trusted management side made unauthenticated
+and intentionally invalid-token GET requests. Results:
+
+| Request | HTTP status |
+| --- | --- |
+| Public collector route over HTTPS, no token | 403 |
+| Same route with invalid token | 403 |
+| Admin metrics route over HTTPS, unauthenticated | 403 |
+| Public collector route over plain HTTP | 307 redirect |
+| Device HTTPS root health check | 200 |
+
+These responses show default-denial behavior for the tested management
+path. They do **not** prove that the listening sockets are unreachable
+from untrusted network segments. Certificate trust and authorized
+collector success were not tested.
+
+## Firewall visibility and unresolved exposure
+
+The vendor web service binds wildcard IPv4 interfaces. The local
+configuration has default input **ACCEPT** and a WAN zone with input
+**REJECT**. A compatible firewall frontend and kernel IPv4 tables were
+present, but a live applied-rule comparison was not completed. The WAN
+and IPv6 ingress exposure matrix remains **unqualified**.
+
+No firewall rules were added or removed during these tests.
+
+## Tests that remain necessary before release signoff
+
+1. Explicitly authorized configuration of a real syslog receiver, followed
+   by positive UDP/TCP receipt tests, negative receiver tests, and a safe
+   restoration to the desired configuration.
+2. An authorized exact-IP HTTPS collector, correct-token numeric JSON,
+   wrong/revoked-token denial, wrong-source and wrong-destination denial,
+   and concurrent scrape latency/resource measurements.
+3. Actual durable-record write/readback, S11 restoration after a controlled
+   restart, mismatched UCI/UBIFS denial, and interruption/low-space
+   behavior. The current absence of a persistent record is not a failure.
+4. Independent effective runtime firewall and network-segment exposure
+   checks for both IPv4 and IPv6, including legacy fallback behavior.
+5. Extended PON/WAN stability observation, load/thermal behavior, real
+   browser monitoring UI checks, and an independently approved eventual
+   permanent commit if the operator chooses one.
+
+No further reboot and no permanent commit are authorized by this
+document. A subsequent reset of an uncommitted one-shot trial normally
+returns to the saved bank B.
+
+See [the monitoring design](MONITORING-AND-TELEMETRY.md),
+[the management ACL audit](V2R8-MANAGEMENT-ACL-AUDIT.md), and
+[implementation status](V2R8-IMPLEMENTATION-STATUS.md).

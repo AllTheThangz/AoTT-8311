@@ -1,5 +1,25 @@
 # AoTT-8311 Changelog
 
+## v2r8 (private one-shot hardware trial passed, not committed)
+
+- Captured and independently verified complete private backups of both
+  firmware banks, including six full UBI volumes and independent rereads.
+- A separately approved stage-only operation installed the hardened r8
+  candidate into inactive bank A, preserving committed v2r7 in bank B.
+- A separate one-shot trial boot succeeded. Independent postboot checks
+  confirmed PON O5.1, 10G Ethernet, persistent recovery credentials,
+  HTTPS, primary WAN reachability, and both native full-bank readbacks.
+- Three bounded live telemetry passes returned all eight numeric metrics.
+  SHA-256 comparison matched 11 deployed runtime files to the qualified
+  image, including monitoring and boot restore.
+- The collector denied anonymous and invalid-token HTTPS requests.
+  Metrics and remote syslog remain unconfigured; positive collector,
+  syslog delivery, durable settings restoration, IPv4/IPv6 ingress
+  filtering and extended performance tests remain open.
+- Public source stays draft and unmerged. No permanent commit occurred.
+
+See docs/V2R8-HARDWARE-TRIAL-ACCEPTANCE.md for sanitized hardware evidence.
+
 ## v2r7 (privately hardware-qualified and committed on one PRX126)
 
 ### Graph contrast and web UI
@@ -16,8 +36,10 @@
   verification and retained 520 KiB rootfs bank headroom.
 - Separately approved full-bank backups, inactive-bank staging,
   one-shot trial and permanent commit were independently verified.
-- v2r7 is committed on firmware bank B. Valid v2r6 remains in bank A.
-  Other ONU boards and long-duration stability are not qualified.
+- At r7 acceptance, v2r7 was committed in bank B and v2r6 was valid
+  in bank A. The later authorized r8 stage overwrote A only after full
+  off-device backups were verified. Other boards and long-duration
+  stability are not qualified.
 
 See docs/V2R7-HARDWARE-ACCEPTANCE.md for the current acceptance.
 Immutable offline-candidate flags in the original build records describe
