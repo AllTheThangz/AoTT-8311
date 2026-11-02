@@ -63,9 +63,9 @@ function M.parse_pon_status(raw)
     local count=0
     -- Whole whitespace-delimited key only. Do not accept "notcurrent",
     -- and reject multiple state entries instead of choosing the first.
-    for token in raw:gmatch("%S+") do
-        if token=[REDACTED] then
-            local code=token=[REDACTED]
+    for word in raw:gmatch("%S+") do
+        if word:match("^current=") then
+            local code=word:match("^current=(%d+)$")
             if not code then return nil,"invalid_pon_state" end
             count=count+1
             if count>1 then return nil,"ambiguous_pon_state" end
