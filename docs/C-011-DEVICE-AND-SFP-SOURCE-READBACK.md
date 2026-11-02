@@ -113,6 +113,10 @@ incomplete responses, server errors and external URL refusal.
 These tests validate the source implementation, not its live
 hardware deployment.
 
+## Later source-only PON/OMCI extension
+
+A separate authenticated, noncredential readback now compares four additional PON/OMCI saved and UCI settings while recording independent PON association without falsely asserting individual setting effects or ISP Internet health. Total C-011 source coverage is now 24 of 54. See [the PON/OMCI source readback](C-011-PON-OMCI-READONLY-READBACK.md).
+
 ## Resume
 
 Continue C-011 with PON/OMCI and platform/system readbacks, then
