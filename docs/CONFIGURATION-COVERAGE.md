@@ -1,6 +1,6 @@
 # AoTT-8311 configuration coverage and functional audit baseline
 
-**Source baseline:** security-enhanced private r8 source audited 2026-11-02. The C-010 source-only registry implementation additionally inventories four hidden or missing candidates, including optical TX-enable mode, and includes static native code references, 13 vendor UCI files and 89 offline option names. See [C-010 implementation](C-010-CAPABILITY-REGISTRY-IMPLEMENTATION.md).
+**Source baseline:** security-enhanced private r8 source audited 2026-11-02. The [C-011 read-only source module](C-011-MANAGEMENT-EFFECTIVE-READBACK.md) introduces separate saved/UCI/kernel observation for the nine management fields. It is not a fully qualified hardware setter and does not prove all 54 controls work A to Z. The C-010 source-only registry implementation additionally inventories four hidden or missing candidates, including optical TX-enable mode, and includes static native code references, 13 vendor UCI files and 89 offline option names. See [C-010 implementation](C-010-CAPABILITY-REGISTRY-IMPLEMENTATION.md).
 **Important:** This is a static source inventory, not an assertion that every setting works in the real device. Runtime evidence and platform qualification must be added field by field.
 
 ## Baseline counts
