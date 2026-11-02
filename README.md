@@ -16,6 +16,10 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### C-011: read-only active management comparison
+
+The [C-011 effective management readback](docs/C-011-MANAGEMENT-EFFECTIVE-READBACK.md) adds a manual, authenticated configuration-page comparison between saved overrides, UCI configuration and independently observed kernel values for nine management settings. It does not claim service success from a configuration match, require external collectors, or alter the ONU. **Source-only until independently hardware qualified.**
+
 ### Source-only capability registry milestone
 
 The [C-010 capability registry implementation](docs/C-010-CAPABILITY-REGISTRY-IMPLEMENTATION.md) now provides source-derived configuration coverage tooling and tests. It inventories all 54 current GUI settings, traces static native references, and records missing/hidden options without claiming that each setter works on physical hardware. C-011/C-012 effective-state and persistence qualification remain open. The firmware on this stick was not changed by this source milestone.
@@ -145,7 +149,7 @@ To build actual firmware, obtain a **legally authorized, clean, compatible vendo
 ## Default access and security
 
 - **Default account name:** `root`.
-- **Default password:** None is provided in this repository. Set a **unique, device-specific password** before deployment and verify that it survives reboot.
+- **Default password=[REDACTED] None is provided in this repository. Set a **unique, device-specific password** before deployment and verify that it survives reboot.
 - **Factory example settings:** [examples/factory-defaults.env.example](examples/factory-defaults.env.example) contains intentionally unusable placeholders, not active credentials.
 - **PON identity:** Use only your own authorized registration details from your provider. Never publish a real PON serial, registration ID, LOID, or password.
 - **Recovery access:** Verify a separate management path and key-based recovery before restricting password login.
