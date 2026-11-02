@@ -74,6 +74,13 @@ def response():
             "topology_match_proves_rules_current":False,
             "current_traffic_control_rules_verified":False,
         },
+        "kernel_tc":{"read_attempted":False,"full_owned_rules_match":False,
+                     "verified_rules_count":0,
+                     "strict_expected_count":8,
+                     "rules_scope":"builtin_owned_selectors_only",
+                     "proves_hardware_offload":False,
+                     "proves_subscriber_internet":False,
+                     "proves_all_traffic_rules_correct":False},
         "summary":{"saved_fields_valid":3,"recorded_fields":2,
                    "saved_match_recorded":1,"saved_drift_from_recorded":1,
                    "live_tc_rules_verified":0},
@@ -171,7 +178,7 @@ class VlanBrowserTests(unittest.TestCase):
         body=self.page.locator("#aott-vlan-effective-results").inner_text()
         self.assertIn("Live traffic-control rules not independently verified",body)
         self.assertIn("last recorded topology",body)
-        self.assertIn("None of these indicators proves current traffic-control rules",body)
+        self.assertIn("An unchanged topology or daemon alone proves nothing",body)
         self.assertIn("Saved override differs from historical record",body)
         self.assertNotIn("Internet verified",body)
 
@@ -224,6 +231,53 @@ class VlanBrowserTests(unittest.TestCase):
         self.assertIn("No settings changed",self.page.locator(
             "#aott-vlan-effective-status").inner_text())
         self.assertEqual(self.unexpected,[])
+
+    def test_positive_scoped_tc_readback_does_not_claim_isp_health(self):
+        report=self.data["data"]
+        report["kernel_tc"].update(
+            read_attempted=True,full_owned_rules_match=True,
+            verified_rules_count=8,
+        )
+        report["last_reconciliation"]["current_traffic_control_rules_verified"]=True
+        for key,value in (("internet_vlan","200"),("services_vlan","35")):
+            report["fields"][key].update(
+                runtime_effect_proven=True,
+                observed_effective_value=value,
+                observed_source="independent_kernel_tc_flower_readback",
+            )
+        self.click()
+        body=self.page.locator("#aott-vlan-effective-results").inner_text()
+        self.assertIn("Installed built-in kernel TC selectors match",body)
+        self.assertIn("selected built-in kernel rules independently matched",body)
+        self.assertIn("Even a selected-rule match does not prove all rules",body)
+        self.assertIn("Internet connectivity",body)
+        self.assertEqual(self.calls,[("GET",API)])
+
+    def test_inconsistent_claim_of_live_tc_proof_fails_closed(self):
+        self.data["data"]["fields"]["internet_vlan"].update(
+            runtime_effect_proven=True,
+            observed_effective_value="200",
+            observed_source="independent_kernel_tc_flower_readback",
+        )
+        # No complete native TC proof in the envelope.
+        self.page.locator("#aott-vlan-effective-refresh").click()
+        self.page.wait_for_function(
+            """() => document.getElementById('aott-vlan-effective-status')
+                .textContent.includes('Readback unavailable')""",
+            timeout=12000)
+        self.assertTrue(self.page.locator(
+            "#aott-vlan-effective-results").evaluate("(el)=>el.hidden"))
+        self.assertEqual(self.calls,[("GET",API)])
+        self.assertEqual(self.unexpected,[])
+
+    def test_verifier_attempt_failure_remains_unverified(self):
+        self.data["data"]["kernel_tc"].update(read_attempted=True,
+                  full_owned_rules_match=False,verified_rules_count=0)
+        self.click()
+        body=self.page.locator("#aott-vlan-effective-results").inner_text()
+        self.assertIn("attempted but no complete match",body)
+        self.assertNotIn("Installed built-in kernel TC selectors match",body)
+        self.assertEqual(self.errors,[])
 
     def test_external_url_rejected_before_any_request(self):
         self.page.locator("#aott-vlan-effective").evaluate(
