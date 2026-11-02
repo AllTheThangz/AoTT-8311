@@ -1,0 +1,73 @@
+{
+  "as_of_date": "2026-11-02",
+  "documentation": {
+    "backlog": "docs/DELIVERY-PLAN-AND-ACCEPTANCE.md",
+    "decisions": "docs/ENGINEERING-DECISIONS.md",
+    "entrypoint": "docs/PROJECT-CONTINUITY.md",
+    "requirements": "docs/TARGET-STATE-AND-REQUIREMENTS.md",
+    "resume_protocol": "docs/RESUME-CHECKLIST.md",
+    "setting_coverage": "docs/CONFIGURATION-COVERAGE.md"
+  },
+  "has_actual_private_credentials_or_device_serials": false,
+  "last_live_state_cannot_be_assumed_current": true,
+  "next_unfinished_work_ids": [
+    "R8-010",
+    "C-010",
+    "C-011",
+    "C-014",
+    "H-011",
+    "X-010"
+  ],
+  "private_approval_required_for_commit": true,
+  "private_hardware": {
+    "active_bank_at_last_private_check": "B",
+    "committed_fallback_at_last_private_check": "A",
+    "complete_bank_images_or_serials_in_public_report": false,
+    "ethernet_link_speed_mbps_at_last_private_check": 10000,
+    "pending_activation_at_last_private_check": null,
+    "permanent_commit_of_enhanced_variant": false,
+    "pon_state_at_last_private_check": "O5.1",
+    "running_trial_at_last_private_check": true,
+    "tested_board_family": "Potron LL-XS1010 PRX126-SFP-PON",
+    "trial_firmware_revision": "r8",
+    "trial_rootfs_variant": "enhanced security candidate",
+    "verification_source": "maintainer private hardware receipts"
+  },
+  "project": "AoTT-8311",
+  "public_repository": {
+    "default_branch_at_snapshot": "main",
+    "main_source_revision_at_snapshot": "r7",
+    "name": "AllTheThangz/AoTT-8311",
+    "open_legacy_r8_draft_pr_at_snapshot": 11,
+    "public_complete_firmware_archive_available": false
+  },
+  "record_type": "SANITIZED_DATED_PROJECT_STATE_NOT_LIVE_QUERY",
+  "schema": 1,
+  "vnext": {
+    "all_settings_hardware_verified": false,
+    "field_counts_by_category": {
+      "device": 13,
+      "isp": 3,
+      "manage": 9,
+      "pon": 22,
+      "sfp": 7
+    },
+    "firmware_environment_gui_field_count": 54,
+    "history_math_source_prototype_present": true,
+    "history_sampler_deployed": false,
+    "known_hidden_setting_ids": [
+      "lct_vlan"
+    ],
+    "offline_vendor_uci_domains": 13,
+    "persistent_local_history_deployed": false,
+    "portable_host_and_vendor_mips_fixture_checks_each": 53,
+    "regression_tests_passing_at_snapshot": 391,
+    "regression_tests_skipped": 0,
+    "second_hardware_family_natively_qualified": false,
+    "status": "source-only not installed",
+    "upstream_candidate_setting_ids_not_in_gui": [
+      "device_sn",
+      "factory_mode"
+    ]
+  }
+}
