@@ -142,6 +142,11 @@ disk-full behavior, repeated reboots without NTP, hourly aggregation
 scheduling, authenticated history GUI integration, and verified
 7/30/90-day field retention **have not been delivered**.
 
+The [H-018 residential preferences prototype](H-018-RESIDENTIAL-HISTORY-CONTROLS.md)
+exposes a disabled-by-default persistence target and strictly limited
+proposed flush intervals. The preview cannot call the journal adapter or
+write real UBIFS records.
+
 The source model occupies no deployed rootfs space. The live ONU,
 its boot banks and ISP provisioning were not touched. H-015 remains
 **IN_PROGRESS**.

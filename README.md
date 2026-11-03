@@ -16,6 +16,17 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-018 residential history configuration preview
+
+The [H-018 source-only monitoring preferences](docs/H-018-RESIDENTIAL-HISTORY-CONTROLS.md)
+add a 17-setting Lua 5.1 validator and an accessible light/dark settings
+preview. Collection, persistence, local alert delivery and all remote
+notifications are disabled by default and cannot be enabled without
+qualified prerequisites. Polling schedules are bounded by a conservative
+source-level process-wait budget, and users can preview permitted changes
+without any firmware writes, network probes or delivered alerts.
+The preview is not a working installed LuCI configuration endpoint.
+
 ### H-015 wear-aware persistent journal prototype
 
 The [H-015 offline two-slot journal model](docs/H-015-OFFLINE-DUAL-SLOT-JOURNAL.md)
