@@ -16,6 +16,17 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-016 bounded historical view and exports, source preview only
+
+The [H-016 history UI and export prototype](docs/H-016-HISTORY-UI-EXPORT.md)
+introduces a static, accessible dark/light preview and Lua 5.1 JSON/CSV
+projection for at most 100 latest-epoch samples/events. The view supports
+1-hour/24-hour/7-day/30-day/90-day queries without inventing missing
+traffic, optical readings, ISP outages, or full 90-day retention. Reboots,
+interface changes and long gaps receive separate epoch markers so older
+boot-relative timestamps cannot masquerade as new data. Nothing is
+installed in the live firmware overlay or connected to an ONU yet.
+
 ### H-013/H-014 bounded Ethernet throughput windows
 
 The [H-013/H-014 RAM rate aggregation model](docs/H-013-H-014-RAM-RATE-AGGREGATION.md)

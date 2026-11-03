@@ -94,7 +94,7 @@ function M.new(options)
         samples={}, samples_head=1, samples_count=0,
         events={}, events_head=1, events_count=0,
         last_seen=nil, previous=nil, accepted=0,
-        pon_previous=nil, host_previous=nil,
+        pon_previous=nil, host_previous=nil, epoch_index=1,
     }
 end
 
@@ -121,6 +121,7 @@ local function event(state, kind, sample, more)
     local value={
         kind=kind,
         at_uptime=sample.uptime,
+        epoch_index=state.epoch_index,
         walltime_trust="unknown",
     }
     if more then
@@ -134,6 +135,11 @@ function M.ingest(state, input)
     if type(state)~="table" or state.schema~=1 or
        type(state.samples)~="table" or type(state.events)~="table" then
         return nil, "invalid_state"
+    end
+    -- Private, monotonic source epoch separates reboots, interface changes
+    -- and large blind gaps without exposing any boot UUID or secret value.
+    if not integer(state.epoch_index,1,9007199254740990) then
+        return nil,"invalid_history_epoch"
     end
     local current, why=clean(input)
     if not current then return nil, why end
@@ -153,14 +159,17 @@ function M.ingest(state, input)
     end
 
     if last and last.boot~=current.boot then
+        state.epoch_index=state.epoch_index+1
         emit("reboot_observed")
         status="reboot"
         prev=nil
     elseif last and last.source~=current.source then
+        state.epoch_index=state.epoch_index+1
         emit("source_changed")
         status="source_changed"
         prev=nil
     elseif last and current.uptime-last.uptime>MAX_GAP_SECONDS then
+        state.epoch_index=state.epoch_index+1
         emit("sampling_gap",{observation_window_seconds=current.uptime-last.uptime})
         status="sampling_gap"
         prev=nil
@@ -224,6 +233,7 @@ function M.ingest(state, input)
     -- These records never store boot identifier or raw byte counters.
     local summary={
         at_uptime=current.uptime,
+        epoch_index=state.epoch_index,
         source=current.source,
         pon_state=current.pon_state,
         ethernet_mbps=current.ethernet_mbps,

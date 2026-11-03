@@ -1,0 +1,90 @@
+:root,html[data-aott-theme="dark"] {
+  color-scheme:dark;
+  --background:#0b1724;
+  --surface:#172638;
+  --surface-alt:#22364b;
+  --foreground:#f4f8fd;
+  --muted:#ccdae8;
+  --line:#758fab;
+  --edge:#526d87;
+  --rx:#81d4fa;
+  --tx:#a8ecab;
+  --focus:#f6d365;
+  --notice-bg:#1d3746;
+}
+html[data-aott-theme="light"] {
+  color-scheme:light;
+  --background:#f3f7fb;
+  --surface:#ffffff;
+  --surface-alt:#e9f0f8;
+  --foreground:#142b42;
+  --muted:#3f556a;
+  --line:#667a8f;
+  --edge:#8c9bad;
+  --rx:#086b97;
+  --tx:#146e3e;
+  --focus:#895600;
+  --notice-bg:#dfe9f5;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--background);color:var(--foreground);
+  font:16px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.aott-history { max-width:1220px; margin:0 auto; padding:24px 20px 60px; }
+.aott-header { display:flex; gap:28px; justify-content:space-between;align-items:flex-start;margin-bottom:20px; }
+h1,h2,p { margin-top:0; }
+h1 { font-size:1.8rem;line-height:1.2;margin-bottom:18px; }
+h2 { font-size:1.14rem;line-height:1.3;margin-bottom:15px; }
+.eyebrow { color:var(--muted); font-size:.82rem;letter-spacing:.075em; font-weight:700; }
+.notice { background:var(--notice-bg);border:1px solid var(--edge);border-radius:9px;
+  max-width:740px;padding:11px 14px;font-weight:650; }
+.aott-panel { background:var(--surface);border:1px solid var(--edge);border-radius:12px;
+  padding:20px;margin-bottom:18px; min-width:0; }
+.filters { display:grid;gap:7px;min-width:200px; }
+label { font-size:.85rem;font-weight:700; }
+select,button { color:var(--foreground);background:var(--surface-alt);
+  font:inherit;border:1px solid var(--edge);border-radius:7px;padding:9px 12px; }
+select:focus-visible,button:focus-visible { outline:3px solid var(--focus);outline-offset:2px; }
+button { cursor:pointer;font-weight:700; }
+button:disabled { opacity:.55;cursor:not-allowed; }
+.aott-status-grid { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;margin-bottom:14px; }
+.aott-status-grid > div { padding:14px 12px;border-radius:8px;
+  background:var(--surface-alt);display:flex;flex-direction:column;gap:7px; }
+.stat-label { font-size:.82rem;font-weight:600;color:var(--muted); }
+.aott-status-grid strong { font-size:1.06rem;line-height:1.3;word-break:break-word; }
+.footnote { color:var(--muted);font-size:.88rem;margin:8px 0; }
+.coverage { margin:10px 0 0;font-size:.92rem;font-weight:650; }
+.legend { display:flex;gap:8px;align-items:center;font-size:.85rem;color:var(--muted);padding-bottom:8px; }
+.rx-line,.tx-line { width:22px;border-top:4px solid var(--rx);display:inline-block;margin-left:12px; }
+.tx-line { border-color:var(--tx); }
+#history-chart { width:100%;height:auto;max-height:310px;display:block;
+  background:var(--surface-alt);border:1px solid var(--edge);border-radius:8px; }
+.history-grid-line { stroke:var(--line);stroke-width:1; }
+.history-grid-label { fill:var(--muted);font-size:13px; }
+.history-rx-series { fill:none;stroke:var(--rx);stroke-width:3;stroke-linecap:round;stroke-linejoin:round; }
+.history-tx-series { fill:none;stroke:var(--tx);stroke-width:3;stroke-linecap:round;stroke-linejoin:round; }
+.history-rx-point { fill:var(--rx); }
+.history-tx-point { fill:var(--tx); }
+.two-panel { display:grid;grid-template-columns:1fr 1fr;gap:18px; }
+.two-panel .aott-panel { min-width:0; }
+.table-scroll { overflow-x:auto; }
+table { width:100%;border-collapse:collapse;min-width:380px;font-size:.87rem; }
+caption { font-size:.82rem;color:var(--muted);padding:3px 0 10px;text-align:left; }
+th,td { padding:10px 9px;text-align:left;border-bottom:1px solid var(--edge);white-space:nowrap; }
+th { font-size:.79rem;color:var(--muted);font-weight:750; }
+tr:last-child td { border-bottom:0; }
+.download-row { display:flex;gap:12px;flex-wrap:wrap; }
+@media (max-width:860px) {
+ .aott-header { flex-direction:column; }
+ .filters { grid-template-columns:auto 1fr;align-items:center;width:100%;max-width:480px; }
+ .aott-status-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .two-panel { grid-template-columns:1fr; }
+}
+@media (max-width:520px) {
+ .aott-history { padding:15px 10px 45px; }
+ .aott-panel { padding:13px; }
+ .aott-status-grid { gap:8px; }
+ .aott-status-grid > div { padding:10px 8px; }
+ h1 { font-size:1.5rem; }
+ .aott-status-grid strong { font-size:.96rem; }
+}
