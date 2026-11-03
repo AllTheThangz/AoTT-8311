@@ -139,9 +139,10 @@ Before this model is installed or enabled in an actual ONU:
    counters and optic performance. Independently verify real RX/TX
    direction, counter freshness, status semantics, service
    responsiveness and memory/CPU costs at idle and under traffic.
-3. Implement a cross-**process** single-owner lock, qualified
-   lifecycle/supervisor, missed-tick semantics and safe cancellation.
-   The source-only Lua singleton is **not** a process-wide lock.
+3. Qualify the [H-022 source-tested vendor nixio cross-process lock](H-022-CROSS-PROCESS-LOCK.md)
+   on the real PRX126, followed by a lifecycle/supervisor,
+   missed-tick semantics and safe cancellation. H-020's original
+   process-local singleton alone is **not** a process-wide lock.
 4. Support independent per-channel polling without false unavailable
    observations or counter interpolation, or explicitly constrain the
    installed settings to the supported shared cadence.

@@ -16,6 +16,18 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-022 true cross-process lock, tested with vendor MIPS nixio
+
+The [H-022 guarded collector ownership layer](docs/H-022-CROSS-PROCESS-LOCK.md)
+adds a genuine nonblocking Linux fcntl advisory lock, using the extracted
+vendor MIPS Lua/nixio library under QEMU. Actual competing processes,
+normal exit and forced process death, unsafe file types/permissions, and
+an H-021 collector protected by the same lock are tested offline.
+This source-only layer has **no automatic startup, LuCI endpoint or
+PRX126 installation**. Its private root-owned runtime directory,
+filesystem and firmware process lifecycle still require direct hardware
+qualification before production use.
+
 ### H-021 independent native PON and Ethernet cadence
 
 The [H-021 selective PON/host scheduling prototype](docs/H-021-INDEPENDENT-PON-HOST-CADENCE.md)

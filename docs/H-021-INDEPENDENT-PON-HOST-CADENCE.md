@@ -138,7 +138,8 @@ even if unavailable on Hermes.
    not route commands through unrelated hosts to bypass target policy.
 2. Measure genuine optical registration, native host counters and
    process/RAM/thermal overhead under actual residential traffic.
-3. Qualify a cross-process exclusive collector, procd life cycle,
+3. Qualify the [H-022 source-tested cross-process lock](H-022-CROSS-PROCESS-LOCK.md)
+   on real hardware, then the procd life cycle,
    reboot/recovery safeguards, interval and cache coalescing, and
    low-priority resource behavior so PON forwarding cannot be affected.
 4. Qualify an authenticated LuCI endpoint and configuration worker
