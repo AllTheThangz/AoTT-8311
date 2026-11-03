@@ -66,7 +66,7 @@ Dependencies: H-010 -> H-011 -> H-012/H-013 -> H-014 -> H-015/H-016. H-017 requi
 
 | ID | Status | Deliverable | Pass criteria and dependencies |
 | --- | --- | --- | --- |
-| S-010 | NOT_STARTED | Local certificate generator | Correct IP/hostname SAN, validity, key mode, safe old-cert backup and HTTPS reload |
+| S-010 | IN_PROGRESS | Local HTTPS certificate generator | [Source-only vendor px5g SAN proof](S-010-OFFLINE-VENDOR-SAN-CERTIFICATES.md) generates and independently validates EC P-256/RSA-2048 DER certificates with hostname/IPv4/IPv6 SANs, exact certificate/key pairing, signature integrity, bounded validity and private key mode. Native MIPS/QEMU tests and negative cases pass. No installed LuCI generator, live uhttpd handshake, production root-owned staging, old-cert backup, HTTPS service reload or rollback exists yet. |
 | S-011 | NOT_STARTED | Import operator-owned TLS material | Cert/key/chain match, SAN and expiry validation, secure file handling, reject invalid uploads, restore on failure |
 | S-012 | NOT_STARTED | Minimal local management isolation | Actual listener/interface restrictions verified from trusted and untrusted paths, separate IPv4/IPv6 evidence |
 | S-013 | NOT_STARTED | Remote GUI opt-in and basic Linux firewall | Disabled by default, explicit enablement, source CIDRs and ports, IPv4/IPv6 as supported, safe cancel/recovery |

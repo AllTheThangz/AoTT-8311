@@ -16,6 +16,16 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### S-010 source-only residential HTTPS certificate qualification
+
+The [S-010 vendor-native SAN certificate study](docs/S-010-OFFLINE-VENDOR-SAN-CERTIFICATES.md)
+demonstrates that the extracted vendor MIPS `px5g` already supports
+hostname, IPv4 and IPv6 SAN creation using `-addext`, with independently
+checked EC P-256/RSA-2048 key pairs, SHA-256 signatures and strict test
+file permissions. A source-only offline harness rejects invalid SAN
+input, mismatched keys and expired/altered certificates. It **does not**
+create a live GUI action, install certs, reload uhttpd or change banks.
+
 ### H-028 source-only publication-admission handoff protection
 
 The [H-028 verified snapshot admission gate](docs/H-028-PUBLICATION-ADMISSION.md)

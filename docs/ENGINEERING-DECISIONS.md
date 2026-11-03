@@ -52,7 +52,7 @@
 | Q-004 | Which non-PRX126 families should have a read-only adapter first | Open management API/protocol availability, board restrictions and device availability |
 | Q-005 | Whether all current 54 controls map to genuine effective writers | Per-field backend trace and tests, not source annotations alone |
 | Q-006 | How to expose factory-mode and device serial related controls | Vendor semantics, dangerous side effects, security model and per-board applicability |
-| Q-007 | Exact certificate generation tool/library and rotation procedure | Current vendor TLS stack, code size, private-key storage, browser validity and safe service reload |
+| Q-007 | Vendor px5g SAN generation source-proven; safe rotation still open | [Offline vendor MIPS certificate evidence](S-010-OFFLINE-VENDOR-SAN-CERTIFICATES.md) confirms repeated px5g SAN extensions without adding OpenSSL CLI. Production private-key storage, live uhttpd DER load, browser validity, certificate import, guarded reload and rollback remain unqualified. |
 | Q-008 | Remote management transport and firewall behavior | Which ingress interfaces exist, actual IPv4/IPv6 filtering, reliable local recovery and no bridge disruption |
 | Q-009 | Default alerts and optical thresholds | Optic manufacturer limits, module revision, baseline history and user preferences |
 | Q-010 | Unique next release/build naming after two r8 variants | Reproducible source identity, product cadence, hardware target and manifest/UI display |
