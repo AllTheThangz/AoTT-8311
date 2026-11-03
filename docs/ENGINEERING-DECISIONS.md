@@ -15,7 +15,7 @@
 | D-007 | Strong history is a core feature | Throughput, optical/PON transitions, errors and outages are more useful to homeowners than optional enterprise monitoring |
 | D-008 | Distinguish PON, host Ethernet and Internet health | O5.1 and 10G Ethernet do not establish router WAN connectivity, ISP speed or access to the Internet |
 | D-009 | Local certificate generation and owned-domain import | Self-signed is acceptable; include correct SAN and protect private keys. Public CA trust optional |
-| D-010 | Configurable basic Linux firewall only for explicit remote GUI access | Default local management still requires actual listener/path isolation; avoid touching bridged service traffic |
+| D-010 | Remote GUI firewall opt-in only, default OFF | [S-013 source-only fw3 previews](S-013-OFFLINE-REMOTE-GUI-FIREWALL.md) constrain management INPUT to explicit HTTPS source CIDRs and management targets with independent safe rollback/admission requirements, never forwarding or OMCI. S-012 live listener isolation and a real hardware firewall/alternate management recovery remain open. |
 | D-011 | Metrics/syslog are optional | Useful for advanced owners, but not universal residential release blockers or built-in commercial dependencies |
 | D-012 | Optimize by measurement, not component utilization | Dedicated forwarding/optical hardware and reserved DMA resources should remain protected |
 | D-013 | Hardware compatibility is board-specific | Same SoC/marketing name/SFP+ fit does not establish kernel, bootcore or flash compatibility |

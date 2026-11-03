@@ -16,6 +16,16 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### S-013 optional remote GUI firewall, source-only
+
+The [S-013 disabled-by-default remote HTTPS policy](docs/S-013-OFFLINE-REMOTE-GUI-FIREWALL.md)
+models narrowly allowed IPv4/IPv6 source CIDRs, an explicitly verified
+management address and ingress zone, disabled fw3 rule candidates,
+separate local recovery and bounded rollback with final operator
+confirmation. It reads the extracted vendor fw3/UCI source without
+changing it. The residential default remains local-only management.
+**No rule has been enabled, applied or installed on the live ONU.**
+
 ### S-012 offline management listener isolation evidence
 
 The [S-012 residential management isolation audit](docs/S-012-OFFLINE-MANAGEMENT-ISOLATION.md)
