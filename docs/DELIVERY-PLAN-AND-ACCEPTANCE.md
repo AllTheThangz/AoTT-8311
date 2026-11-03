@@ -49,7 +49,7 @@ All later tasks are open unless specifically updated with new test artifacts. Ea
 | H-016 | NOT_STARTED | Historical GUI and exports | 1-hour/24-hour/7-day/30-day/90-day filters, outage table, throughput/signal charts, JSON/CSV |
 | H-017 | NOT_STARTED | Separate WAN/ISP health integration | Optical, host-link and external reachability distinguishable; optional router management-side probe, DNS/HTTP latency and failures |
 | H-018 | NOT_STARTED | Configurable history and alert thresholds | Operator-controlled interval, retention, event types, supported safe optical thresholds and disabled-by-default external alerts |
-| H-019 | NOT_STARTED | Benchmark monitoring overhead | CPU/RAM, flash write rate, app latency, dropped network packets and PON stability versus baseline |
+| H-019 | IN_PROGRESS | Benchmark monitoring overhead | [Offline resource benchmark](H-019-RESOURCE-QUALIFICATION.md) runs 2,500 mocked H-011 reader cycles under host Lua and vendor-MIPS QEMU with finite ring retention, repeatable CPU/heap and host RSS measurements. Actual PON/ethtool cost, hardware CPU/RAM, flash wear, thermals, forwarding, latency and no-regression acceptance remain unqualified. |
 
 Dependencies: H-010 -> H-011 -> H-012/H-013 -> H-014 -> H-015/H-016. H-017 requires an actual routable probe or router-side integration and must not assert Internet uptime from PON O5.1.
 
