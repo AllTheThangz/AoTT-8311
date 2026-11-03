@@ -16,6 +16,19 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### C-011 advanced system and host readback
+
+The [advanced device/host C-011 readback](docs/C-011-ADVANCED-SYSTEM-READBACK.md)
+adds a manual, authenticated source-only comparison for eight boot,
+UART, serial console, dying-gasp, RX_LOS, Ethernet override, OMCI
+startup delay and debug persistent-root controls. It separates
+environment overrides, configured optical dying-gasp mode,
+GPIO electrical outputs and negotiated Ethernet speed. These do
+not establish serial signaling, optical alarm delivery, applied
+speed override or recoverability. Sensitive login hashes are never
+read or returned by this endpoint. C-011 source-level coverage
+reaches 35 of 54 fields; complete hardware qualification remains open.
+
 ### C-011 scoped native VLAN TC rule readback
 
 A [read-only native TC verification enhancement](docs/C-011-ISP-VLAN-READONLY-EVIDENCE.md)

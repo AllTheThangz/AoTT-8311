@@ -407,6 +407,101 @@ function saveConfig(form) {
 /* C-011 ISP VLAN: explicit authenticated read-only GET.
  * A daemon PID, source default or historical reconciler receipt is NOT
  * independent proof of current TC rules or subscriber Internet service. */
+/* C-011 read-only advanced hardware facts. The saved environment,
+ * output GPIO state, and current negotiated host link are distinct.
+ * No sensitive login values or account identifiers are returned. */
+function refreshHardwareEffective() {
+    const panel=document.getElementById('aott-hardware-effective');
+    const button=document.getElementById('aott-hardware-effective-refresh');
+    const status=document.getElementById('aott-hardware-effective-status');
+    const results=document.getElementById('aott-hardware-effective-results');
+    if (!panel || !button || !status || !results) return;
+    const url=panel.getAttribute('data-effective-url') || '';
+    if (!url.startsWith('/') || url.startsWith('//')) {
+        status.textContent='The local advanced read-only endpoint is invalid.';
+        return;
+    }
+    button.disabled=true;
+    status.textContent='Reading advanced system and host observations. No settings will be changed.';
+    results.hidden=true;
+    results.textContent='';
+    request8311(url,{method:'GET',cache:'no-store'}).then(record => {
+        if (record.success!==true || !record.data ||
+            record.data.schema!==1 || record.data.no_device_write!==true ||
+            record.data.contains_credential_material!==false ||
+            record.data.source_only_not_hardware_qualified!==true ||
+            !record.data.fields || !record.data.diagnostics ||
+            !record.data.summary || record.data.summary.source_fields!==8) {
+            throw {error:'Incomplete advanced hardware readback.'};
+        }
+        const fields=[
+            ['bootdelay','Bootloader delay'],
+            ['uart_select','Early UART'],
+            ['console_en','Serial console on shared pin'],
+            ['dying_gasp_en','Power-loss (dying gasp)'],
+            ['rx_los','Receive-loss alarm reporting'],
+            ['ethtool_speed','Ethernet link override'],
+            ['failsafe_delay','OMCI startup delay'],
+            ['persist_root','Debug persistent-root mode']
+        ];
+        const table=document.createElement('table');
+        table.className='table';
+        const header=document.createElement('tr');
+        ['Setting','Saved override','Configured','GPIO-only indication','Verification'].forEach(label => {
+            const cell=document.createElement('th');
+            cell.textContent=label;
+            header.appendChild(cell);
+        });
+        table.appendChild(header);
+        const shown=(value,blank) =>
+            typeof value==='string' && value.length ? value : blank;
+        fields.forEach(([id,name]) => {
+            const field=record.data.fields[id];
+            if (!field || field.id!==id ||
+                field.runtime_effect_proven!==false ||
+                field.hardware_qualified!==false) {
+                throw {error:'Invalid advanced hardware evidence for '+id};
+            }
+            const row=document.createElement('tr');
+            let evidence='Saved setting only; runtime effect not proven';
+            if ((id==='console_en' || id==='dying_gasp_en') &&
+                field.observed_source &&
+                field.observed_source.startsWith('kernel_gpio')) {
+                evidence='GPIO output observed, but serial or optical function unverified';
+            } else if (id==='ethtool_speed') {
+                evidence='Host link speed is shown separately; override effect unverified';
+            } else if (field.configured_value!=null) {
+                evidence='UCI configured; signaling and behavior unverified';
+            }
+            [name,shown(field.saved_value,'(unset or unsupported)'),
+             shown(field.configured_value,'(not independently configured)'),
+             shown(field.observed_effective_value,'(not observed)'),
+             evidence].forEach(value => {
+                const cell=document.createElement('td');
+                cell.textContent=value;
+                row.appendChild(cell);
+            });
+            table.appendChild(row);
+        });
+        const info=document.createElement('p');
+        const diag=record.data.diagnostics;
+        const speed=diag.ethernet && diag.ethernet.negotiated_speed_mbps;
+        const pid=diag.rx_los_daemon_present;
+        info.textContent='Negotiated host Ethernet: '+
+            shown(speed,'unknown')+' Mbps. RX_LOS daemon: '+
+            (pid===true?'detected':pid===false?'not detected':'unknown')+
+            '. These observations do not establish forced speed, alarm signaling, PON service or Internet availability.';
+        results.appendChild(info);
+        results.appendChild(table);
+        results.hidden=false;
+        status.textContent='Read-only advanced comparison complete. No settings changed.';
+    }).catch(error => {
+        results.hidden=true;
+        results.textContent='';
+        status.textContent='Readback unavailable: '+errorMessage(error)+
+            ' No settings changed.';
+    }).finally(() => { button.disabled=false; });
+}
 function refreshVlanEffective() {
     const panel=document.getElementById('aott-vlan-effective');
     const button=document.getElementById('aott-vlan-effective-refresh');
@@ -1150,6 +1245,10 @@ $(document).ready(function() {
     $('#aott-vlan-effective-refresh').on('click',function(event) {
         event.preventDefault();
         refreshVlanEffective();
+    });
+    $('#aott-hardware-effective-refresh').on('click',function(event) {
+        event.preventDefault();
+        refreshHardwareEffective();
     });
 	$('#config-confirm').on('click', function() {
 		if (!configReview || !configReview.changed || configWriteStarted) return;
