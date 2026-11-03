@@ -194,6 +194,8 @@ class PositiveImportTests(ImportFixture):
             expected_dns=["management.example.invalid"])
         self.assertEqual(receipt["san_entries_count"], 1)
 
+    @unittest.skipUnless(os.geteuid() == 0,
+                         "Root-owned offline directory fixture requires root")
     def test_key_mode_and_private_directory_no_writes(self):
         with tempfile.TemporaryDirectory(
             prefix="aott-s011-import-test-", dir="/var/tmp") as d:
@@ -357,6 +359,8 @@ class NegativeImportTests(ImportFixture):
             self.check(now=datetime.now())
 
 
+@unittest.skipUnless(os.geteuid() == 0,
+                     "Root-owned offline file-boundary tests require root")
 class IsolatedFileBoundaryTests(ImportFixture):
     def setUp(self):
         super().setUp()
