@@ -28,6 +28,13 @@ history page or changed live firmware. Real hardware integration and
 resource qualification are required before a residential history feature
 can be described as operational.
 
+The [H-011 one-shot PRX126 native readback contract](docs/H-011-ONE-SHOT-NATIVE-READBACK.md)
+adds a strictly bounded opt-in source adapter for exact Ethernet counter
+samples, PON state and boot-safe monotonic observations. It has no running
+service, firmware-overlay footprint, flash storage or WAN-path proof. The
+vendor commands remain unqualified on production until independent hardware
+measurement and acceptance.
+
 ### C-012 offline configuration save/readback contract
 
 The [C-012 validation matrix](docs/C-012-OFFLINE-CONFIG-SAVE-CONTRACT.md)
