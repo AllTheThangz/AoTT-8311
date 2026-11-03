@@ -16,6 +16,16 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### S-011 operator-owned certificate import preview, source only
+
+The [S-011 offline certificate import validator](docs/S-011-OFFLINE-CERTIFICATE-IMPORT.md)
+checks PEM/DER leaf certificates and matching private keys, required
+DNS/IP SAN coverage, certificate validity and supplied CA signature
+links. It also rejects incomplete or unsafe bundles and redacts
+operator management identities from preview receipts. A user-provided
+root does not establish browser trust. **No import route, HTTPS reload,
+private key migration or active firmware configuration change exists.**
+
 ### S-010 source-only residential HTTPS certificate qualification
 
 The [S-010 vendor-native SAN certificate study](docs/S-010-OFFLINE-VENDOR-SAN-CERTIFICATES.md)
