@@ -16,6 +16,18 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-026 authenticated local history snapshot contract
+
+The [H-026 bounded cross-process history handoff](docs/H-026-LOCAL-HISTORY-READONLY-API.md)
+now tests a guarded collector writing a sanitized 65,536-byte-limited
+snapshot for a separate reader, with strict file ownership, atomic
+replacement, nested JSON verification and an authenticated GET-only
+response contract. An independent, explicit browser loader rejects
+unknown sessions, redirects and oversized responses without ever
+triggering native PON reads. The source GUI client and LuCI route are
+**not installed**. Real PRX126 resource and session qualification
+remain prerequisites for any live service activation.
+
 ### H-025 read-only hardware admission and resource evidence gate
 
 The [H-025 hardware admission and evidence screen](docs/H-025-HARDWARE-ADMISSION.md)

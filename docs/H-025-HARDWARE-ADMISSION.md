@@ -173,6 +173,11 @@ files.
    H-015 UBIFS persistence and H-017 router WAN evidence are separate
    qualification tasks.
 
+The [H-026 source-only history handoff](H-026-LOCAL-HISTORY-READONLY-API.md)
+now demonstrates a separately authenticated, bounded read-only GUI
+contract with no per-page PON poll. Its local file and browser tests
+are not permission to enable H-024 on a live module.
+
 **H-025 stays IN_PROGRESS and hardware-blocked.** The active r8 trial
 bank, committed fallback, public firmware overlay and ISP provisioning
 were not changed.
