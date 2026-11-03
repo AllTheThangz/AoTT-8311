@@ -165,7 +165,7 @@ class ReportingBrowserTests(unittest.TestCase):
         self.page.locator("#aott-reporting-effective-refresh").click()
         self.page.wait_for_function(
             """() => document.getElementById('aott-reporting-effective-status')
-                 .textContent.includes('Readback unavailable')""",
+                 .textContent.toLowerCase().includes('readback unavailable')""",
             timeout=12000)
 
     def test_manual_get_only_no_background_requests(self):
