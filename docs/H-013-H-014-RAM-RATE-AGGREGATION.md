@@ -18,6 +18,13 @@ stored that much history. The default source ring holds 120 samples,
 and at most 720; a module that has not been installed or running cannot
 provide any live history.
 
+To avoid rescanning five windows on every GUI refresh, the predefined
+window query uses a weak-keyed, RAM-only cache keyed to the sampler's
+accepted-observation revision and ring position. A new accepted sample
+invalidates the cache. Returned windows are defensive copies, so a GUI
+caller cannot mutate the cached results. The cache stores no subscriber
+identity, raw counters or target configuration and never writes to flash.
+
 For each window, the module returns independently calculated RX and TX
 host-Ethernet byte-counter rates: a duration-weighted average in Mbps,
 peak observed interval Mbps, count of valid rate intervals, and seconds
@@ -59,14 +66,24 @@ Internet connectivity or the subscriber's provisioned rate.
 From the repository root on a host with Lua 5.1:
 
     lua5.1 tests/h013_h014_rate_aggregate_fixture.lua prototypes/history
+    lua5.1 tests/h014_five_window_cache_benchmark.lua prototypes/history
     python3 -m unittest discover -s tests -p 'test_h013_h014_rate_aggregate.py' -v
 
-The deterministic 674-assertion fixture also passes under an already
+The deterministic 681-assertion fixture also passes under an already
 extracted vendor MIPS Lua interpreter executed in QEMU. It exercises
 duration weighting, missing TX, PON unavailability, cross-window
 exclusion, long gaps, reboots, interface changes, 350 source
 observations with oldest-first eviction, all five presets, invalid
-input and corrupted-ring rejection.
+input and corrupted-ring rejection, plus cache isolation and automatic
+invalidation after the next accepted measurement.
+
+A repeatable synthetic benchmark uses **720 retained samples and 200
+five-window queries**. In one Hermes offline test session, host Lua CPU
+time decreased from 2.535 seconds to about 0.028 seconds after adding
+the cache; vendor MIPS Lua running under QEMU decreased from 35.666 to
+about 0.369 seconds. These are **offline repeated-query measurements**,
+not actual PRX126 timings or a prediction of hardware CPU utilization.
+The cache adds a small bounded amount of RAM, with no flash traffic.
 
 ## Boundaries and remaining release gates
 

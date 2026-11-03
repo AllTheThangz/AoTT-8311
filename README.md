@@ -23,6 +23,8 @@ provides measured-time-weighted host RX/TX Mbps averages, observed peaks,
 separate direction-specific coverage, and bounded 1-hour/24-hour/7-day/
 30-day/90-day queries. Unmeasured periods, reboot/interface boundaries,
 missing probes and partial intervals never become invented throughput.
+A revision-aware RAM-only cache avoids rescanning unchanged samples during
+repeated history viewing; it invalidates on the next accepted observation.
 The prototype does not run on an ONU yet, provide WAN speed/availability,
 or extend RAM retention to its 90-day query length.
 

@@ -14,6 +14,7 @@ SOURCE = ROOT / "prototypes/history"
 AGGREGATE = SOURCE / "8311/history_aggregate.lua"
 SAMPLER = SOURCE / "8311/history_sampler.lua"
 FIXTURE = ROOT / "tests/h013_h014_rate_aggregate_fixture.lua"
+BENCHMARK = ROOT / "tests/h014_five_window_cache_benchmark.lua"
 VENDOR = Path(os.environ.get("AOTT_VENDOR_ROOTFS",
                              "/unavailable/offline-vendor-rootfs"))
 
@@ -26,7 +27,7 @@ class HistoryAggregateSourceTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(
-            "AOTT_H013_H014_AGGREGATION_FIXTURE_PASS checks=674",
+            "AOTT_H013_H014_AGGREGATION_FIXTURE_PASS checks=681",
             result.stdout,
         )
 
@@ -47,13 +48,36 @@ class HistoryAggregateSourceTests(unittest.TestCase):
     def test_lua51_syntax(self):
         if not shutil.which("luac5.1"):
             self.skipTest("Lua 5.1 compiler unavailable")
-        for path in (AGGREGATE, SAMPLER, FIXTURE):
+        for path in (AGGREGATE, SAMPLER, FIXTURE, BENCHMARK):
             with self.subTest(file=path.name):
                 result = subprocess.run(
                     ["luac5.1", "-p", str(path)],
                     capture_output=True, text=True, timeout=10,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_five_window_cache_benchmark_with_offline_runtimes(self):
+        candidates = []
+        if shutil.which("lua5.1"):
+            candidates.append(["lua5.1"])
+        if os.environ.get("AOTT_VENDOR_ROOTFS"):
+            self.assertIsNotNone(shutil.which("qemu-mips-static"))
+            candidates.append(["qemu-mips-static", "-L", str(VENDOR),
+                               str(VENDOR / "usr/bin/lua")])
+        if not candidates:
+            self.skipTest("No Lua runtime available")
+        for runtime in candidates:
+            with self.subTest(runtime=runtime[0]):
+                result = subprocess.run(
+                    runtime + [str(BENCHMARK), str(SOURCE)],
+                    capture_output=True, text=True, cwd=ROOT, timeout=25,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(
+                    "AOTT_H014_FIVE_WINDOW_CACHE_BENCH_PASS "
+                    "queries=200 samples=720",
+                    result.stdout,
+                )
 
     def test_window_aggregation_contract(self):
         source = AGGREGATE.read_text()
@@ -63,6 +87,9 @@ class HistoryAggregateSourceTests(unittest.TestCase):
             "local MAX_INTERVAL_SECONDS = 3600",
             "function M.summarize(state,window_seconds)",
             "function M.presets(state)",
+            'local PRESET_CACHE=setmetatable({}, {__mode="k"})',
+            'cached.revision==state.accepted',
+            'return copy_presets(cached.windows)',
             "window_complete=false",
             "not STATUSES[record.status]",
             'record.rate_source~="hardware_ethernet_byte_counters"',
@@ -130,6 +157,8 @@ class HistoryAggregateSourceTests(unittest.TestCase):
             "five_window_no_fake_history",
             "invalid_pon_state_cannot_leak",
             "invalid_host_speed_cannot_leak",
+            "cached_summary_defensive_copy",
+            "cache_invalidated_on_new_ingest",
         ):
             self.assertIn(required, code)
 

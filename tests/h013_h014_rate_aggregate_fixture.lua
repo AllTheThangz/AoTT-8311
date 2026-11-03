@@ -247,6 +247,23 @@ for _,row in ipairs({
     eq(panel.samples_considered,120,"bounded_120_"..row[1])
 end
 
+-- Repeated UI-style queries return isolated copies from a weak-keyed,
+-- revision-aware RAM cache, without rescanning 720 samples every time.
+local cached=assert(sampler.history_windows(large))
+near(cached.hour.rx.average_mbps,1,"cache_initial_aggregate")
+cached.hour.rx.average_mbps=-500
+cached.ninety_days.source="credential_shaped_mutation"
+local untouched=assert(sampler.history_windows(large))
+near(untouched.hour.rx.average_mbps,1,"cached_summary_defensive_copy")
+eq(untouched.ninety_days.source,"eth0_0","cached_source_defensive_copy")
+local next_sample,reason=sampler.ingest(large,obs("boot-C",351,51,10000,
+    tostring(351*125000),tostring(351*250000)))
+ok(next_sample~=nil,"cached_input_new_ingest_"..tostring(reason))
+local refreshed=assert(sampler.history_windows(large))
+eq(refreshed.hour.latest_uptime,351,"cache_invalidated_on_new_ingest")
+eq(refreshed.day.latest_uptime,351,"all_panels_invalidated_together")
+near(refreshed.hour.rx.average_mbps,1,"post_cache_invalidation_rates")
+
 -- A corrupted ring can never turn unvalidated status or source into
 -- an exported hostname, device token or false optical measurement.
 corrupt.samples[1]={at_uptime=42,source="eth0_0",status="baseline",

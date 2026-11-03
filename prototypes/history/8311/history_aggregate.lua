@@ -214,14 +214,57 @@ local PRESETS={
     {"month",30*86400},
     {"ninety_days",90*86400},
 }
+-- Cached results are private to this Lua module, with weak keys so an
+-- abandoned sampler state is collected normally. No flash or history state
+-- mutation, and no caller ever receives a cached table by reference.
+local PRESET_CACHE=setmetatable({}, {__mode="k"})
+local function copy_window(record)
+    local result={}
+    for key,value in pairs(record) do
+        if key=="rx" or key=="tx" then
+            local stats={}
+            for stat,number in pairs(value) do
+                if type(number)=="string" or type(number)=="number" or
+                   type(number)=="boolean" then stats[stat]=number end
+            end
+            result[key]=stats
+        elseif type(value)=="string" or type(value)=="number" or
+               type(value)=="boolean" then
+            result[key]=value
+        end
+    end
+    return result
+end
+local function copy_presets(saved)
+    local out={schema=1}
+    for _,choice in ipairs(PRESETS) do
+        out[choice[1]]=copy_window(saved[choice[1]])
+    end
+    return out
+end
 function M.presets(state)
+    local ok,why=valid_ring(state)
+    if not ok then return nil,why end
+    if not integer(state.accepted,0,9007199254740991) then
+        return nil,"invalid_history_revision"
+    end
+    local cached=PRESET_CACHE[state]
+    if cached and cached.revision==state.accepted and
+       cached.samples_count==state.samples_count and
+       cached.samples_head==state.samples_head then
+        return copy_presets(cached.windows)
+    end
     local results={schema=1}
     for _,choice in ipairs(PRESETS) do
         local window,reason=M.summarize(state,choice[2])
         if not window then return nil,reason end
         results[choice[1]]=window
     end
-    return results
+    PRESET_CACHE[state]={
+        revision=state.accepted,samples_count=state.samples_count,
+        samples_head=state.samples_head,windows=results,
+    }
+    return copy_presets(results)
 end
 
 return M
