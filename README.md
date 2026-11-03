@@ -16,6 +16,15 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-019 synthetic resource benchmark and hardware acceptance
+
+The [H-019 offline resource qualification](docs/H-019-RESOURCE-QUALIFICATION.md)
+provides a repeatable CPU/heap and host-process-RSS benchmark for the
+existing RAM-only history reader under host Lua 5.1 and vendor MIPS QEMU.
+It reports mock observations only, with strict host/process boundaries.
+This does not measure real ONU CPU or driver performance, enable sampling,
+claim WAN availability, alter firmware, or authorize a field deployment.
+
 ### H-010/H-011 exact-counter history and RAM prototype
 
 The [bounded history-source prototype](docs/H-011-RAM-HISTORY-PROTOTYPE.md)
