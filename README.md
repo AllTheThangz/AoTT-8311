@@ -16,6 +16,17 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-028 source-only publication-admission handoff protection
+
+The [H-028 verified snapshot admission gate](docs/H-028-PUBLICATION-ADMISSION.md)
+prevents the live collector lock from mistakenly authenticating a
+previous crashed writer's cached JSON. A separate kernel fcntl lock is
+held only after a new snapshot passes canonical readback; both main and
+publication locks must be present before and after an independent
+history read. Competing, missing and unsafe publication locks fail
+closed. Vendor-MIPS/QEMU tests reproduce the original restart race.
+**No collector or route is installed on the ONU.**
+
 ### H-027 active-owner guarded source history publishing
 
 The [H-027 lifecycle snapshot bridge and LuCI gate candidate](docs/H-027-GUARDED-LIFECYCLE-SNAPSHOT.md)

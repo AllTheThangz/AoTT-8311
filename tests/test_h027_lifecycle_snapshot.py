@@ -5,6 +5,7 @@ separate MIPS Lua processes using the extracted vendor nixio, fcntl and
 jsonc libraries in root-owned disposable host directories.
 """
 import concurrent.futures
+import fcntl
 import os
 from pathlib import Path
 import secrets
@@ -27,6 +28,7 @@ class LifecycleSnapshotSourceTests(unittest.TestCase):
             self.skipTest("Lua compiler unavailable")
         for file in (
             SOURCE/"8311/history_process_lock.lua",
+            SOURCE/"8311/history_publication_gate.lua",
             SOURCE/"8311/history_snapshot_ipc.lua",
             SOURCE/"8311/history_http_readonly.lua",
             SOURCE/"8311/history_lifecycle.lua",
@@ -76,6 +78,18 @@ class LifecycleSnapshotSourceTests(unittest.TestCase):
         ):
             self.assertIn(fragment,ipc)
         self.assertIn('function M.serve_guarded_offline_ipc(',http)
+        gate=(SOURCE/"8311/history_publication_gate.lua").read_text()
+        self.assertIn('function M.admit_writer(directory,mode)',gate)
+        self.assertIn('function M.reader_admitted(directory,mode)',gate)
+        self.assertIn('function M.revoke_writer(token)',gate)
+        self.assertIn('n.open_flags("rdwr")',gate)
+        self.assertIn('fd:lock("tlock")',gate)
+        self.assertIn('publication.lock',gate)
+        self.assertIn('gate.reader_admitted(lock_directory,mode)',ipc)
+        self.assertIn('publication_gate_checked_before_and_after=true',ipc)
+        self.assertIn('publication_handle=nil',life)
+        self.assertIn('pcall(gate.admit_writer,p.directory,',life)
+        self.assertIn('local revoked=revoke_admission(p)',life)
         self.assertIn('bridge.read_guarded(',http)
         luci=(SOURCE/"8311/history_luci_route_candidate.lua").read_text()
         for fragment in (
@@ -98,7 +112,8 @@ class LifecycleSnapshotSourceTests(unittest.TestCase):
         deployed=(OVERLAY/"luci/controller/8311.lua").read_text()
         self.assertNotIn("history_data",deployed)
         for name in ("history_lifecycle.lua","history_snapshot_ipc.lua",
-                     "history_process_lock.lua","history_http_readonly.lua",
+                     "history_process_lock.lua","history_publication_gate.lua",
+                     "history_http_readonly.lua",
                      "history_luci_route_candidate.lua"):
             self.assertNotIn(name,manifest)
             self.assertFalse((OVERLAY/"8311"/name).exists())
@@ -106,6 +121,7 @@ class LifecycleSnapshotSourceTests(unittest.TestCase):
             SOURCE/"8311/history_lifecycle.lua",
             SOURCE/"8311/history_snapshot_ipc.lua",
             SOURCE/"8311/history_process_lock.lua",
+            SOURCE/"8311/history_publication_gate.lua",
         ):
             text=path.read_text()
             self.assertNotIn("fwenv_set",text)
@@ -182,7 +198,9 @@ class VendorMipsLifecycleSnapshotTests(unittest.TestCase):
             text=True,bufsize=1)
         self.children.append(child)
         target=("AOTT_H027_START_WITHOUT_SNAPSHOT" if mode=="start_only_hold"
-                else "AOTT_H027_SOURCE_PUBLISH_READY")
+                else ("AOTT_H028_MAIN_LOCK_WITHOUT_PUBLICATION"
+                      if mode=="raw_lock_hold"
+                      else "AOTT_H027_SOURCE_PUBLISH_READY"))
         self.assertIn(target,child.stdout.readline().strip())
         return child
 
@@ -303,6 +321,48 @@ class VendorMipsLifecycleSnapshotTests(unittest.TestCase):
         self.assertIn("AOTT_H027_SOURCE_STOP_PASS",output)
         self.assertIn("checks=",output)
         self.assertFalse((self.snapshot_dir/"snapshot.json").exists())
+
+    def test_h028_old_cache_denied_during_main_lock_handoff(self):
+        # The previous H-027 design served this stale file while the
+        # newly acquired collector lock was held, before invalidation.
+        writer=self.begin("crash")
+        self.assertIn("AOTT_H027_UNCLEAN_EXIT_WITH_CACHE",
+                      self.release(writer))
+        cache=self.snapshot_dir/"snapshot.json"
+        self.assertTrue(cache.is_file())
+        self.assertTrue((self.lock_dir/"publication.lock").is_file())
+        replacement=self.begin("raw_lock_hold")
+        self.assertTrue(cache.is_file(), "test must preserve stale cache")
+        self.assertIn("AOTT_H027_READER_DENIED",
+                      self.run_mode("reader_denied"))
+        self.assertIn("AOTT_H028_MAIN_LOCK_RELEASED",
+                      self.release(replacement))
+        self.assertIn("AOTT_H027_READER_DENIED",
+                      self.run_mode("reader_denied"))
+
+    def test_h028_publication_gate_symlink_refused_without_following(self):
+        protected=self.lock_dir/"inert-sentinel"
+        protected.write_text("UNCHANGED")
+        (self.lock_dir/"publication.lock").symlink_to(protected)
+        self.assertIn("AOTT_H028_PUBLISH_ADMISSION_REFUSED",
+                      self.run_mode("publication_unsafe"))
+        self.assertEqual(protected.read_text(),"UNCHANGED")
+        self.assertTrue(
+            (self.lock_dir/"publication.lock").is_symlink())
+        self.assertFalse((self.snapshot_dir/"snapshot.json").exists())
+
+    def test_h028_foreign_gate_holder_denies_new_publication(self):
+        lock=self.lock_dir/"publication.lock"
+        lock.write_bytes(b"")
+        lock.chmod(0o600)
+        with lock.open("r+b") as held:
+            fcntl.lockf(held,fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.assertIn("AOTT_H028_PUBLISH_ADMISSION_REFUSED",
+                          self.run_mode("publication_unsafe"))
+            self.assertFalse((self.snapshot_dir/"snapshot.json").exists())
+            fcntl.lockf(held,fcntl.LOCK_UN)
+        self.assertIn("AOTT_H027_READER_DENIED",
+                      self.run_mode("reader_denied"))
 
     def test_no_writer_lock_file_is_never_proof_of_service(self):
         (self.lock_dir/"collector.lock").write_text("")

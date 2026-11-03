@@ -31,6 +31,23 @@ local function read_checked()
     local data,info=ipc.read_guarded(snapdir,lockdir,"offline_synthetic")
     return data,info
 end
+-- H-028: deliberately hold ONLY the preexisting main collector lock
+-- around a crashed writer's stale snapshot. H-027 would grant HTTP 200
+-- here despite no verified new publisher. The second gate must reject.
+if mode=="raw_lock_hold" then
+    local lock=require "8311.history_process_lock"
+    local owner=assert(lock.acquire(lockdir))
+    local gate=require "8311.history_publication_gate"
+    eq(gate.reader_admitted(lockdir,"offline_synthetic"),false,
+       "no_publication_admission_from_main_lock")
+    eq(read_checked(),nil,"old_cache_denied_even_with_main_owner")
+    print("AOTT_H028_MAIN_LOCK_WITHOUT_PUBLICATION")
+    io.stdout:flush()
+    io.read("*l")
+    assert(lock.release(owner))
+    print("AOTT_H028_MAIN_LOCK_RELEASED")
+    return
+end
 if mode=="reader" or mode=="reader_denied" then
     local data,info=read_checked()
     local reply=endpoint.serve_guarded_offline_ipc(route,admin,
@@ -45,6 +62,8 @@ if mode=="reader" or mode=="reader_denied" then
            "separate_process_obtains_bounded_cache")
         eq(info.guard_owner_checked_before_and_after,true,
            "double_guard_verification")
+        eq(info.publication_gate_checked_before_and_after,true,
+           "publication_gate_verified_on_each_read")
         eq(info.producer_runtime_freshness_not_qualified,true,
            "lock_owner_not_equivalent_to_freshness")
         eq(reply.status,200,"trusted_admin_reads_cached_projection")
@@ -134,7 +153,22 @@ local function sample(at)
     return assert(life.step(session,at,provider))
 end
 local first=sample(100)
+if mode=="publication_unsafe" then
+    eq(first.status,"cooldown",
+       "invalid_or_competing_publication_gate_causes_cooldown")
+    eq(first.snapshot_publish_failures,1,
+       "rejected_publication_admission_counted")
+    eq(first.verified_snapshot_reader_admitted,false,
+       "no_unsafe_publisher_admitted")
+    eq(read_checked(),nil,"no_cache_served_after_gate_failure")
+    eq(endpoint.serve_guarded_offline_ipc(route,admin,snapdir,lockdir).status,
+       503,"HTTP_refuses_invalid_publisher_gate")
+    print("AOTT_H028_PUBLISH_ADMISSION_REFUSED")
+    return
+end
 eq(first.status,"sample_accepted","first_source_sample")
+eq(first.verified_snapshot_reader_admitted,true,
+   "only_verified_published_snapshot_admitted")
 eq(first.snapshot_publish_status,"verified_offline_snapshot",
    "first_sample_published")
 eq(first.snapshots_published,1,"one_snapshot")

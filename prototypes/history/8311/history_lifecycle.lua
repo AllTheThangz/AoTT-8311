@@ -60,6 +60,7 @@ local function receipt(p,code)
         last_error=p.last_error,
         circuit_open=p.phase=="circuit_open",
         snapshot_source_enabled=p.snapshot_directory~=nil,
+        verified_snapshot_reader_admitted=p.publication_handle~=nil,
         snapshots_published=p.snapshots_published,
         snapshot_publish_failures=p.snapshot_publish_failures,
         snapshot_last_source_uptime=p.snapshot_last_clock,
@@ -105,6 +106,7 @@ function M.new(directory,preferences,capability,mode)
         lifetime_starts=0,lifetime_samples=0,
         lifetime_failed_samples=0,restart_count=0,
         snapshot_directory=nil,snapshot_last_clock=nil,
+        publication_handle=nil,
         snapshots_published=0,snapshot_publish_failures=0,
     }
     return token,receipt(PRIVATE[token])
@@ -141,9 +143,22 @@ local function invalidate_snapshot(p)
     return ok and type(result)=="table"
 end
 
+-- Publication admission ends BEFORE invalidation or collector lock
+-- release. If it cannot be verified, freeze rather than advertising
+-- a healthy reader. The separate reader also requires the main lock.
+local function revoke_admission(p)
+    if not p.publication_handle then return true end
+    local gate=require "8311.history_publication_gate"
+    local ok,result=pcall(gate.revoke_writer,p.publication_handle)
+    if not ok or type(result)~="table" then return false end
+    p.publication_handle=nil
+    return true
+end
+
 -- All backoff and restart decisions are made in a caller-provided
 -- monotonic time domain. There is no automatic wakeup or sleep.
 local function cooled(p,now,why)
+    local revoked=revoke_admission(p)
     local invalidated=invalidate_snapshot(p)
     if p.handle then
         local ok,closed=pcall(guarded.close,p.handle)
@@ -155,11 +170,13 @@ local function cooled(p,now,why)
         end
         p.handle=nil
     end
-    if not invalidated then
+    if not revoked or not invalidated then
         p.phase="unsafe"
-        p.last_error="snapshot_invalidation_failed"
+        p.last_error=not revoked and
+            "publication_gate_revocation_unverified" or
+            "snapshot_invalidation_failed"
         p.next_start=nil
-        return nil,"snapshot_invalidation_failed"
+        return nil,p.last_error
     end
     p.snapshot_last_clock=nil
     p.next_due=nil
@@ -219,9 +236,9 @@ function M.start(token,now)
         p.next_start=nil
         return nil,cause
     end
-    -- Revoke any prior cached snapshot before taking new ownership.
-    -- A new worker must not briefly authenticate an older collector's
-    -- valid JSON just because it acquired the same kernel lock.
+    -- After acquiring the main lock, revoke any previous cache before
+    -- first publication. H-028's separate publication gate remains
+    -- unheld during this gap so a reader cannot accept old JSON.
     if p.snapshot_directory then
         local ipc=require "8311.history_snapshot_ipc"
         local verified,removed=pcall(ipc.invalidate,handle,
@@ -246,6 +263,7 @@ function M.start(token,now)
     end
     p.phase="running"
     p.handle=handle
+    p.publication_handle=nil
     p.snapshot_last_clock=nil
     p.lifetime_starts=p.lifetime_starts+1
     p.reader_failures=0
@@ -307,6 +325,13 @@ function M.step(token,now,provider)
     p.last_error=nil
     local publication="not_configured"
     if p.snapshot_directory then
+        -- A verified boot-epoch transition must not serve a snapshot
+        -- from the previous boot while the new one is publishing.
+        if value.history_status=="reboot" and
+           not revoke_admission(p) then
+            p.snapshot_publish_failures=p.snapshot_publish_failures+1
+            return cooled(p,now,"publication_gate_revocation_failed")
+        end
         local last=p.snapshot_last_clock
         if last==nil or value.history_status=="reboot" or
            (now>=last and now-last>=60) then
@@ -316,6 +341,19 @@ function M.step(token,now,provider)
             if not published or type(record)~="table" then
                 p.snapshot_publish_failures=p.snapshot_publish_failures+1
                 return cooled(p,now,"snapshot_publish_failed")
+            end
+            -- H-028: the second kernel lock is acquired ONLY AFTER
+            -- the new canonical snapshot has passed readback. A new
+            -- main collector lock never admits predecessor bytes.
+            if not p.publication_handle then
+                local gate=require "8311.history_publication_gate"
+                local admitted,token=pcall(gate.admit_writer,p.directory,
+                                           "offline_synthetic")
+                if not admitted or type(token)~="table" then
+                    p.snapshot_publish_failures=p.snapshot_publish_failures+1
+                    return cooled(p,now,"publication_gate_admission_failed")
+                end
+                p.publication_handle=token
             end
             p.snapshot_last_clock=now
             p.snapshots_published=p.snapshots_published+1
@@ -344,6 +382,7 @@ function M.stop(token)
     -- reviewed session. Ordinary stop/start cannot reset its budget.
     if p.phase=="circuit_open" then return receipt(p,"circuit_open") end
     if p.phase=="running" then
+        local revoked=revoke_admission(p)
         local invalidated=invalidate_snapshot(p)
         local ok,closed=pcall(guarded.close,p.handle)
         if not ok or not closed then
@@ -351,13 +390,16 @@ function M.stop(token)
             p.last_error="guarded_close_unverified"
             return nil,"guarded_close_unverified"
         end
-        if not invalidated then
+        if not revoked or not invalidated then
             p.phase="unsafe"
-            p.last_error="snapshot_invalidation_failed"
-            return nil,"snapshot_invalidation_failed"
+            p.last_error=not revoked and
+                "publication_gate_revocation_unverified" or
+                "snapshot_invalidation_failed"
+            return nil,p.last_error
         end
     end
     p.handle=nil
+    p.publication_handle=nil
     p.snapshot_last_clock=nil
     p.phase="stopped"
     p.next_start=nil

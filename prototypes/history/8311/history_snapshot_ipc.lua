@@ -219,17 +219,31 @@ function M.read_guarded(directory,lock_directory,mode)
         return nil,"guarded_snapshot_read_not_authorized"
     end
     local lock=require "8311.history_process_lock"
+    -- Two independent lock admissions. The long-lived collector lock
+    -- does not grant a newly started writer permission to serve a
+    -- previous session's cache. publication.lock is acquired only
+    -- after this writer publishes and verifies its OWN first snapshot.
+    local gate=require "8311.history_publication_gate"
     local held,reason=lock.writer_present(lock_directory)
     if held~=true then
         return nil,reason or "no_guarded_history_writer"
     end
+    local admitted,gate_reason=gate.reader_admitted(lock_directory,mode)
+    if admitted~=true then
+        return nil,gate_reason or "no_verified_snapshot_publisher"
+    end
     local body,info=M.read(directory,mode)
     if not body then return nil,info end
+    local afterward,gate_why=gate.reader_admitted(lock_directory,mode)
+    if afterward~=true then
+        return nil,gate_why or "publisher_lost_during_read"
+    end
     local after,why=lock.writer_present(lock_directory)
     if after~=true then
         return nil,why or "guarded_writer_lost_during_read"
     end
     info.guard_owner_checked_before_and_after=true
+    info.publication_gate_checked_before_and_after=true
     info.producer_runtime_freshness_not_qualified=true
     return body,info
 end
