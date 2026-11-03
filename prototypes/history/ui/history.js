@@ -10,8 +10,8 @@
     month: 2592000, ninety_days: 7776000
   };
   const SAMPLE_STATES = new Set([
-    "baseline", "valid_interval", "observation_unavailable",
-    "reboot", "source_changed", "sampling_gap"
+    "baseline", "valid_interval", "partial_interval",
+    "observation_unavailable", "reboot", "source_changed", "sampling_gap"
   ]);
   const EVENT_NAMES = {
     pon_state_change: "PON state changed",
@@ -71,10 +71,10 @@
                      "unavailable_host_samples", "samples_without_valid_rate",
                      "excluded_cross_window_intervals", "pon_state",
                      "host_link_speed_mbps"], out);
-    if (["observed","unavailable"].includes(src.pon_observation)) {
+    if (["observed","unavailable","not_sampled"].includes(src.pon_observation)) {
       out.pon_observation = src.pon_observation;
     }
-    if (["observed","unavailable"].includes(src.host_link_observation)) {
+    if (["observed","unavailable","not_sampled"].includes(src.host_link_observation)) {
       out.host_link_observation = src.host_link_observation;
     }
     if (typeof src.status === "string" &&
@@ -98,10 +98,10 @@
     };
     safeScalar(src, ["pon_state", "host_link_speed_mbps", "elapsed_seconds",
                      "rx_mbps", "tx_mbps"], out);
-    if (["observed", "unavailable"].includes(src.pon_observation)) {
+    if (["observed", "unavailable", "not_sampled"].includes(src.pon_observation)) {
       out.pon_observation = src.pon_observation;
     }
-    if (["observed", "unavailable"].includes(src.host_link_observation)) {
+    if (["observed", "unavailable", "not_sampled"].includes(src.host_link_observation)) {
       out.host_link_observation = src.host_link_observation;
     }
     if (out.status !== "valid_interval" || !valid(out.elapsed_seconds, 3600)) {
@@ -277,9 +277,11 @@
     eligible.slice().reverse().forEach(function (item) {
       const tr=document.createElement("tr");
       cell(tr,uptime(item.at_uptime));
-      cell(tr,item.pon_observation==="observed" && int(item.pon_state,255)
+      cell(tr,item.pon_observation==="not_sampled" ? "Not sampled" :
+        item.pon_observation==="observed" && int(item.pon_state,255)
         ? "State "+item.pon_state : "Unavailable");
-      cell(tr,item.host_link_observation==="observed" &&
+      cell(tr,item.host_link_observation==="not_sampled" ? "Not sampled" :
+        item.host_link_observation==="observed" &&
            int(item.host_link_speed_mbps,100000)
         ? item.host_link_speed_mbps+" Mbps" : "Unavailable");
       const rx=rateInWindow(item,"rx_mbps",cutoff);
@@ -324,10 +326,14 @@
     id("history-range").value=name;
     const cutoff=valid(range.latest_uptime)
       ? Math.max(0,range.latest_uptime-RANGE_SECONDS[name]) : 0;
-    text("pon-state",range.pon_observation==="observed" && int(range.pon_state,255)
+    text("pon-state",range.pon_observation==="not_sampled"
+      ? "Not sampled this interval" :
+      range.pon_observation==="observed" && int(range.pon_state,255)
       ? range.pon_state===51 ? "O5.1 associated" : "PON state "+range.pon_state
       : "Unavailable");
-    text("host-state",range.host_link_observation==="observed" &&
+    text("host-state",range.host_link_observation==="not_sampled"
+      ? "Not sampled this interval" :
+      range.host_link_observation==="observed" &&
       int(range.host_link_speed_mbps,100000)
       ? range.host_link_speed_mbps+" Mbps host speed" : "Unavailable");
     text("wan-state","Not verified");

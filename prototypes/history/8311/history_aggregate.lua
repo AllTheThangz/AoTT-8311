@@ -7,8 +7,9 @@ local MAX_WINDOW_SECONDS = 90 * 86400
 local MAX_INTERVAL_SECONDS = 3600
 local BOUNDARIES = {reboot=true,source_changed=true,sampling_gap=true}
 local STATUSES = {
-    baseline=true,valid_interval=true,observation_unavailable=true,
-    reboot=true,source_changed=true,sampling_gap=true,
+    baseline=true,valid_interval=true,partial_interval=true,
+    observation_unavailable=true,reboot=true,source_changed=true,
+    sampling_gap=true,
 }
 local function integer(v, minimum, maximum)
     return type(v) == "number" and v == v and v ~= math.huge and
@@ -52,10 +53,12 @@ local function at(state,offset)
        (record.ethernet_mbps~=nil and not integer(record.ethernet_mbps,0,100000)) or
        (record.pon_observation~=nil and
         record.pon_observation~="observed" and
-        record.pon_observation~="unavailable") or
+        record.pon_observation~="unavailable" and
+        record.pon_observation~="not_sampled") or
        (record.host_link_observation~=nil and
         record.host_link_observation~="observed" and
-        record.host_link_observation~="unavailable") then
+        record.host_link_observation~="unavailable" and
+        record.host_link_observation~="not_sampled") then
         return nil
     end
     return record
@@ -148,11 +151,11 @@ function M.summarize(state,window_seconds)
         result.samples_considered=result.samples_considered+1
         result.earliest_sample_uptime=when
 
-        if record.pon_observation~="observed" then
+        if record.pon_observation=="unavailable" then
             result.unavailable_pon_samples=
                 result.unavailable_pon_samples+1
         end
-        if record.host_link_observation~="observed" then
+        if record.host_link_observation=="unavailable" then
             result.unavailable_host_samples=
                 result.unavailable_host_samples+1
         end
