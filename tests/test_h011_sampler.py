@@ -3,7 +3,6 @@
 Mock input only. Never connects to any real ONU or starts resident services.
 """
 from pathlib import Path
-import hashlib
 import json
 import os
 import shutil
@@ -11,7 +10,7 @@ import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "overlay/usr/lib/lua/8311"
+SOURCE = ROOT / "prototypes/history/8311"
 MODEL = SOURCE / "history_model.lua"
 SAMPLER = SOURCE / "history_sampler.lua"
 MODEL_FIXTURE = ROOT / "tests/history_model_fixture.lua"
@@ -75,19 +74,15 @@ class H011InMemorySamplerTests(unittest.TestCase):
                           "gpon_sn=sample", "loid=sample", "password=sample"):
             self.assertNotIn(forbidden, source)
 
-    def test_overlay_manifest_lists_only_source_lua(self):
+    def test_prototype_excluded_from_release_manifest_and_firmware(self):
         manifest = json.loads((ROOT / "MANIFEST.json").read_text())
         self.assertTrue(manifest["source_only"])
         self.assertFalse(manifest["firmware_binaries_included"])
-        for source in (MODEL, SAMPLER):
-            path = source.relative_to(ROOT / "overlay").as_posix()
-            matches = [row for row in manifest["overlay_files"]
-                       if row["path"] == path]
-            self.assertEqual(len(matches), 1)
-            self.assertEqual(matches[0]["sha256"],
-                             hashlib.sha256(source.read_bytes()).hexdigest())
-            self.assertEqual(matches[0]["bytes"], source.stat().st_size)
-            self.assertFalse(matches[0]["executable"])
+        entries = {row["path"] for row in manifest["overlay_files"]}
+        for name in ("history_model.lua", "history_sampler.lua"):
+            self.assertTrue((SOURCE / name).is_file())
+            self.assertNotIn("usr/lib/lua/8311/" + name, entries)
+            self.assertFalse((ROOT / "overlay/usr/lib/lua/8311" / name).exists())
 
 
 if __name__ == "__main__":

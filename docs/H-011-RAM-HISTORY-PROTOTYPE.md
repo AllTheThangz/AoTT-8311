@@ -9,9 +9,10 @@ a PON O5.1 state proves subscriber Internet service or using flash storage for
 high-frequency samples.
 
 The source now includes the vNext pure Lua 5.1 historical counter/event model
-and a bounded RAM-only aggregator. These modules have no auto-start entrypoint,
-network probe, timer, filesystem write, web route, firmware update or persistent
-database. An actual collector integration is still required.
+and a bounded RAM-only aggregator. These modules live under prototypes/history/8311 and are deliberately
+excluded from the deployable overlay manifest. They consume no firmware image
+space. They have no auto-start entrypoint, network probe, timer, filesystem
+write, web route, firmware update or persistent database. An actual collector integration is still required.
 
 ## Implemented and tested
 
@@ -38,8 +39,8 @@ database. An actual collector integration is still required.
 
 Run from repository root:
 
-    lua5.1 tests/history_model_fixture.lua overlay/usr/lib/lua/8311/history_model.lua
-    lua5.1 tests/history_sampler_fixture.lua overlay/usr/lib/lua
+    lua5.1 tests/history_model_fixture.lua prototypes/history/8311/history_model.lua
+    lua5.1 tests/history_sampler_fixture.lua prototypes/history
 
 Run the automated wrapper:
 

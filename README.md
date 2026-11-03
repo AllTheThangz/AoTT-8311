@@ -21,8 +21,9 @@ The goal is a comprehensive, reliable residential XGS-PON bridge and management 
 The [bounded history-source prototype](docs/H-011-RAM-HISTORY-PROTOTYPE.md)
 adds exact 64-bit traffic counter calculations, sampled PON/host-link events,
 missing-observation and reboot gaps, and a finite RAM-only event/sample ring.
-It passes source-level Lua and offline vendor MIPS checks. There is no
-collector daemon, automatic sampling, flash history, Internet probe, web
+It passes source-level Lua and offline vendor MIPS checks. Prototype files
+live outside the deployable overlay and do not use firmware image space.
+There is no collector daemon, automatic sampling, flash history, Internet probe, web
 history page or changed live firmware. Real hardware integration and
 resource qualification are required before a residential history feature
 can be described as operational.
