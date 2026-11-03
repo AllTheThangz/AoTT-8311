@@ -129,9 +129,10 @@ provided. They were executed successfully on the Hermes offline host.
    separately reviewed firmware deployment, not in this PR.
 3. The [H-023 offline lifecycle model](H-023-COLLECTOR-LIFECYCLE.md)
    now exercises bounded start/retry/stop and process-death release
-   against this guarded collector. A real **single supervised procd
-   process**, its operating-system exit handling and device restart
-   acceptance still need implementation and PRX126 qualification.
+   against this guarded collector. The [H-024 source-only foreground process test](H-024-SUPERVISOR-OFFLINE-PROCESS.md)
+   now verifies TERM and parent/child crash handling with the same
+   kernel lock. A real **single procd-managed process**, its on-board
+   exit handling and restart acceptance still need PRX126 qualification.
 4. Confirm the real PON/ethtool read costs, CPU/RAM and thermal load,
    forwarding stability, and management responsiveness during traffic.
 5. Add authenticated LuCI history access and real setting readback only

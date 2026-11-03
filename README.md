@@ -16,6 +16,18 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-024 controlled foreground worker and inert procd candidate
+
+The [H-024 source-only process supervisor](docs/H-024-SUPERVISOR-OFFLINE-PROCESS.md)
+adds a tested vendor-MIPS/QEMU foreground worker, low-priority shell
+wrapper, cooperative TERM/HUP/INT shutdown, bounded escalation, and
+parent-death detection so a killed wrapper cannot leave an orphan
+collector. The H-022 kernel lock and H-023 restart circuit breaker
+remain authoritative. An intentionally inert procd init candidate
+registers an error instead of starting a service or unlimited respawn.
+The QEMU virtual-address allowance is not a qualified PRX126 RAM limit.
+**No live daemon, firmware overlay entry or ISP setting is changed.**
+
 ### H-023 bounded restart and lifecycle control, offline source
 
 The [H-023 controlled collector lifecycle](docs/H-023-COLLECTOR-LIFECYCLE.md)
