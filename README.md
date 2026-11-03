@@ -16,6 +16,17 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### S-012 offline management listener isolation evidence
+
+The [S-012 residential management isolation audit](docs/S-012-OFFLINE-MANAGEMENT-ISOLATION.md)
+finds wildcard IPv4/IPv6 HTTP/HTTPS listener settings in the extracted
+vendor r8 uhttpd configuration, without claiming live WAN exposure.
+A source-only policy gate cross-checks UCI, separately declared uhttpd
+process arguments, TCP socket evidence, independent management IPs and
+trusted/untrusted access outcomes. Unsafe binds and incomplete IPv4/IPv6
+evidence fail closed. **No listener, firewall, bridge or firmware
+configuration has been changed on the actual ONU.**
+
 ### S-011 operator-owned certificate import preview, source only
 
 The [S-011 offline certificate import validator](docs/S-011-OFFLINE-CERTIFICATE-IMPORT.md)
