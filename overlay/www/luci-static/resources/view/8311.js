@@ -610,6 +610,112 @@ function refreshVlanEffective() {
             ' No settings changed.';
     }).finally(() => { button.disabled=false; });
 }
+/* C-011 ten OMCI reporting fields: only presence and format are shown.
+ * Never render raw boot environment, software versions or identity strings.
+ * No OLT effect, actual boot-bank selection or Internet uptime is inferred. */
+function refreshReportingEffective() {
+    const panel=document.getElementById('aott-reporting-effective');
+    const button=document.getElementById('aott-reporting-effective-refresh');
+    const status=document.getElementById('aott-reporting-effective-status');
+    const results=document.getElementById('aott-reporting-effective-results');
+    if (!panel || !button || !status || !results) return;
+    const url=panel.getAttribute('data-effective-url') || '';
+    if (!url.startsWith('/') || url.startsWith('//')) {
+        status.textContent='The local reported-field endpoint is invalid.';
+        return;
+    }
+    button.disabled=true;
+    status.textContent='Checking stored reporting fields without displaying identity or software values.';
+    results.replaceChildren();
+    results.hidden=true;
+    request8311(url,{method:'GET',cache:'no-store'}).then(response => {
+        const data=response && response.data;
+        if (response.success!==true || !data || data.schema!==1 ||
+            data.group!=='omci_reporting_noncredential' ||
+            data.no_device_write!==true ||
+            data.no_registration_secret_read!==true ||
+            data.no_subscriber_identity_exported!==true ||
+            data.no_raw_environment_value_exported!==true ||
+            data.source_only_not_hardware_qualified!==true ||
+            data.actual_boot_bank_verified!==false ||
+            data.no_olt_effect_proof!==true ||
+            !data.fields || !data.summary ||
+            data.summary.source_fields!==10 ||
+            data.summary.reporting_runtime_effects_verified!==0 ||
+            data.summary.hardware_qualified!==0) {
+            throw {error:'Incomplete redacted OMCI reporting response.'};
+        }
+        const names=[
+            ['equipment_id','Reported equipment model'],
+            ['hw_ver','Reported hardware version'],
+            ['cp_hw_ver_sync','Circuit-pack version sync'],
+            ['sw_verA','Reported software version A'],
+            ['sw_verB','Reported software version B'],
+            ['fw_match_b64','Software version match expression'],
+            ['fw_match_num','Software match occurrence'],
+            ['override_active','OMCI active-bank override'],
+            ['override_commit','OMCI committed-bank override'],
+            ['pon_slot','Reported UNI slot']
+        ];
+        const table=document.createElement('table');
+        table.className='table';
+        const head=document.createElement('tr');
+        ['Setting','Saved source','Independent evidence','Runtime effect'].forEach(label => {
+            const cell=document.createElement('th');
+            cell.textContent=label;
+            head.appendChild(cell);
+        });
+        table.appendChild(head);
+        names.forEach(([key,label]) => {
+            const field=data.fields[key];
+            if (!field || field.id!==key ||
+                field.content_redacted!==true ||
+                field.raw_value_exported!==false ||
+                field.runtime_effect_proven!==false ||
+                field.omci_mib_effect_proven!==false ||
+                field.olt_received_reported_value_proven!==false ||
+                field.actually_flashes_or_commits_firmware!==false ||
+                field.hardware_qualified!==false ||
+                !['valid_source_format','invalid_source_format','unavailable'].includes(field.source_format) ||
+                !['labels_match','labels_differ','unavailable'].includes(field.reported_image_to_boot_label)) {
+                throw {error:'Invalid reporting source entry: '+key};
+            }
+            const row=document.createElement('tr');
+            const formatted=field.source_format==='valid_source_format'
+                ? 'Present, format accepted; content redacted'
+                : field.source_format==='invalid_source_format'
+                  ? 'Present, unsupported format; content redacted'
+                  : 'Unavailable or unset';
+            const independent=(key==='sw_verA' || key==='sw_verB')
+                ? (field.reported_image_to_boot_label==='labels_match'
+                   ? 'Reported label matches boot image label'
+                   : field.reported_image_to_boot_label==='labels_differ'
+                     ? 'Reported label differs from boot image label'
+                     : 'Boot image label not independently compared')
+                : 'No independent OMCI runtime observation';
+            [
+                label,formatted,independent,
+                'OLT effect unverified; no boot bank changed'
+            ].forEach(value => {
+                const cell=document.createElement('td');
+                cell.textContent=value;
+                row.appendChild(cell);
+            });
+            table.appendChild(row);
+        });
+        const note=document.createElement('p');
+        note.textContent='Ten reported-field sources checked. Identity and value contents are redacted. A saved format, a software-label match, or an OMCI bank override never proves an OLT setting effect, an actual firmware boot/commit change, or Internet service.';
+        results.appendChild(note);
+        results.appendChild(table);
+        results.hidden=false;
+        status.textContent='Read-only reporting source check complete. No settings changed.';
+    }).catch(error => {
+        results.replaceChildren();
+        results.hidden=true;
+        status.textContent='Reporting readback unavailable: '+errorMessage(error)+
+            ' No settings changed.';
+    }).finally(() => { button.disabled=false; });
+}
 function refreshPonEffective() {
     const panel=document.getElementById('aott-pon-effective');
     const button=document.getElementById('aott-pon-effective-refresh');
@@ -1237,6 +1343,10 @@ $(document).ready(function() {
     $('#aott-device-effective-refresh').on('click',function(event) {
         event.preventDefault();
         refreshDeviceEffective();
+    });
+    $('#aott-reporting-effective-refresh').on('click',function(event) {
+        event.preventDefault();
+        refreshReportingEffective();
     });
     $('#aott-pon-effective-refresh').on('click',function(event) {
         event.preventDefault();

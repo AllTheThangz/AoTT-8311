@@ -20,7 +20,10 @@ Eight additional advanced, noncredential controls are now covered:
 | `persist_root` | Prefixed environment, 0/1 | None | Root boot behavior, data preservation and recovery are not proven |
 
 This increases C-011 source-level readback support from **27 to 35 of 54**
-existing GUI controls. **19 more remain**. It does not mean the eight
+existing GUI controls at that checkpoint. A [later redacted OMCI reporting
+extension](C-011-OMCI-REPORTING-REDACTED.md) raises current source readback
+to **45 of 54**, leaving nine sensitive identity/credential controls.
+It does not mean the eight
 settings are hardware-qualified, and does not qualify the already
 covered settings as fully functional.
 

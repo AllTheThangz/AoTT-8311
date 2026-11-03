@@ -80,6 +80,9 @@ end
 package.preload["8311.effective_hardware_probe"] = function()
     return {live_hardware=function() return nil,"synthetic_readonly_unavailable" end}
 end
+package.preload["8311.effective_reporting_probe"] = function()
+    return {live_reporting=function() return nil,"synthetic_readonly_unavailable" end}
+end
 package.preload["8311.config"] = function() return {} end
 package.preload["8311.uploads"] = function() return {} end
 package.preload["8311.jobs"] = function() return {} end

@@ -192,6 +192,18 @@ or concurrency-guard cases pass. This **does not prove** a field applied on
 an actual ONU, survived reboot or is safe on other hardware. The publicly
 available source remains a source-only r7 overlay, not a new firmware image.
 
+### C-011 redacted OMCI reporting and software labels
+
+The [C-011 redacted OMCI reporting readback](docs/C-011-OMCI-REPORTING-REDACTED.md)
+adds a manual authenticated GET for ten noncredential OMCI/software
+reporting fields. It displays presence, source-format validity and
+limited reported-versus-boot-image version-label matches, **never raw
+identity strings, firmware labels or regular expressions**. OMCI
+reported active/committed bank controls are not actual boot or
+firmware commit operations. Source-level C-011 coverage now reaches
+**45 of 54** settings; nine identity/credential controls and all
+real hardware runtime effects remain unqualified.
+
 ### C-011 advanced system and host readback
 
 The [advanced device/host C-011 readback](docs/C-011-ADVANCED-SYSTEM-READBACK.md)
@@ -203,7 +215,9 @@ GPIO electrical outputs and negotiated Ethernet speed. These do
 not establish serial signaling, optical alarm delivery, applied
 speed override or recoverability. Sensitive login hashes are never
 read or returned by this endpoint. C-011 source-level coverage
-reaches 35 of 54 fields; complete hardware qualification remains open.
+reached 35 of 54 fields at that checkpoint; the later redacted
+OMCI reporting extension raises current coverage to 45 of 54.
+Complete hardware qualification remains open.
 
 ### C-011 scoped native VLAN TC rule readback
 

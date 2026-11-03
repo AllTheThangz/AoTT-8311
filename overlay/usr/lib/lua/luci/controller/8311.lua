@@ -22,6 +22,7 @@ local effective_device_probe = require "8311.effective_device_probe"
 local effective_pon_probe = require "8311.effective_pon_probe"
 local effective_vlan_probe = require "8311.effective_vlan_probe"
 local effective_hardware_probe = require "8311.effective_hardware_probe"
+local effective_reporting_probe = require "8311.effective_reporting_probe"
 local config = require "8311.config"
 local uploads = require "8311.uploads"
 local jobs = require "8311.jobs"
@@ -61,6 +62,8 @@ function index()
           call("action_effective_vlan")).leaf=true
     entry({"admin", "8311", "effective_hardware"},
           call("action_effective_hardware")).leaf=true
+    entry({"admin", "8311", "effective_reporting"},
+          call("action_effective_reporting")).leaf=true
     entry({"admin", "8311", "security"}, call("action_r5_security"), translate("Security & access"), 8)
     entry({"admin", "8311", "security_data"}, call("action_r5_security_data")).leaf=true
 	entry({"admin", "8311", "bank_status"}, call("action_bank_status"))
@@ -839,6 +842,27 @@ function action_effective_hardware()
             {success=false,error="Hardware settings readback unavailable; no settings changed"})
     end
     return web.reply(http, 200, {success=true,data=snapshot})
+end
+
+-- Authenticated manual GET only: no identity strings, credentials,
+-- raw firmware version labels, boot environment or bank changes.
+function action_effective_reporting()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405,
+            {success=false,error="Read-only GET required"})
+    end
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    local ok,snapshot=pcall(effective_reporting_probe.live_reporting)
+    if not ok or type(snapshot)~="table" or snapshot.schema~=1 or
+       snapshot.no_registration_secret_read~=true or
+       snapshot.no_subscriber_identity_exported~=true or
+       snapshot.no_raw_environment_value_exported~=true or
+       snapshot.source_only_not_hardware_qualified~=true then
+        return web.reply(http,503,
+            {success=false,error="Reporting source readback unavailable; no settings changed"})
+    end
+    return web.reply(http,200,{success=true,data=snapshot})
 end
 
 function action_r5_security()
