@@ -86,4 +86,13 @@ function M.serve_offline_ipc(request,verify_admin,directory)
         return bridge.read(directory,"offline_synthetic")
     end)
 end
+-- H-027 source-only safer binding: refuse cached data when no kernel
+-- owner holds the H-022 collector lock. No deployed LuCI route exists.
+function M.serve_guarded_offline_ipc(request,verify_admin,directory,lock_directory)
+    local bridge=require "8311.history_snapshot_ipc"
+    return M.serve(request,verify_admin,function()
+        return bridge.read_guarded(directory,lock_directory,"offline_synthetic")
+    end)
+end
+
 return M

@@ -211,4 +211,57 @@ function M.discard_stale_stage(handle,directory,mode)
         source_only_not_live=true,no_current_snapshot_deleted=true,
     }
 end
+-- H-027: require an active H-022 owner both before and after the
+-- bounded file read. A stopped, crashed or absent publisher cannot
+-- provide a supposedly current history response from leftover bytes.
+function M.read_guarded(directory,lock_directory,mode)
+    if not permitted(directory,mode) then
+        return nil,"guarded_snapshot_read_not_authorized"
+    end
+    local lock=require "8311.history_process_lock"
+    local held,reason=lock.writer_present(lock_directory)
+    if held~=true then
+        return nil,reason or "no_guarded_history_writer"
+    end
+    local body,info=M.read(directory,mode)
+    if not body then return nil,info end
+    local after,why=lock.writer_present(lock_directory)
+    if after~=true then
+        return nil,why or "guarded_writer_lost_during_read"
+    end
+    info.guard_owner_checked_before_and_after=true
+    info.producer_runtime_freshness_not_qualified=true
+    return body,info
+end
+
+-- Controlled stop and fresh-session admission revoke the source-only
+-- cached view while the guarded owner still holds the kernel lock.
+-- Crashes may leave bytes on disk, but read_guarded refuses them.
+function M.invalidate(handle,directory,mode)
+    if not permitted(directory,mode) then
+        return nil,"snapshot_invalidation_not_authorized"
+    end
+    if not owner(handle) then return nil,"exclusive_collector_owner_required" end
+    local mods,why=load_fs()
+    if not mods then return nil,why end
+    local fs=mods.fs
+    local dir=trusted_dir(fs,directory)
+    if not dir then return nil,"unsafe_snapshot_directory" end
+    local target=directory.."/"..FINAL_NAME
+    local previous,reason=existing_ok(fs,target)
+    if previous==nil then return nil,reason end
+    if previous==false then
+        return {status="no_snapshot_to_invalidate",
+            source_only_not_live=true}
+    end
+    if not same(previous,fs.lstat(target)) or
+       not same(dir,fs.lstat(directory)) then
+        return nil,"snapshot_invalidation_inode_changed"
+    end
+    if not fs.unlink(target) then return nil,"snapshot_invalidation_failed" end
+    if fs.lstat(target) then return nil,"snapshot_invalidation_unverified" end
+    return {status="guarded_snapshot_invalidated",
+        source_only_not_live=true,no_firmware_image_changed=true}
+end
+
 return M

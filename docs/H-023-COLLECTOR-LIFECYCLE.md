@@ -160,6 +160,12 @@ before publication.
 6. Verify actual firmware A/B recovery before permitting automatic
    collection from the shipping firmware.
 
+The [H-027 source-only snapshot bridge](H-027-GUARDED-LIFECYCLE-SNAPSHOT.md)
+adds optional pre-start publication configuration to this lifecycle.
+Accepted observations may update a bounded cached JSON view at least
+60 source seconds apart; controlled shutdown and recovery invalidate
+cached history. No default collector startup or live file writes occur.
+
 H-023 is an offline source and vendor ABI qualification, not a
 production monitoring daemon. It makes **no** change to the active ONU,
 ISP provisioning, firmware bank selector or released image.

@@ -142,5 +142,11 @@ provided. They were executed successfully on the Hermes offline host.
    automatic startup. This lock does not by itself qualify a firmware
    release.
 
+The [H-027 source-only reader gate](H-027-GUARDED-LIFECYCLE-SNAPSHOT.md)
+now uses a passive fcntl lock-contention check to refuse old cached
+history if no collector process owns this lock. Source tests verify
+SIGKILL and restarted-producer behavior; on-device acceptance remains
+open.
+
 No live stick, ISP provisioning, boot bank or hardware lock directory
 was touched by H-022.
