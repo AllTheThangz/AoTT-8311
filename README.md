@@ -16,6 +16,17 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-023 bounded restart and lifecycle control, offline source
+
+The [H-023 controlled collector lifecycle](docs/H-023-COLLECTOR-LIFECYCLE.md)
+adds manual startup, shutdown, backoff and a finite circuit breaker for
+the H-022 guarded, independently scheduled H-021 collector. Real
+vendor-MIPS QEMU processes verify kernel lock exclusion, release on
+normal exit and SIGKILL, and bounded restart after synthetic read
+failures. A stopped or failed collector cannot launch duplicate polling
+processes or silently start itself. This **does not install procd**, enable
+live hardware polling or create a firmware or flash-data write.
+
 ### H-022 true cross-process lock, tested with vendor MIPS nixio
 
 The [H-022 guarded collector ownership layer](docs/H-022-CROSS-PROCESS-LOCK.md)

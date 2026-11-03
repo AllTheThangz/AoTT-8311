@@ -127,8 +127,11 @@ provided. They were executed successfully on the Hermes offline host.
    authorized, recoverable PRX126 target.
 2. Provision the private root-owned runtime directory only during a
    separately reviewed firmware deployment, not in this PR.
-3. Add a supervised **single** collector process with bounded
-   backoff, failure isolation, exit/lock release and restart tests.
+3. The [H-023 offline lifecycle model](H-023-COLLECTOR-LIFECYCLE.md)
+   now exercises bounded start/retry/stop and process-death release
+   against this guarded collector. A real **single supervised procd
+   process**, its operating-system exit handling and device restart
+   acceptance still need implementation and PRX126 qualification.
 4. Confirm the real PON/ethtool read costs, CPU/RAM and thermal load,
    forwarding stability, and management responsiveness during traffic.
 5. Add authenticated LuCI history access and real setting readback only
