@@ -21,6 +21,10 @@ jobs:
         run: python3 tools/check_disclosure.py .
       - name: Verify inactive-bank stage-only installer contract
         run: python3 tools/audit_stage_only_contract.py overlay/usr/sbin/8311-firmware-upgrade.sh
+      - name: Install Lua 5.1 before Python source tests
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lua5.1
       - name: Run isolated Python security, gateway and boot tests
         run: python3 -m unittest discover -s tests -v
       - name: Check POSIX and BusyBox-style shell parsing
@@ -37,10 +41,6 @@ jobs:
         run: |
           set -euo pipefail
           find overlay/www -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
-      - name: Install Lua 5.1 for compatibility checks
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends lua5.1
       - name: Validate Lua 5.1 code and gateway regressions
         shell: bash
         run: |
