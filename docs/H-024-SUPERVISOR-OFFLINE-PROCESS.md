@@ -89,7 +89,10 @@ environment and must be explicitly reported as offline qualification.
 
 ## Production gates
 
-1. Authorize a recoverable PRX126 direct management target.
+1. Authorize a recoverable PRX126 direct management target. The
+   [H-025 source-only resource preflight](H-025-HARDWARE-ADMISSION.md)
+   validates an extracted vendor ABI and sanitized synthetic input, but
+   cannot substitute for that direct target or enable this service.
 2. Qualify actual PON/optical/Ethernet counter semantics, process costs,
    CPU, RAM, thermals, packet drops and residential forwarding impact.
 3. Implement a distinct non-synthetic, bounded native input provider.
