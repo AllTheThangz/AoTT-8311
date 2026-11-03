@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en" data-aott-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <link rel="icon" href="data:,">
+  <title>AoTT-8311 | History source preview</title>
+  <link rel="stylesheet" href="history.css">
+  <script defer src="history.js"></script>
+</head>
+<body>
+<main class="aott-history" id="aott-history">
+  <header class="aott-header">
+    <div>
+      <p class="eyebrow">AoTT-8311 / HISTORY</p>
+      <h1>Connection and throughput history</h1>
+      <p id="prototype-notice" class="notice" role="status">Source-only preview. No live device readings, background collector, or ISP connectivity verification.</p>
+    </div>
+    <div class="filters">
+      <label for="history-range">View history</label>
+      <select id="history-range">
+        <option value="hour">Last hour</option>
+        <option value="day">Last 24 hours</option>
+        <option value="week">Last 7 days</option>
+        <option value="month">Last 30 days</option>
+        <option value="ninety_days">Last 90 days</option>
+      </select>
+      <label for="history-theme">Appearance</label>
+      <select id="history-theme">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+    </div>
+  </header>
+
+  <section class="aott-panel" aria-labelledby="history-status-heading">
+    <h2 id="history-status-heading">What is actually known</h2>
+    <div class="aott-status-grid">
+      <div><span class="stat-label">Optical registration</span><strong id="pon-state">Unavailable</strong></div>
+      <div><span class="stat-label">Host Ethernet</span><strong id="host-state">Unavailable</strong></div>
+      <div><span class="stat-label">Internet path</span><strong id="wan-state">Not verified</strong></div>
+      <div><span class="stat-label">Optical power history</span><strong id="optics-state">Not collected</strong></div>
+    </div>
+    <p class="footnote">PON association and Ethernet link status do not establish Internet service. Measurements use device uptime, not verified calendar dates.</p>
+  </section>
+
+  <section class="aott-panel" aria-labelledby="history-rate-heading">
+    <h2 id="history-rate-heading">Measured host Ethernet throughput</h2>
+    <div class="aott-status-grid">
+      <div><span class="stat-label">RX average</span><strong id="rx-average">Unavailable</strong></div>
+      <div><span class="stat-label">RX peak</span><strong id="rx-peak">Unavailable</strong></div>
+      <div><span class="stat-label">TX average</span><strong id="tx-average">Unavailable</strong></div>
+      <div><span class="stat-label">TX peak</span><strong id="tx-peak">Unavailable</strong></div>
+    </div>
+    <div class="legend" aria-hidden="true"><span class="rx-line"></span> RX, host Ethernet <span class="tx-line"></span> TX, host Ethernet</div>
+    <svg id="history-chart" role="img" aria-label="No measured throughput to graph" viewBox="0 0 640 240" preserveAspectRatio="xMidYMid meet"></svg>
+    <p id="chart-caption" class="footnote" role="status">No retained measurements.</p>
+    <p id="coverage-message" class="coverage" role="status">No measured history has been loaded.</p>
+  </section>
+
+  <div class="two-panel">
+    <section class="aott-panel" aria-labelledby="history-samples-heading">
+      <h2 id="history-samples-heading">Recent observations</h2>
+      <p class="footnote">Up to 100 latest-epoch samples. No data is extended through missing periods.</p>
+      <div class="table-scroll">
+        <table><caption>Host Ethernet and PON observations by uptime</caption>
+          <thead><tr><th scope="col">Uptime</th><th scope="col">PON</th><th scope="col">Host link</th><th scope="col">RX Mbps</th><th scope="col">TX Mbps</th></tr></thead>
+          <tbody id="history-sample-rows"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="aott-panel" aria-labelledby="history-events-heading">
+      <h2 id="history-events-heading">Observed state changes</h2>
+      <p class="footnote">Sampled transitions, blind spots and reboot markers, not confirmed ISP outages.</p>
+      <div class="table-scroll">
+        <table><caption>Observed history events with estimated sample windows</caption>
+          <thead><tr><th scope="col">Uptime</th><th scope="col">Observation</th><th scope="col">Detail</th></tr></thead>
+          <tbody id="history-event-rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <section class="aott-panel" aria-labelledby="history-export-heading">
+    <h2 id="history-export-heading">Source-only bounded exports</h2>
+    <p class="footnote">Exports contain at most 100 retained records of each type, no boot identifiers, subscriber credentials, device logs, or destination addresses. The JSON contains all five window summaries plus a bounded sample tail; CSV uses the selected view's range.</p>
+    <div class="download-row">
+      <button type="button" id="history-json" disabled>Export JSON</button>
+      <button type="button" id="history-csv" disabled>Export CSV</button>
+    </div>
+    <p id="history-export-status" aria-live="polite" class="footnote">Load a sanitized source projection to enable exports.</p>
+  </section>
+</main>
+</body>
+</html>

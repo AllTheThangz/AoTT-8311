@@ -93,9 +93,10 @@ The cache adds a small bounded amount of RAM, with no flash traffic.
 2. H-014: benchmark aggregate runtime and retained RAM on the real
    board while the GUI and forwarding path are active. Test missing
    data and power events under representative throughput.
-3. H-016: implement history panels and bounded JSON/CSV exports only
-   after the underlying on-device sampler is qualified, without
-   giving 90-day UI controls a false retention guarantee.
+3. H-016: the [offline view and bounded export source](H-016-HISTORY-UI-EXPORT.md)
+   now exists. Install an authenticated history route and wire it to a
+   hardware-qualified collector only after device validation; the 90-day
+   selector is not a 90-day retention guarantee.
 4. H-015: wear-aware persistent summaries are a separate project.
    This source module makes no writes and provides no history after
    a restart of the memory-owning collector.
