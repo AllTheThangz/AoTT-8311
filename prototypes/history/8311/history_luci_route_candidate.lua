@@ -9,6 +9,22 @@ local function sid_ok(value)
     return type(value)=="string" and
         (#value==32 or #value==64) and value:match("^%x+$")~=nil
 end
+-- The vendor LuCI dispatcher uses session.access without scope to
+-- return an ACL *map*, not {access=true}. Reject an empty, unrelated,
+-- explicitly denied or malformed map rather than accepting any table.
+-- luci-access is the native management read group present in the
+-- extracted vendor acl.d/luci-base.json. A route must still inherit
+-- LuCI admin authentication and pass the independent root user gate.
+local function has_luci_read(acl)
+    if type(acl)~="table" or
+       type(acl["access-group"])~="table" then return false end
+    local rights=acl["access-group"]["luci-access"]
+    if type(rights)~="table" then return false end
+    for _,right in ipairs(rights) do
+        if right=="read" or right=="write" then return true end
+    end
+    return false
+end
 local function authenticated(dispatcher,util)
     if type(dispatcher)~="table" or
        type(dispatcher.context)~="table" or
@@ -18,7 +34,7 @@ local function authenticated(dispatcher,util)
     local ctx=dispatcher.context
     local sid=ctx.authsession
     if not sid_ok(sid) or ctx.authuser~="root" or
-       type(ctx.authacl)~="table" then
+       not has_luci_read(ctx.authacl) then
         return false
     end
     -- These calls are read-only local ubus session checks. The
@@ -37,7 +53,7 @@ local function authenticated(dispatcher,util)
     local checked,acl=pcall(util.ubus,"session","access",{
         ubus_rpc_session=sid
     })
-    return checked and type(acl)=="table"
+    return checked and has_luci_read(acl)
 end
 
 local function fallback_reply(code)

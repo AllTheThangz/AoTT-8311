@@ -19,10 +19,14 @@ local function ok(value,label)
     assert(value,"H027_LUCI_SESSION_TEST_FAILED:"..label)
 end
 local function eq(a,b,label)ok(a==b,label)end
-local ctx={authsession=SID,authuser="root",authacl={}}
+local function allowed_acl()
+    return {["access-group"]={["luci-access"]={"read","write"}}}
+end
+local ctx={authsession=SID,authuser="root",authacl=allowed_acl()}
 local dispatcher={context=ctx}
 local service={get_count=0,access_count=0,expired=false,
-    bad_session=false,raise=false}
+    bad_session=false,raise=false,acl_mode="allowed",
+    revoke_on_access=nil}
 function service.ubus(object,command,request)
     ok(object=="session","only_session_UBUS")
     eq(request.ubus_rpc_session,SID,"sid_only_from_dispatcher")
@@ -36,7 +40,21 @@ function service.ubus(object,command,request)
         }}
     elseif command=="access" then
         service.access_count=service.access_count+1
-        return {access=true}
+        if service.revoke_on_access==service.access_count then
+            return {["access-group"]={["luci-access"]={}}}
+        end
+        if service.acl_mode=="boolean_denial" then return {access=false} end
+        if service.acl_mode=="empty" then return {} end
+        if service.acl_mode=="unrelated" then
+            return {["access-group"]={["unrelated"]={"read"}}}
+        end
+        if service.acl_mode=="empty_rights" then
+            return {["access-group"]={["luci-access"]={}}}
+        end
+        if service.acl_mode=="string_rights" then
+            return {["access-group"]={["luci-access"]="read"}}
+        end
+        return allowed_acl()
     end
     error("UNEXPECTED_UBUS_ACTION")
 end
@@ -90,6 +108,23 @@ ctx.authsession=SID
 ctx.authacl=nil
 eq(write().status,403,"missing_trusted_acl_rejected")
 ctx.authacl={}
+eq(write().status,403,"empty_dispatcher_acl_rejected")
+ctx.authacl={["access-group"]={["luci-access"]={"bogus"}}}
+eq(write().status,403,"invalid_dispatcher_right_rejected")
+ctx.authacl=allowed_acl()
+for _,bad in ipairs({
+    "boolean_denial","empty","unrelated","empty_rights","string_rights"
+}) do
+    service.acl_mode=bad
+    eq(write().status,403,"bad_fresh_access_acl_rejected_"..bad)
+end
+service.acl_mode="allowed"
+local before_revoked=service.access_count
+service.revoke_on_access=before_revoked+2
+eq(write().status,403,"ACL_revoked_between_two_read_checks")
+eq(service.access_count,before_revoked+2,
+   "ACL_actually_rechecked_before_snapshot_read")
+service.revoke_on_access=nil
 service.expired=true
 eq(write().status,403,"UBUS_expired_session_rejected")
 service.expired=false
