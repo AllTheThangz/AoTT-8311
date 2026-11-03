@@ -285,4 +285,14 @@ function M.recent(state, which, limit)
     return results
 end
 
+-- Explicit, read-only aggregate query. The helper is loaded on demand,
+-- so ordinary ingestion never imports the window-calculation module.
+function M.summary(state,window_seconds)
+    return require("8311.history_aggregate").summarize(state,window_seconds)
+end
+
+function M.history_windows(state)
+    return require("8311.history_aggregate").presets(state)
+end
+
 return M

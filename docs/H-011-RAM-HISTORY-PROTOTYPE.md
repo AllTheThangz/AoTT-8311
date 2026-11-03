@@ -23,6 +23,9 @@ production device qualification.
   JavaScript/Lua floating-point exact integer range. No fabricated wrap.
 - Ethernet host-interface RX and TX Mbps rates from valid monotonic intervals,
   separate from provisioned Internet throughput.
+  A [bounded H-013/H-014 aggregation model](H-013-H-014-RAM-RATE-AGGREGATION.md)
+  now provides independent, time-weighted host RX/TX averages and peaks,
+  reporting real measured coverage without inventing missing history.
 - PON registration-state and host-link transitions as sampled observations
   with explicit measurement windows, not invented exact outage timestamps.
   The [H-012 independent-channel extension](H-012-PARTIAL-PON-ETHERNET-OBSERVATIONS.md)

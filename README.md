@@ -16,6 +16,18 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-013/H-014 bounded Ethernet throughput windows
+
+The [H-013/H-014 RAM rate aggregation model](docs/H-013-H-014-RAM-RATE-AGGREGATION.md)
+provides measured-time-weighted host RX/TX Mbps averages, observed peaks,
+separate direction-specific coverage, and bounded 1-hour/24-hour/7-day/
+30-day/90-day queries. Unmeasured periods, reboot/interface boundaries,
+missing probes and partial intervals never become invented throughput.
+A revision-aware RAM-only cache avoids rescanning unchanged samples during
+repeated history viewing; it invalidates on the next accepted observation.
+The prototype does not run on an ONU yet, provide WAN speed/availability,
+or extend RAM retention to its 90-day query length.
+
 ### H-017 independent router-side WAN evidence prototype
 
 The [H-017 router/WAN probe evidence model](docs/H-017-INDEPENDENT-WAN-EVIDENCE.md)
