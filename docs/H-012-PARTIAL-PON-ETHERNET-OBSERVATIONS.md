@@ -29,6 +29,13 @@ does not change the underlying firmware or the native PON/ethtool readers.
 | Reboot, interface-source change, or over-one-hour gap | Both channel baselines reset; transitions across the boundary are not fabricated |
 | Duplicate or reversed monotonic timestamp | Reject the sample without altering retained events |
 
+The [H-020 single-owner source integration](H-020-SINGLE-COLLECTOR-INTEGRATION.md)
+now suppresses repeated identical missing-channel events during a
+continuous partial read failure while still retaining safe observations.
+A genuine subsequent PON/link transition and a new failure period
+produce distinct events. This is an offline model behavior, not a live
+ONU outage measurement.
+
 Every sample reports separate pon_observation and
 host_link_observation labels, each either observed or unavailable.
 The existing retention limits, export-size bounds and identity filtering

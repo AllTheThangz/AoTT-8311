@@ -16,6 +16,21 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-020 one-owner source history collector integration
+
+The [H-020 guarded single-collector model](docs/H-020-SINGLE-COLLECTOR-INTEGRATION.md)
+now connects the existing PRX126 fixed one-shot reader, RAM history,
+rate windows and sanitized JSON/CSV exports under one private Lua owner.
+It rejects overlapping requests, honors a shared 60/120/300-second
+manual tick cadence, backs off from failed probes and does not invent
+Internet availability or false PON outages. Continuous missing-channel
+observations generate one event instead of filling the RAM event ring.
+This source remains **offline-only**: the administration gateway does
+not currently expose the ONU as a direct authorized target, and no
+service, scheduler, storage adapter or authenticated GUI endpoint is
+installed. Unequal PON/host intervals are explicitly unsupported by
+this first collector, not silently approximated.
+
 ### H-018 residential history configuration preview
 
 The [H-018 source-only monitoring preferences](docs/H-018-RESIDENTIAL-HISTORY-CONTROLS.md)

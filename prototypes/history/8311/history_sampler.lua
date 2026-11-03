@@ -95,6 +95,7 @@ function M.new(options)
         events={}, events_head=1, events_count=0,
         last_seen=nil, previous=nil, accepted=0,
         pon_previous=nil, host_previous=nil, epoch_index=1,
+        last_unavailable_channels=nil,
     }
 end
 
@@ -209,10 +210,15 @@ function M.ingest(state, input)
 
     if not valid_status then
         if status=="baseline" then status="observation_unavailable" end
-        emit("observation_unavailable",{
-            channels=not valid_pon and (not valid_host and "pon,host" or "pon")
-                     or "host",
-        })
+        local absent=not valid_pon and
+            (not valid_host and "pon,host" or "pon") or "host"
+        -- A continuously unavailable status probe must not fill the event
+        -- ring on every timed tick and erase real PON/link transitions.
+        -- Emit on a newly missing channel set, plus any new epoch boundary.
+        if absent~=state.last_unavailable_channels or status~="observation_unavailable" then
+            emit("observation_unavailable",{channels=absent})
+        end
+        state.last_unavailable_channels=absent
         state.previous=nil
     elseif prev and status=="baseline" then
         local elapsed=current.uptime-prev.uptime
@@ -227,6 +233,7 @@ function M.ingest(state, input)
     else
         state.previous=current
     end
+    if valid_status then state.last_unavailable_channels=nil end
     state.pon_previous=next_pon
     state.host_previous=next_host
 
