@@ -94,6 +94,7 @@ function M.new(options)
         samples={}, samples_head=1, samples_count=0,
         events={}, events_head=1, events_count=0,
         last_seen=nil, previous=nil, accepted=0,
+        pon_previous=nil, host_previous=nil,
     }
 end
 
@@ -141,8 +142,10 @@ function M.ingest(state, input)
         return nil,"nonmonotonic_observation"
     end
 
-    local valid_status=current.pon_state~=nil and current.ethernet_mbps~=nil
-    local status, new_events, rates="baseline",0,nil
+    local valid_pon=current.pon_state~=nil
+    local valid_host=current.ethernet_mbps~=nil
+    local valid_status=valid_pon and valid_host
+    local status, new_events, rates, rate_error="baseline",0,nil,nil
     local prev=state.previous
     local function emit(kind, details)
         event(state,kind,current,details)
@@ -163,9 +166,44 @@ function M.ingest(state, input)
         prev=nil
     end
 
+    -- PON and host-link status have independent freshness. If the PON
+    -- command fails while host-link status changes (or vice versa), keep
+    -- the channel that was actually observed. Never map nil to a down
+    -- state or compare through a missing reading.
+    if status~="baseline" then
+        state.pon_previous=nil
+        state.host_previous=nil
+    end
+    local function observe_channel(previous, value, kind)
+        if value==nil then return nil end
+        if previous and previous.boot==current.boot and
+           previous.source==current.source then
+            local elapsed=current.uptime-previous.uptime
+            if elapsed>0 and elapsed<=MAX_GAP_SECONDS and
+               value~=previous.value then
+                emit(kind,{
+                    from=previous.value,
+                    to=value,
+                    observation_window_seconds=elapsed,
+                })
+            end
+        end
+        return {
+            boot=current.boot,source=current.source,
+            uptime=current.uptime,value=value,
+        }
+    end
+    local next_pon=observe_channel(
+        state.pon_previous,current.pon_state,"pon_state_change")
+    local next_host=observe_channel(
+        state.host_previous,current.ethernet_mbps,"host_link_change")
+
     if not valid_status then
         if status=="baseline" then status="observation_unavailable" end
-        emit("observation_unavailable")
+        emit("observation_unavailable",{
+            channels=not valid_pon and (not valid_host and "pon,host" or "pon")
+                     or "host",
+        })
         state.previous=nil
     elseif prev and status=="baseline" then
         local elapsed=current.uptime-prev.uptime
@@ -173,22 +211,15 @@ function M.ingest(state, input)
             emit("sampling_gap",{observation_window_seconds=elapsed})
             status="sampling_gap"
         else
-            local observed,reason=math_model.observe_transition(
-                prev,current,{},2)
-            if not observed then
-                return nil,reason or "unavailable_state_transition"
-            end
-            for _,changed in ipairs(observed) do
-                put_event(state,changed)
-                new_events=new_events+1
-            end
-            rates=math_model.eth_rates(prev,current)
+            rates,rate_error=math_model.eth_rates(prev,current)
             status="valid_interval"
         end
         state.previous=current
     else
         state.previous=current
     end
+    state.pon_previous=next_pon
+    state.host_previous=next_host
 
     -- These records never store boot identifier or raw byte counters.
     local summary={
@@ -196,6 +227,8 @@ function M.ingest(state, input)
         source=current.source,
         pon_state=current.pon_state,
         ethernet_mbps=current.ethernet_mbps,
+        pon_observation=valid_pon and "observed" or "unavailable",
+        host_link_observation=valid_host and "observed" or "unavailable",
         status=status,
         walltime_trust="unknown",
     }
@@ -209,7 +242,7 @@ function M.ingest(state, input)
         summary.direction=rates.direction
     else
         summary.rate_unavailable= status=="valid_interval" and
-            "no_valid_counter_pairs" or "no_comparable_interval"
+            (rate_error or "no_valid_counter_pairs") or "no_comparable_interval"
     end
     put_sample(state,summary)
     state.last_seen={boot=current.boot,uptime=current.uptime,source=current.source}
