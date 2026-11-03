@@ -162,6 +162,15 @@ local label = named and option.name or option
 <div id="aott-pon-effective-status" role="status" aria-live="polite"></div>
 <div id="aott-pon-effective-results" role="region" aria-label="Read-only PON and OMCI comparison" hidden></div>
 </section>
+<section id="aott-reporting-effective" class="cbi-section"
+         data-effective-url="<%=esc(url('admin/8311/effective_reporting'))%>"
+         aria-label="OMCI reporting source status, without identity values">
+<h3>Reported OMCI identity and software metadata</h3>
+<p>Check ten saved reporting fields without disclosing identity strings, stored software-version labels or matching patterns. A valid stored value does not prove that the OLT received it. Reported active/committed bank overrides do not change or confirm the actual boot bank. No settings are changed.</p>
+<button id="aott-reporting-effective-refresh" type="button" class="cbi-button">Check reported-field status</button>
+<div id="aott-reporting-effective-status" role="status" aria-live="polite"></div>
+<div id="aott-reporting-effective-results" role="region" aria-label="Redacted read-only reporting state" hidden></div>
+</section>
 <section id="aott-vlan-effective" class="cbi-section"
          data-effective-url="<%=esc(url('admin/8311/effective_vlan'))%>"
          aria-label="Local ISP service VLAN readback">

@@ -83,7 +83,7 @@ for _,name in ipairs({
     "luci.ltn12","nixio.bit","luci.model.uci","8311.health",
     "8311.effective_probe","8311.effective_device_probe",
     "8311.effective_pon_probe","8311.effective_vlan_probe",
-    "8311.effective_hardware_probe",
+    "8311.effective_hardware_probe","8311.effective_reporting_probe",
     "8311.uploads","8311.jobs"
 }) do package.preload[name]=function() return {} end end
 
