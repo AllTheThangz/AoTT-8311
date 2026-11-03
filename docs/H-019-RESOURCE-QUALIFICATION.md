@@ -105,3 +105,7 @@ operation is added. The bench and its fixtures belong under `tools/` and
 `tests/` and are not shipped in the ONU rootfs image. The previous
 source-only RAM prototype stays under `prototypes/history/`. This is
 a qualification aid, not a performance-tuning preset or release authorization.
+See also [H-025 source-only direct hardware admission](H-025-HARDWARE-ADMISSION.md):
+an additional fixed-argv PON/host and resource snapshot parser plus a
+fail-closed workload evidence screen are now available. Their results
+remain synthetic and **do not** prove actual PRX126 CPU/thermal load.

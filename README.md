@@ -16,6 +16,16 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-025 read-only hardware admission and resource evidence gate
+
+The [H-025 hardware admission and evidence screen](docs/H-025-HARDWARE-ADMISSION.md)
+adds a bounded, sanitized one-shot PON/host/CPU/memory/thermal resource
+probe with injected providers, an extracted vendor-MIPS ELF/ABI preflight,
+and a fail-closed workload evidence evaluator. The live PRX126 is **not**
+a direct authorized gateway target, so these source tools **cannot**
+authorize automatic sampling or claim verified ISP uptime. Even complete
+synthetic readings are marked unapproved and hardware-unqualified.
+
 ### H-024 controlled foreground worker and inert procd candidate
 
 The [H-024 source-only process supervisor](docs/H-024-SUPERVISOR-OFFLINE-PROCESS.md)
