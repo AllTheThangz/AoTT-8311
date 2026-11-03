@@ -16,6 +16,16 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-012 independent PON and host-link event handling
+
+The [H-012 partial-observation update](docs/H-012-PARTIAL-PON-ETHERNET-OBSERVATIONS.md)
+tracks native PON registration and host Ethernet link availability independently.
+A failed read of one channel no longer hides a confirmed state transition in
+the other. Missing readings remain unknown rather than being interpreted
+as a disconnection, and rate calculations still require valid comparable
+samples. This remains source-only: no runtime history, WAN probe, firmware
+image growth or deployed collector is claimed.
+
 ### H-019 synthetic resource benchmark and hardware acceptance
 
 The [H-019 offline resource qualification](docs/H-019-RESOURCE-QUALIFICATION.md)

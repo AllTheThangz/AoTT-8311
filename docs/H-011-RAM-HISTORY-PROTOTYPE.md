@@ -25,6 +25,9 @@ production device qualification.
   separate from provisioned Internet throughput.
 - PON registration-state and host-link transitions as sampled observations
   with explicit measurement windows, not invented exact outage timestamps.
+  The [H-012 independent-channel extension](H-012-PARTIAL-PON-ETHERNET-OBSERVATIONS.md)
+  retains valid transitions even when the other status probe fails,
+  without treating unknown status as a disconnection.
 - Per-observation boot and interface source identity, with counter baselines
   reset after reboot/source change.
 - Gap events for unavailable observations and intervals longer than one hour;
