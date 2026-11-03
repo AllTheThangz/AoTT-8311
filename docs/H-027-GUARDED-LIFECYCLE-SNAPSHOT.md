@@ -161,6 +161,17 @@ The current test harness does not contact a physical ONU, router
 or external endpoint. No target authorization is inferred from these
 tests.
 
+## H-028 handoff correction
+
+[H-028](H-028-PUBLICATION-ADMISSION.md) narrows H-027's earlier
+owner-only guarantee: a newly acquired `collector.lock` could
+temporarily coexist with an old crashed publisher's cached JSON before
+new-session invalidation. A separate short-readiness publication lock
+is now held only after *this* writer verifies its first snapshot,
+and both locks are required across reads. This corrects the known
+handoff race without claiming live producer freshness, WAN availability
+or PRX126 deployment.
+
 ## Production gates
 
 1. Directly authorize a recoverable PRX126 management target.
