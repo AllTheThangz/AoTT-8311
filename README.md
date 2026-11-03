@@ -16,6 +16,16 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-017 independent router-side WAN evidence prototype
+
+The [H-017 router/WAN probe evidence model](docs/H-017-INDEPENDENT-WAN-EVIDENCE.md)
+now distinguishes ONU PON registration, Ethernet host speed and externally
+reported router-side test results. Source-level history handles pass/fail/
+unknown readings, sample gaps, reboots, bounded latencies and retention,
+without pretending a single failed probe proves an ISP outage. This is
+offline code only, not a router integration, deployed Internet monitor,
+flash history or ready-to-flash firmware image.
+
 ### H-012 independent PON and host-link event handling
 
 The [H-012 partial-observation update](docs/H-012-PARTIAL-PON-ETHERNET-OBSERVATIONS.md)
