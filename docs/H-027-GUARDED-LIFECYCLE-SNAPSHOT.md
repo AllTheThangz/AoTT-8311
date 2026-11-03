@@ -109,6 +109,16 @@ trusted LuCI HTTP methods.
 The current tests inject trusted fake LuCI dispatcher, ubus and
 HTTP modules and run the source adapter in extracted vendor MIPS
 Lua/QEMU. **They do not prove actual running LuCI session behavior.**
+The additional source authorization regression validates the vendor
+dispatcher and rpcd ACL contract: the no-scope `session.access` response
+is an `access-group` map, *not* a boolean `access` response. The route
+now requires the inherited root dispatcher ACL **and** the separately
+refetched ACL to contain the actual `luci-access` read/write group,
+as defined in the vendor `luci-base.json`. An empty map, a boolean
+`access=false` result, an unrelated group, malformed rights or a
+mid-request ACL revocation all return a fixed 403. These tests use
+synthetic session data; no live authentication was modified.
+
 A genuine controller route, verified session expiry and browser UI
 integration remain separate deployment tasks. This candidate is
 not referenced by the current firmware controller or manifest.

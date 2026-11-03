@@ -84,6 +84,9 @@ class LifecycleSnapshotSourceTests(unittest.TestCase):
             'ctx.authsession',
             'ctx.authuser~="root"',
             'session.values.username~="root"',
+            'local function has_luci_read(acl)',
+            'not has_luci_read(ctx.authacl)',
+            'return checked and has_luci_read(acl)',
             'pcall(util.ubus,"session","get"',
             'pcall(util.ubus,"session","access"',
             'endpoint.serve_guarded_offline_ipc({',
@@ -161,7 +164,7 @@ class VendorMipsLifecycleSnapshotTests(unittest.TestCase):
         p=subprocess.run(command,cwd=ROOT,capture_output=True,text=True,
                          timeout=14)
         self.assertEqual(p.returncode,0,p.stderr)
-        expected=97 if mode=="active" else 94
+        expected=166 if mode=="active" else 163
         self.assertIn(
             f"AOTT_H027_LUCI_SOURCE_GATE_PASS checks={expected}",p.stdout)
         return p.stdout
