@@ -16,6 +16,17 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-010/H-011 exact-counter history and RAM prototype
+
+The [bounded history-source prototype](docs/H-011-RAM-HISTORY-PROTOTYPE.md)
+adds exact 64-bit traffic counter calculations, sampled PON/host-link events,
+missing-observation and reboot gaps, and a finite RAM-only event/sample ring.
+It passes source-level Lua and offline vendor MIPS checks. There is no
+collector daemon, automatic sampling, flash history, Internet probe, web
+history page or changed live firmware. Real hardware integration and
+resource qualification are required before a residential history feature
+can be described as operational.
+
 ### C-012 offline configuration save/readback contract
 
 The [C-012 validation matrix](docs/C-012-OFFLINE-CONFIG-SAVE-CONTRACT.md)

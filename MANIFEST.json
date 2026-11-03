@@ -200,6 +200,18 @@
       "sha256": "db6cc606f99cb2ef342b5d2fd10afed2a93d8931a64299143c8d75c213e65080"
     },
     {
+      "path": "usr/lib/lua/8311/history_model.lua",
+      "sha256": "51f861066d446a80e695b17f9e931ef052c2d623a61f7b0523cc8c114d2279f3",
+      "bytes": 7230,
+      "executable": false
+    },
+    {
+      "path": "usr/lib/lua/8311/history_sampler.lua",
+      "sha256": "d400307c026878f6258d86bea029066d83e9dbfd9a936c8bca660690d7b0739d",
+      "bytes": 9053,
+      "executable": false
+    },
+    {
       "bytes": 3008,
       "executable": false,
       "path": "usr/lib/lua/8311/hook.lua",
