@@ -138,6 +138,9 @@ even if unavailable on Hermes.
    not route commands through unrelated hosts to bypass target policy.
 2. Measure genuine optical registration, native host counters and
    process/RAM/thermal overhead under actual residential traffic.
+   The [H-023 offline restart model](H-023-COLLECTOR-LIFECYCLE.md)
+   adds bounded manual restart attempts and circuit breaking without
+   installing an actual supervisor.
 3. Qualify the [H-022 source-tested cross-process lock](H-022-CROSS-PROCESS-LOCK.md)
    on real hardware, then the procd life cycle,
    reboot/recovery safeguards, interval and cache coalescing, and
