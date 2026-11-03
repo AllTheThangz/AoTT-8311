@@ -12,7 +12,10 @@ The source now includes the vNext pure Lua 5.1 historical counter/event model
 and a bounded RAM-only aggregator. These modules live under prototypes/history/8311 and are deliberately
 excluded from the deployable overlay manifest. They consume no firmware image
 space. They have no auto-start entrypoint, network probe, timer, filesystem
-write, web route, firmware update or persistent database. An actual collector integration is still required.
+write, web route, firmware update or persistent database. A separate [one-shot native reader prototype](H-011-ONE-SHOT-NATIVE-READBACK.md)
+now supplies a bounded, testable PRX126 adapter using existing native sources.
+There is still no installed sampler, UI action, periodic collector or
+production device qualification.
 
 ## Implemented and tested
 
@@ -31,7 +34,7 @@ write, web route, firmware update or persistent database. An actual collector in
   720 samples and 256 events. Exports cap each read at 100 items.
 - Sanitized, whitelisted data records and host-interface name families: no boot ID, subscriber serial, LOID,
   password, raw device output or raw 64-bit counters in export.
-- Two pure Lua fixtures: 53 counter/state model checks and 1,073 RAM sampler
+- Two pure Lua fixtures: 53 counter/state model checks and 1,076 RAM sampler
   checks, each passing on host Lua 5.1 and the actual offline MIPS vendor Lua
   under QEMU.
 
@@ -52,9 +55,9 @@ rootfs content.
 
 ## Missing before enabling real history collection
 
-1. H-011: select read-only source commands and a single shared collector;
-   enforce hard per-probe execution limits, consistent monotonic uptime and
-   measured CPU/RAM overhead on the named hardware.
+1. H-011: complete the source-only one-shot native adapter's live read-only
+   qualification, then design the single shared collector after real CPU/RAM,
+   timeout, boot-ID availability and load measurements on named hardware.
 2. H-012/H-013: integrate real PON and Ethernet counter probes, distinguish
    failing sample providers from actual outages, validate RX/TX direction,
    resets, error counters and counter freshness.

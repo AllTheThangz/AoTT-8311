@@ -41,7 +41,7 @@ All later tasks are open unless specifically updated with new test artifacts. Ea
 | ID | Status | Deliverable | Pass criteria and dependencies |
 | --- | --- | --- | --- |
 | H-010 | DONE_SOURCE | Exact counter delta and state-change math | Portable Lua 5.1/MIPS fixture is already passing, not yet connected to runtime |
-| H-011 | IN_PROGRESS | Bounded data sampler | [Source-only RAM history core](H-011-RAM-HISTORY-PROTOTYPE.md) stores bounded synthetic observations, reset/gap events and exact counter rates with 1,073 portable regression checks. Real shared sampler, timed hardware probes, CPU/RAM benchmark and runtime wiring are not implemented. |
+| H-011 | IN_PROGRESS | Bounded data sampler | The [RAM history core](H-011-RAM-HISTORY-PROTOTYPE.md) passes 1,076 synthetic assertions. A [one-shot native PRX126 reader](H-011-ONE-SHOT-NATIVE-READBACK.md) uses fixed time-bounded PON and Ethernet commands with exact counters and validated boot/uptime windows, tested with mocked host and vendor-MIPS providers. No installed collector, live hardware acceptance, scheduled sampling, flash storage or measured load exists yet. |
 | H-012 | NOT_STARTED | Optical/PON/Ethernet event capture | No O-state or host-link changes silently ignored; sample window and missing data explicitly tracked |
 | H-013 | NOT_STARTED | Rate calculator integration | 64-bit correctness, RX/TX direction, counter-reset/reboot behavior and valid Mbps averages/peaks |
 | H-014 | NOT_STARTED | RAM history ring and aggregation | Finite capacity, eviction, zero extra always-on heavy service and no secret/identity leakage |
