@@ -250,6 +250,20 @@ local function encode(value,depth,force_array)
     end
     return "{"..table.concat(entries,",").."}"
 end
+-- H-026: compare an isolated IPC snapshot against the exporter's
+-- own canonical serialization. Vendor luci.jsonc accepts trailing text
+-- and duplicate JSON keys, so parse + shape validation alone is not
+-- enough to safely relay the original bytes to an administrator.
+function M.encode_checked_projection(projection)
+    local validator=require "8311.history_snapshot_shape"
+    local valid,why=validator.validate(projection)
+    if not valid then return nil,why end
+    local encoded,err=encode(projection,0,false)
+    if not encoded then return nil,err end
+    if #encoded>MAX_EXPORT_BYTES then return nil,"export_too_large" end
+    return encoded
+end
+
 function M.export_json(state,range,limit)
     local projection,why=M.project(state,range,limit)
     if not projection then return nil,why end

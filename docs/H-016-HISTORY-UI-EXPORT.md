@@ -108,9 +108,12 @@ controls, invalid payload rejection, and rendered missing-data gaps.
 1. **Real telemetry:** independently qualify the read-only PON and
    ethtool measurements on a recoverable PRX126; measure resource and
    network overhead. Never enable a new collector solely from this PR.
-2. **Runtime integration:** design a single shared, permission-checked
-   history producer, with bounded memory, explicit collection interval,
-   backoff, and authenticated read-only route. No anonymous endpoint.
+2. **Runtime integration:** the [H-026 source-only IPC and read-only
+   response contract](H-026-LOCAL-HISTORY-READONLY-API.md) now tests a
+   guarded publisher, separate process reader and administrator-session
+   validation, with a browser loader that requires explicit invocation.
+   A real authenticated LuCI route, qualified on-device tmpfs, running
+   collector and session-expiration handling remain unimplemented.
 3. **Visual validation:** verify actual running LuCI dark/light themes,
    responsive mobile layout, keyboard navigation, screen reader labels
    and diagnostic readability against real output.
