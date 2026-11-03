@@ -47,7 +47,7 @@ All later tasks are open unless specifically updated with new test artifacts. Ea
 | H-014 | NOT_STARTED | RAM history ring and aggregation | Finite capacity, eviction, zero extra always-on heavy service and no secret/identity leakage |
 | H-015 | NOT_STARTED | Persistent wear-limited history | Atomic bounded UBIFS summaries/events, power-cut recovery, cap/eviction, tested 7/30/90-day behavior |
 | H-016 | NOT_STARTED | Historical GUI and exports | 1-hour/24-hour/7-day/30-day/90-day filters, outage table, throughput/signal charts, JSON/CSV |
-| H-017 | NOT_STARTED | Separate WAN/ISP health integration | Optical, host-link and external reachability distinguishable; optional router management-side probe, DNS/HTTP latency and failures |
+| H-017 | IN_PROGRESS | Separate WAN/ISP health integration | [Offline router/WAN evidence model](H-017-INDEPENDENT-WAN-EVIDENCE.md) separates PON/host status from declared router test outcomes, bounded latency and history, without inventing ISP fault, full Internet health or cross-device timestamps. A real authenticated router-side probe adapter, reachability measurements, GUI and hardware acceptance remain open. |
 | H-018 | NOT_STARTED | Configurable history and alert thresholds | Operator-controlled interval, retention, event types, supported safe optical thresholds and disabled-by-default external alerts |
 | H-019 | IN_PROGRESS | Benchmark monitoring overhead | [Offline resource benchmark](H-019-RESOURCE-QUALIFICATION.md) runs 2,500 mocked H-011 reader cycles under host Lua and vendor-MIPS QEMU with finite ring retention, repeatable CPU/heap and host RSS measurements. Actual PON/ethtool cost, hardware CPU/RAM, flash wear, thermals, forwarding, latency and no-regression acceptance remain unqualified. |
 
