@@ -114,8 +114,10 @@ controls, invalid payload rejection, and rendered missing-data gaps.
 3. **Visual validation:** verify actual running LuCI dark/light themes,
    responsive mobile layout, keyboard navigation, screen reader labels
    and diagnostic readability against real output.
-4. **Persistence:** power-fail-safe and wear-limited event summaries
-   remain H-015, distinct from this volatile source preview.
+4. **Persistence:** the [H-015 source-only two-slot checkpoint model](H-015-OFFLINE-DUAL-SLOT-JOURNAL.md)
+   now has deterministic corruption and fallback tests, but no deployed
+   durable UBIFS adapter. Integrating actual recovered history into this
+   volatile GUI still requires hardware qualification.
 5. **WAN:** a trustworthy, explicitly authorized router-side probe adapter
    must independently establish customer Internet availability (H-017).
    A failed destination does not automatically prove an ISP fault.
