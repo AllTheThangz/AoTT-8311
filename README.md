@@ -16,6 +16,17 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-027 active-owner guarded source history publishing
+
+The [H-027 lifecycle snapshot bridge and LuCI gate candidate](docs/H-027-GUARDED-LIFECYCLE-SNAPSHOT.md)
+now connects H-026's bounded canonical JSON publisher to H-023's guarded
+source-only collector lifecycle. It publishes at most once per 60 seconds
+of accepted source uptime, revokes old cache on stop/restart, and checks
+an actual H-022 kernel lock before and after each separate-process read.
+Stale leftover snapshots after SIGKILL are rejected. A source-only LuCI
+candidate rechecks root administrator session facts through local ubus,
+but **no real LuCI route or live collector is installed**.
+
 ### H-026 authenticated local history snapshot contract
 
 The [H-026 bounded cross-process history handoff](docs/H-026-LOCAL-HISTORY-READONLY-API.md)

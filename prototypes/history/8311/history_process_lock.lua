@@ -136,6 +136,54 @@ function M.status(handle)
     }
 end
 
+-- H-027: passive kernel-owner evidence for a separate HTTP reader.
+-- This never creates a lock file and never starts a collector. A possible
+-- stale history file must not be served when its writer has crashed.
+function M.writer_present(directory)
+    if not allowed(directory) then return nil,"disallowed_lock_directory" end
+    if HELD[directory] then
+        return true,"owned_by_this_process"
+    end
+    local ok,nixio,fs=pcall(function()
+        return require "nixio",require "nixio.fs"
+    end)
+    if not ok or not nixio or not fs then
+        return nil,"native_lock_library_unavailable"
+    end
+    local parent=fs.lstat(directory)
+    if not secure_directory(parent) then
+        return nil,"unsafe_collector_directory"
+    end
+    local path=directory.."/"..LOCK_BASENAME
+    local before=fs.lstat(path)
+    if not secure_file(before) then return nil,"unsafe_lock_file" end
+    local fd=nixio.open(path,nixio.open_flags("rdwr"))
+    if not fd then return nil,"lock_file_open_failed" end
+    local initial=fd:stat()
+    if not secure_file(initial) or not same_object(before,initial) or
+       not same_object(parent,fs.lstat(directory)) then
+        safe_close(fd)
+        return nil,"lock_file_identity_changed"
+    end
+    local acquired,errno=fd:lock("tlock")
+    local after=fs.lstat(path)
+    local final_parent=fs.lstat(directory)
+    local safe=secure_file(after) and same_object(initial,after) and
+        secure_directory(final_parent) and same_object(parent,final_parent)
+    local closed,result=pcall(function() return fd:close() end)
+    if not safe or not closed or result==false or result==nil then
+        return nil,"lock_probe_unverified"
+    end
+    if acquired==true then
+        -- No other process owns the lock, so the cache is not live.
+        return false,"no_guarded_writer"
+    end
+    if acquired==false and (errno==11 or errno==13) then
+        return true,"another_process_holds_fcntl_lock"
+    end
+    return nil,"indeterminate_lock_contention"
+end
+
 M.PRODUCTION_DIR=PRODUCTION_DIR
 M.LOCK_BASENAME=LOCK_BASENAME
 return M

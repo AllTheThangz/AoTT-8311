@@ -59,6 +59,12 @@ local function receipt(p,code)
         next_collector_uptime=p.next_due,
         last_error=p.last_error,
         circuit_open=p.phase=="circuit_open",
+        snapshot_source_enabled=p.snapshot_directory~=nil,
+        snapshots_published=p.snapshots_published,
+        snapshot_publish_failures=p.snapshot_publish_failures,
+        snapshot_last_source_uptime=p.snapshot_last_clock,
+        snapshot_provenance="offline_synthetic_unattested",
+        live_history_endpoint_installed=false,
     }
 end
 
@@ -98,13 +104,47 @@ function M.new(directory,preferences,capability,mode)
         failed_start_count=0,reader_failures=0,
         lifetime_starts=0,lifetime_samples=0,
         lifetime_failed_samples=0,restart_count=0,
+        snapshot_directory=nil,snapshot_last_clock=nil,
+        snapshots_published=0,snapshot_publish_failures=0,
     }
     return token,receipt(PRIVATE[token])
+end
+
+-- H-027 optional source-only snapshot configuration, frozen before
+-- the first guarded collector admission. The approved directory is an
+-- independently provisioned private offline test directory, never a
+-- URI, firmware setting, arbitrary pathname or production target.
+function M.configure_snapshot(token,directory,mode)
+    local p=owner(token)
+    if not p then return nil,"invalid_lifecycle_handle" end
+    if mode~="offline_synthetic" or type(directory)~="string" or
+       #directory>119 or not directory:match(
+           "^/var/tmp/aott%-h026%-ipc%-test%-%w+$") then
+        return nil,"unqualified_snapshot_directory"
+    end
+    if p.phase~="stopped" or p.lifetime_starts~=0 or
+       p.snapshot_directory~=nil then
+        return nil,"snapshot_configuration_frozen"
+    end
+    p.snapshot_directory=directory
+    return {status="offline_snapshot_configured",
+        source_only_not_deployed=true,no_production_activation=true,
+        actual_device_storage_unqualified=true,
+        no_collector_started=true}
+end
+
+local function invalidate_snapshot(p)
+    if not p.snapshot_directory or not p.handle then return true end
+    local bridge=require "8311.history_snapshot_ipc"
+    local ok,result=pcall(bridge.invalidate,p.handle,
+        p.snapshot_directory,"offline_synthetic")
+    return ok and type(result)=="table"
 end
 
 -- All backoff and restart decisions are made in a caller-provided
 -- monotonic time domain. There is no automatic wakeup or sleep.
 local function cooled(p,now,why)
+    local invalidated=invalidate_snapshot(p)
     if p.handle then
         local ok,closed=pcall(guarded.close,p.handle)
         if not ok or not closed then
@@ -115,6 +155,13 @@ local function cooled(p,now,why)
         end
         p.handle=nil
     end
+    if not invalidated then
+        p.phase="unsafe"
+        p.last_error="snapshot_invalidation_failed"
+        p.next_start=nil
+        return nil,"snapshot_invalidation_failed"
+    end
+    p.snapshot_last_clock=nil
     p.next_due=nil
     p.reader_failures=0
     p.restart_count=p.restart_count+1
@@ -172,8 +219,34 @@ function M.start(token,now)
         p.next_start=nil
         return nil,cause
     end
+    -- Revoke any prior cached snapshot before taking new ownership.
+    -- A new worker must not briefly authenticate an older collector's
+    -- valid JSON just because it acquired the same kernel lock.
+    if p.snapshot_directory then
+        local ipc=require "8311.history_snapshot_ipc"
+        local verified,removed=pcall(ipc.invalidate,handle,
+            p.snapshot_directory,"offline_synthetic")
+        if not verified or not removed then
+            pcall(guarded.close,handle)
+            p.phase="unsafe"
+            p.last_error="snapshot_start_invalidation_unverified"
+            return nil,"snapshot_start_invalidation_unverified"
+        end
+        -- A previous process can die after writing its temporary file.
+        -- Only a verified regular single-link stage may be discarded,
+        -- while this process still holds the exclusive H-022 lock.
+        local cleaned,discarded=pcall(ipc.discard_stale_stage,handle,
+            p.snapshot_directory,"offline_synthetic")
+        if not cleaned or not discarded then
+            pcall(guarded.close,handle)
+            p.phase="unsafe"
+            p.last_error="snapshot_stale_stage_unverified"
+            return nil,"snapshot_stale_stage_unverified"
+        end
+    end
     p.phase="running"
     p.handle=handle
+    p.snapshot_last_clock=nil
     p.lifetime_starts=p.lifetime_starts+1
     p.reader_failures=0
     p.failed_start_count=0
@@ -232,7 +305,27 @@ function M.step(token,now,provider)
     p.reader_failures=0
     p.next_due=value.next_due_uptime
     p.last_error=nil
+    local publication="not_configured"
+    if p.snapshot_directory then
+        local last=p.snapshot_last_clock
+        if last==nil or value.history_status=="reboot" or
+           (now>=last and now-last>=60) then
+            local bridge=require "8311.history_snapshot_ipc"
+            local published,record=pcall(bridge.publish,p.handle,
+                p.snapshot_directory,"offline_synthetic")
+            if not published or type(record)~="table" then
+                p.snapshot_publish_failures=p.snapshot_publish_failures+1
+                return cooled(p,now,"snapshot_publish_failed")
+            end
+            p.snapshot_last_clock=now
+            p.snapshots_published=p.snapshots_published+1
+            publication="verified_offline_snapshot"
+        else
+            publication="not_due"
+        end
+    end
     local out=receipt(p,"sample_accepted")
+    out.snapshot_publish_status=publication
     out.due_pon=value.due_pon
     out.due_host=value.due_host
     out.has_rate=value.has_rate
@@ -251,14 +344,21 @@ function M.stop(token)
     -- reviewed session. Ordinary stop/start cannot reset its budget.
     if p.phase=="circuit_open" then return receipt(p,"circuit_open") end
     if p.phase=="running" then
+        local invalidated=invalidate_snapshot(p)
         local ok,closed=pcall(guarded.close,p.handle)
         if not ok or not closed then
             p.phase="unsafe"
             p.last_error="guarded_close_unverified"
             return nil,"guarded_close_unverified"
         end
+        if not invalidated then
+            p.phase="unsafe"
+            p.last_error="snapshot_invalidation_failed"
+            return nil,"snapshot_invalidation_failed"
+        end
     end
     p.handle=nil
+    p.snapshot_last_clock=nil
     p.phase="stopped"
     p.next_start=nil
     p.next_due=nil

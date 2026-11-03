@@ -137,6 +137,16 @@ The public GitHub runner does not have the extracted private
 vendor rootfs. Host Lua and Chromium tests run there; vendor-MIPS
 kernel/ABI checks run on Hermes and are identified as offline.
 
+## H-027 source-only follow-up
+
+The [H-027 guarded lifecycle source bridge](H-027-GUARDED-LIFECYCLE-SNAPSHOT.md)
+now connects the H-023 collector to this IPC publisher, performs
+bounded source-clock publication, and verifies the H-022 kernel owner
+before and after a reader accesses a cached snapshot. It also tests an
+uninstalled LuCI root-admin session gate with local ubus rechecks.
+These improvements do **not** provide a real LuCI endpoint, on-device
+tmpfs, a running collector or verified WAN connectivity.
+
 ## Remaining gates
 
 1. Authorize a direct, recoverable PRX126 management target and
