@@ -147,9 +147,11 @@ before publication.
    Do not use Hermes as a covert path around the target allowlist.
 2. Measure actual PON/ethtool timing, CPU/RAM, thermals, packet drops
    and management responsiveness under load.
-3. Add a separately qualified low-priority procd service, one stable
-   root-owned runtime directory, kernel lock ownership, graceful
-   SIGTERM cancellation and bounded process restart policy.
+3. The [H-024 offline wrapper and inert procd candidate](H-024-SUPERVISOR-OFFLINE-PROCESS.md)
+   now test foreground process exit and graceful TERM/HUP/INT shutdown
+   against the guarded source lifecycle. A **new, qualified production
+   procd service**, actual PRX126 process/RAM limits and recovery
+   behavior remain necessary before installation.
 4. Verify supervisor exits release file locks and do not disturb
    subscriber forwarding after fiber loss or module reboot.
 5. Add authenticated LuCI history/settings readback and independently

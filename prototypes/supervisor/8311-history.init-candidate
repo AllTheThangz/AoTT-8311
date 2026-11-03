@@ -1,0 +1,19 @@
+#!/bin/sh /etc/rc.common
+# H-024 design candidate only, intentionally EXCLUDED from firmware overlay.
+# OpenWrt procd accepts an instance error without spawning a process.
+# No enable/start service is authorized for the PRX126 yet.
+USE_PROCD=1
+START=99
+STOP=10
+
+start_service() {
+    procd_open_instance "aott-history"
+    procd_set_param error "H024 source-only: PRX126 telemetry and resource qualification required"
+    procd_close_instance
+}
+
+# Do not configure procd_set_param respawn here.
+# A retry count of zero permits unlimited restart attempts. H-023 has
+# its own finite restart circuit breaker and must remain authoritative.
+# A future qualified service must use a foreground command, core/nofile
+# and measured memory limits, low priority and validated STOP behavior.
