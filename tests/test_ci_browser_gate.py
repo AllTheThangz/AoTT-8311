@@ -13,6 +13,15 @@ class BrowserCIGates(unittest.TestCase):
         self.assertNotIn("-p 'test_browser_pon_explorer.py'", workflow)
         self.assertIn("No installed Chrome/Chromium executable", workflow)
 
+    def test_lua_installed_before_lua_dependent_python_suite(self):
+        workflow = (ROOT / ".github/workflows/source-validation.yml").read_text()
+        install = workflow.index("- name: Install Lua 5.1 before Python source tests")
+        py_suite = workflow.index("- name: Run isolated Python security, gateway and boot tests")
+        self.assertLess(install, py_suite)
+        self.assertIn("apt-get install -y --no-install-recommends lua5.1",
+                      workflow[install:py_suite])
+        self.assertIn("luac5.1 -p", workflow[py_suite:])
+
     def test_both_browser_suites_are_source_only(self):
         files = [p.name for p in (ROOT / "tests").glob("test_browser_*.py")]
         self.assertIn("test_browser_pon_explorer.py", files)
