@@ -62,6 +62,10 @@ early source-level bound, not an approved production polling frequency.
 The final interval must be set using actual PRX126 CPU, memory, GUI,
 optical stability, traffic and timeout benchmarks.
 
+The [H-021 selective collector source mode](H-021-INDEPENDENT-PON-HOST-CADENCE.md)
+can now honor unequal PON/host intervals offline under the same budget.
+Real hardware still requires per-channel qualification and a supervisor.
+
 Routine journal intervals can never be below **900 seconds**, consistent
 with H-015. Changing the proposed interval while persistence is disabled
 does not cause a write. A 7/30/90-day target is allowed in the model only

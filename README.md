@@ -16,6 +16,19 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-021 independent native PON and Ethernet cadence
+
+The [H-021 selective PON/host scheduling prototype](docs/H-021-INDEPENDENT-PON-HOST-CADENCE.md)
+now supports independently configured 30/60/120/300-second intervals
+subject to the conservative native process-wait budget. The fixed
+native reader skips commands that are not due. History separately
+records **not sampled** and **probe unavailable**, and exact host RX/TX
+rates use the elapsed time between real counter observations, without
+inventing zero traffic. A verified changed boot identity resets the
+schedule safely. H-020's legacy equal-cadence model is preserved.
+This source-only mode still needs real PRX126 qualification, a supervised
+single writer and authenticated LuCI integration before deployment.
+
 ### H-020 one-owner source history collector integration
 
 The [H-020 guarded single-collector model](docs/H-020-SINGLE-COLLECTOR-INTEGRATION.md)

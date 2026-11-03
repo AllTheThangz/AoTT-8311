@@ -272,6 +272,172 @@ function M.ingest(state, input)
     }
 end
 
+-- H-021 selective source sampler. A channel that was not scheduled is
+-- neither a success nor a failed probe. Rate intervals compare actual
+-- Ethernet counter observations, not intervening PON-only timestamps.
+-- Legacy M.ingest remains unchanged for combined H-011/H-020 reports.
+function M.ingest_selected(state,input)
+    if type(state)~="table" or state.schema~=1 or
+       type(state.samples)~="table" or type(state.events)~="table" or
+       not integer(state.epoch_index,1,9007199254740990) then
+        return nil,"invalid_state"
+    end
+    if type(input)~="table" or type(input.observed)~="table" or
+       type(input.observed.pon)~="boolean" or
+       type(input.observed.host)~="boolean" or
+       (not input.observed.pon and not input.observed.host) then
+        return nil,"invalid_selected_channels"
+    end
+    for key in pairs(input.observed) do
+        if key~="pon" and key~="host" then
+            return nil,"invalid_selected_channels"
+        end
+    end
+    if (not input.observed.pon and input.pon_state~=nil) or
+       (not input.observed.host and
+        (input.ethernet_mbps~=nil or
+         (type(input.eth)=="table" and next(input.eth)~=nil))) then
+        return nil,"unscheduled_channel_supplied_data"
+    end
+    local current,why=clean(input)
+    if not current then return nil,why end
+    local last=state.last_seen
+    if last and current.boot==last.boot and current.uptime<=last.uptime then
+        return nil,"nonmonotonic_observation"
+    end
+    local pon_due=input.observed.pon
+    local host_due=input.observed.host
+    local pon_good=pon_due and current.pon_state~=nil
+    local host_good=host_due and current.ethernet_mbps~=nil
+    local fail_pon=pon_due and not pon_good
+    local fail_host=host_due and not host_good
+    local status="partial_interval"
+    local events_added=0
+    local function emit(kind,fields)
+        event(state,kind,current,fields)
+        events_added=events_added+1
+    end
+    local boundary=false
+    if last and last.boot~=current.boot then
+        state.epoch_index=state.epoch_index+1
+        status="reboot"
+        emit("reboot_observed")
+        boundary=true
+    elseif last and last.source~=current.source then
+        state.epoch_index=state.epoch_index+1
+        status="source_changed"
+        emit("source_changed")
+        boundary=true
+    elseif last and current.uptime-last.uptime>MAX_GAP_SECONDS then
+        state.epoch_index=state.epoch_index+1
+        status="sampling_gap"
+        emit("sampling_gap",{
+            observation_window_seconds=current.uptime-last.uptime,
+        })
+        boundary=true
+    end
+    if boundary then
+        state.selected_pon_previous=nil
+        state.selected_host_previous=nil
+        state.selected_rate_previous=nil
+        state.selected_failed_pon=false
+        state.selected_failed_host=false
+    end
+
+    local function observe(previous,attempted,value,kind)
+        if not attempted then return previous end
+        if value==nil then return nil end
+        if previous and previous.boot==current.boot and
+           previous.source==current.source then
+            local elapsed=current.uptime-previous.uptime
+            if elapsed>0 and elapsed<=MAX_GAP_SECONDS and
+               value~=previous.value then
+                emit(kind,{
+                    from=previous.value,to=value,
+                    observation_window_seconds=elapsed,
+                })
+            end
+        end
+        return {
+            boot=current.boot,source=current.source,
+            uptime=current.uptime,value=value,
+        }
+    end
+    state.selected_pon_previous=observe(
+        state.selected_pon_previous,pon_due,current.pon_state,
+        "pon_state_change")
+    state.selected_host_previous=observe(
+        state.selected_host_previous,host_due,current.ethernet_mbps,
+        "host_link_change")
+
+    local newly_failed_pon=fail_pon and not state.selected_failed_pon
+    local newly_failed_host=fail_host and not state.selected_failed_host
+    if newly_failed_pon or newly_failed_host then
+        local channels=newly_failed_pon and
+            (newly_failed_host and "pon,host" or "pon") or "host"
+        emit("observation_unavailable",{channels=channels})
+    end
+    if pon_due then state.selected_failed_pon=fail_pon end
+    if host_due then state.selected_failed_host=fail_host end
+
+    local rates,rate_error=nil,nil
+    if fail_pon or fail_host then
+        state.selected_rate_previous=nil
+        if not boundary then status="observation_unavailable" end
+    elseif host_due and host_good then
+        local old=state.selected_rate_previous
+        if old and not boundary then
+            rates,rate_error=math_model.eth_rates(old,current)
+        end
+        -- Only actual sampled counters may form a future baseline.
+        if current.eth and (current.eth.RxGoodBytes~=nil or
+            current.eth.TxGoodBytes~=nil) then
+            state.selected_rate_previous=current
+        else
+            state.selected_rate_previous=nil
+        end
+        if not boundary then
+            status=rates~=nil and "valid_interval" or
+                (pon_due and "baseline" or "partial_interval")
+        end
+    elseif pon_due and not boundary then
+        status="partial_interval"
+    end
+    if not last and status=="partial_interval" then status="baseline" end
+
+    local sample={
+        at_uptime=current.uptime,epoch_index=state.epoch_index,
+        source=current.source,pon_state=current.pon_state,
+        ethernet_mbps=current.ethernet_mbps,
+        pon_observation=not pon_due and "not_sampled" or
+            (pon_good and "observed" or "unavailable"),
+        host_link_observation=not host_due and "not_sampled" or
+            (host_good and "observed" or "unavailable"),
+        status=status,walltime_trust="unknown",
+    }
+    if rates then
+        sample.elapsed_seconds=rates.elapsed_seconds
+        sample.rx_mbps=rates.rx_mbps
+        sample.tx_mbps=rates.tx_mbps
+        sample.rx_unavailable=rates.rx_mbps_unavailable
+        sample.tx_unavailable=rates.tx_mbps_unavailable
+        sample.rate_source=rates.source
+        sample.direction=rates.direction
+    else
+        sample.rate_unavailable=rate_error or "no_comparable_interval"
+    end
+    put_sample(state,sample)
+    state.last_seen={boot=current.boot,source=current.source,
+                     uptime=current.uptime}
+    state.accepted=state.accepted+1
+    return {
+        status=status,events_added=events_added,
+        samples_retained=state.samples_count,
+        events_retained=state.events_count,
+        has_rate=rates~=nil,
+    }
+end
+
 local function copy_record(src)
     local copy={}
     for k,v in pairs(src) do

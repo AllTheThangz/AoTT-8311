@@ -27,7 +27,7 @@ local function private(handle)
     end
     return PRIV[handle]
 end
-local function select_preferences(p)
+local function select_preferences(p,independent)
     if type(p)~="table" or p.schema~=1 or
        not integer(p.revision,1,9007199254740990) or
        p.source_only_not_live~=true or p.no_device_write~=true or
@@ -55,19 +55,28 @@ local function select_preferences(p)
        v.rx_low_dbm~=nil or v.retention_days~=0 then
         return nil,"unimplemented_collector_output_requested"
     end
+    if independent and v.optical_interval_seconds~=120 then
+        -- Optical counters are not wired into this native adapter.
+        -- Never accept a changed optical cadence without executing it.
+        return nil,"optical_cadence_not_implemented"
+    end
     local pon,host=v.pon_interval_seconds,v.host_interval_seconds
-    if pon~=host then
-        -- Fixed H-011 reader always polls PON+host as one observation.
-        -- Do not claim two independent cadences when we only have one.
+    if not independent and pon~=host then
         return nil,"independent_channel_cadences_not_yet_implemented"
     end
-    if pon~=60 and pon~=120 and pon~=300 then
-        -- 30+30 would exceed 720 s/h bounded process-wait budget.
+    if independent then
+        local choices={ [30]=true,[60]=true,[120]=true,[300]=true }
+        if not choices[pon] or not choices[host] or
+           (3600/pon)*3+(3600/host)*4>720 then
+            return nil,"collector_interval_not_qualified"
+        end
+    elseif pon~=60 and pon~=120 and pon~=300 then
         return nil,"collector_interval_not_qualified"
     end
     return {
         enabled=v.sampling_enabled,
-        interval=pon,
+        interval=pon==host and pon or nil,
+        pon_interval=pon,host_interval=host,
         samples=v.ram_sample_limit,
         events=v.ram_event_limit,
         version=p.revision,
@@ -98,6 +107,8 @@ function M.new(preferences,capability,mode)
     PRIV[token]={
         history=history,enabled=selected.enabled,
         interval=selected.interval,prefs_revision=selected.version,
+        pon_interval=selected.pon_interval,
+        host_interval=selected.host_interval,mode="combined",
         last_tick=nil,next_due=nil,
         in_flight=false,failures=0,failed_attempts=0,
         attempts=0,samples=0,last_error=nil,last_availability=nil,
@@ -129,7 +140,11 @@ local function receipt(p)
         no_network_or_alert_delivery=true,
         no_live_firmware_integration=true,
         one_shared_native_sample_interval_seconds=p.interval,
-        independent_channel_cadences_implemented=false,
+        pon_interval_seconds=p.pon_interval,
+        host_interval_seconds=p.host_interval,
+        pon_next_due_uptime=p.next_pon_due,
+        host_next_due_uptime=p.next_host_due,
+        independent_channel_cadences_implemented=p.mode=="independent",
         next_due_uptime=p.next_due,
         calls=p.attempts,samples_accepted=p.samples,
         failed_attempts=p.failed_attempts,
@@ -164,6 +179,9 @@ end
 -- one owner. This model has NO scheduler and cannot activate on an ONU.
 function M.tick(handle,now,provider)
     local p=private(handle)
+    if p and p.mode=="independent" then
+        return M.tick_independent(handle,now,provider)
+    end
     if not p then return nil,"invalid_collector_handle" end
     if not seconds(now) then return nil,"invalid_tick_clock" end
     if not p.enabled then
@@ -238,6 +256,150 @@ function M.tick(handle,now,provider)
         source_only_not_live=true,
         no_device_write=true,no_flash_write=true,
         no_isp_availability_proof=true,
+    }
+end
+
+-- Independent PON and host cadence source constructor. No actual
+-- hardware qualification or service activation is performed.
+function M.new_independent(preferences,capability,mode)
+    local selected,why=select_preferences(preferences,true)
+    if not selected then return nil,why end
+    if type(capability)~="table" or
+       capability.kind~="source_only" or
+       type(capability.native_qualified)~="boolean" then
+        return nil,"invalid_source_capability"
+    end
+    if selected.enabled and (capability.native_qualified~=true or
+       mode~="offline_synthetic") then
+        return nil,"hardware_not_directly_qualified"
+    end
+    if selected.enabled and ACTIVE.handle then
+        return nil,"collector_owner_exists"
+    end
+    local history,reason=sampler.new({
+        max_samples=selected.samples,max_events=selected.events,
+    })
+    if not history then return nil,reason end
+    local handle={schema=1,source_only_not_live=true}
+    PRIV[handle]={
+        history=history,enabled=selected.enabled,
+        pon_interval=selected.pon_interval,
+        host_interval=selected.host_interval,
+        interval=selected.interval,mode="independent",
+        prefs_revision=selected.version,last_tick=nil,last_boot=nil,
+        next_due=nil,next_pon_due=nil,next_host_due=nil,
+        in_flight=false,failures=0,failed_attempts=0,
+        attempts=0,samples=0,last_error=nil,last_availability=nil,
+    }
+    if selected.enabled then ACTIVE.handle=handle end
+    return handle
+end
+
+-- H-021 independent selective sampling. Only due channels are read;
+-- never replay or zero-fill an unobserved channel. No internal scheduler.
+function M.tick_independent(handle,now,provider)
+    local p=private(handle)
+    if not p or p.mode~="independent" then
+        return nil,"invalid_independent_collector"
+    end
+    if not seconds(now) then return nil,"invalid_tick_clock" end
+    if not p.enabled then
+        return {status="disabled",no_native_probe=true,
+                source_only_not_live=true}
+    end
+    if p.in_flight then return nil,"native_probe_already_in_flight" end
+    local regressed=p.last_tick and now<p.last_tick
+    -- A decreasing uptime is allowed only if the bounded native reader
+    -- independently proves a *different* boot identifier. No stale
+    -- counter pair may cross that boot boundary.
+    if p.next_due and now<p.next_due and not regressed then
+        return {status="not_due",next_due_uptime=p.next_due,
+                no_native_probe=true,source_only_not_live=true}
+    end
+    local pon_due=regressed or p.next_pon_due==nil or now>=p.next_pon_due
+    local host_due=regressed or p.next_host_due==nil or now>=p.next_host_due
+    if not pon_due and not host_due then
+        return {status="not_due",next_due_uptime=p.next_due,
+                no_native_probe=true,source_only_not_live=true}
+    end
+    if type(provider)~="table" or
+       type(provider.read)~="function" or
+       type(provider.run)~="function" then
+        return nil,"invalid_readonly_provider"
+    end
+    p.in_flight=true
+    local prior_tick=p.last_tick
+    p.last_tick=now
+    p.attempts=p.attempts+1
+    local selection={pon=pon_due,host=host_due}
+    local ok,snapshot,availability=pcall(probe.read_selected,provider,selection)
+    if not ok or not snapshot then
+        p.in_flight=false
+        if regressed then
+            p.last_tick=prior_tick
+            return nil,"reboot_identity_unverified"
+        end
+        return retry(p,now,ok and availability or
+                     "native_reader_exception")
+    end
+    if regressed and (not p.last_boot or
+       snapshot.boot==p.last_boot) then
+        p.in_flight=false
+        p.last_tick=prior_tick
+        return nil,"collector_clock_regressed"
+    end
+    if not seconds(snapshot.uptime) or
+       math.abs(snapshot.uptime-now)>12 then
+        p.in_flight=false
+        if regressed then p.last_tick=prior_tick end
+        return nil,"snapshot_clock_mismatch"
+    end
+    local valid_pon=pon_due and availability.pon=="observed"
+    local valid_host=host_due and
+       (availability.host_link=="observed" or
+        availability.host_counters=="observed")
+    if not valid_pon and not valid_host then
+        p.in_flight=false
+        if regressed then
+            p.last_tick=prior_tick
+            return nil,"reboot_observation_unavailable"
+        end
+        return retry(p,now,"no_valid_native_measurement")
+    end
+    local accepted,sample=pcall(sampler.ingest_selected,p.history,snapshot)
+    p.in_flight=false
+    if not accepted or not sample then
+        if regressed then
+            p.last_tick=prior_tick
+            return nil,"reboot_sample_unverified"
+        end
+        return retry(p,now,accepted and "selected_history_sample_rejected"
+                                  or "selected_history_ingest_exception")
+    end
+    p.last_boot=snapshot.boot
+    p.samples=p.samples+1
+    p.failures=0
+    p.last_error=nil
+    if pon_due then p.next_pon_due=now+p.pon_interval end
+    if host_due then p.next_host_due=now+p.host_interval end
+    p.next_due=math.min(p.next_pon_due,p.next_host_due)
+    p.last_availability={
+        pon=availability.pon,host_link=availability.host_link,
+        host_counters=availability.host_counters,
+    }
+    return {
+        schema=1,status="sample_accepted",
+        due_pon=pon_due,due_host=host_due,
+        next_due_uptime=p.next_due,
+        pon_next_due_uptime=p.next_pon_due,
+        host_next_due_uptime=p.next_host_due,
+        history_status=sample.status,has_rate=sample.has_rate,
+        events_added=sample.events_added,
+        samples_retained=sample.samples_retained,
+        events_retained=sample.events_retained,
+        availability=p.last_availability,
+        source_only_not_live=true,no_device_write=true,
+        no_flash_write=true,no_isp_availability_proof=true,
     }
 end
 

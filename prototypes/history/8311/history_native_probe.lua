@@ -88,7 +88,17 @@ end
 
 -- Provider callbacks are injected for offline host and vendor-MIPS testing.
 -- Only fixed kernel paths and fixed read-only argv are ever requested.
-function M.read_once(provider)
+function M.read_selected(provider, selected)
+    if type(selected)~="table" or type(selected.pon)~="boolean" or
+       type(selected.host)~="boolean" or
+       (not selected.pon and not selected.host) then
+        return nil,"invalid_probe_selection"
+    end
+    for key in pairs(selected) do
+        if key~="pon" and key~="host" then
+            return nil,"invalid_probe_selection"
+        end
+    end
     if type(provider) ~= "table" or type(provider.read) ~= "function" or
        type(provider.run) ~= "function" then
         return nil, "invalid_readonly_provider"
@@ -98,11 +108,14 @@ function M.read_once(provider)
     local uptime_start = clean_uptime(read(provider, UPTIME_PATH, UPTIME_BYTES))
     if not uptime_start then return nil, "monotonic_time_unavailable" end
 
-    local speed = clean_speed(read(provider, SPEED_PATH, SPEED_BYTES))
-    local pon_output = capture(provider, PON_CMD, PON_BYTES)
+    local speed = selected.host and
+        clean_speed(read(provider, SPEED_PATH, SPEED_BYTES)) or nil
+    local pon_output = selected.pon and
+        capture(provider, PON_CMD, PON_BYTES) or nil
     local pon = nil
     if pon_output then pon = pon_model.parse_pon_status(pon_output) end
-    local eth_output = capture(provider, ETH_CMD, ETH_BYTES)
+    local eth_output = selected.host and
+        capture(provider, ETH_CMD, ETH_BYTES) or nil
     local counters = nil
     if eth_output then counters = parse_ethtool(eth_output) end
 
@@ -122,9 +135,12 @@ function M.read_once(provider)
     -- A missing or failed individual probe is reported as unavailable,
     -- never as zero loss, a downed fiber, or a working Internet connection.
     local availability = {
-        pon = pon ~= nil and "observed" or "unavailable",
-        host_link = speed ~= nil and "observed" or "unavailable",
-        host_counters = counters ~= nil and "observed" or "unavailable",
+        pon = not selected.pon and "not_sampled" or
+            (pon ~= nil and "observed" or "unavailable"),
+        host_link = not selected.host and "not_sampled" or
+            (speed ~= nil and "observed" or "unavailable"),
+        host_counters = not selected.host and "not_sampled" or
+            (counters ~= nil and "observed" or "unavailable"),
         proves_subscriber_internet = false,
         sample_source = "prx126_native_host_interface_eth0_0",
         no_device_write = true,
@@ -134,7 +150,13 @@ function M.read_once(provider)
         boot = boot, uptime = uptime_end, source = "eth0_0",
         pon_state = pon, ethernet_mbps = speed,
         eth = counters or {},
+        observed={pon=selected.pon,host=selected.host},
     }, availability
+end
+
+-- Legacy one-shot reader remains a two-channel observation.
+function M.read_once(provider)
+    return M.read_selected(provider,{pon=true,host=true})
 end
 
 -- One explicit invocation, no timers or background services. The result is

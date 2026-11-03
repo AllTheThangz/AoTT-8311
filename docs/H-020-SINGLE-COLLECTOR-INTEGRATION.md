@@ -57,7 +57,14 @@ invocation. This is a delay policy, not an operating-system timer.
 Reads that span an invalid boot epoch or do not align with their
 own monotonic observation window are rejected.
 
-### Important remaining cadence limitation
+### Legacy shared-mode cadence limitation and H-021 follow-up
+
+A separate [H-021 source-only independent-cadence mode](H-021-INDEPENDENT-PON-HOST-CADENCE.md)
+now selectively reads only due native channels, preserves distinct
+not_sampled and unavailable states, and calculates exact host throughput
+between actual byte-counter observations. The legacy combined mode
+below remains intentionally unchanged for backward compatibility.
+Neither mode is deployed or authorized on real PRX126 hardware.
 
 The original fixed H-011 adapter polls PON status and host Ethernet
 together. H-020 deliberately accepts only **equal** 60-, 120- or
@@ -67,8 +74,8 @@ the initial conservative source-level process-wait budget.
 H-018 independently exposes distinct PON/host frequencies for future
 use, but H-020 explicitly refuses a request for unequal cadences.
 It does not silently poll one device more often or less often than
-the user requested. Independent per-channel native read scheduling
-remains necessary before those combinations can be enabled.
+the user requested. Independent per-channel native read scheduling is implemented in
+H-021's separate offline synthetic mode, not this legacy combined mode.
 
 Optical polling, heavier diagnostics, flash persistence, actual local
 alerts and remote notifications are **not implemented in this

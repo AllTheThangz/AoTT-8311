@@ -7,14 +7,15 @@ local MAX_EXPORT_BYTES=65536
 local MAX_EPOCH=9007199254740990
 local RANGES={"hour","day","week","month","ninety_days"}
 local SAMPLE_STATES={
-    baseline=true,valid_interval=true,observation_unavailable=true,
-    reboot=true,source_changed=true,sampling_gap=true,
+    baseline=true,valid_interval=true,partial_interval=true,
+    observation_unavailable=true,reboot=true,source_changed=true,
+    sampling_gap=true,
 }
 local EVENTS={
     pon_state_change=true,host_link_change=true,reboot_observed=true,
     source_changed=true,sampling_gap=true,observation_unavailable=true,
 }
-local MISSING={observed=true,unavailable=true}
+local MISSING={observed=true,unavailable=true,not_sampled=true}
 local function finite(x,low,high)
     return type(x)=="number" and x==x and x~=math.huge and
         x~=-math.huge and x>=low and x<=high
