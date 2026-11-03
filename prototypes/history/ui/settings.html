@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" data-aott-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <link rel="icon" href="data:,">
+  <title>AoTT-8311 | History settings preview</title>
+  <link rel="stylesheet" href="history.css">
+  <link rel="stylesheet" href="settings.css">
+  <script defer src="settings.js"></script>
+</head>
+<body>
+<main class="aott-history" id="aott-history-settings">
+  <header class="aott-header">
+    <div>
+      <p class="eyebrow">AoTT-8311 / HISTORY SETTINGS</p>
+      <h1>Local monitoring preferences</h1>
+      <p id="settings-notice" class="notice" role="status">Source-only settings preview. No active collector, persistent storage, external notifications, or live device settings are connected to this page.</p>
+    </div>
+    <div class="filters">
+      <label for="settings-theme">Appearance</label>
+      <select id="settings-theme">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+    </div>
+  </header>
+
+  <section class="aott-panel" aria-labelledby="settings-basic-heading">
+    <h2 id="settings-basic-heading">Everyday monitoring</h2>
+    <p class="footnote">Keep the bridge responsive. Unavailable controls show what hardware qualification is still required.</p>
+    <div id="settings-basic-fields" class="settings-grid"></div>
+  </section>
+
+  <section class="aott-panel" aria-labelledby="settings-advanced-heading">
+    <details id="settings-advanced">
+      <summary id="settings-advanced-heading">Advanced history options</summary>
+      <p class="footnote">Optional diagnostics, event types and persistence remain subject to board-specific verification.</p>
+      <div id="settings-advanced-fields" class="settings-grid"></div>
+    </details>
+  </section>
+
+  <section class="aott-panel" aria-labelledby="settings-preview-heading">
+    <h2 id="settings-preview-heading">Review proposed resource use</h2>
+    <p class="footnote">A preview is a calculation, not a save. Device writes, alerts and background collection are always disabled in this prototype.</p>
+    <div class="download-row">
+      <button type="button" id="settings-preview-button" disabled>Preview settings</button>
+      <button type="button" id="settings-reset-button" disabled>Reset draft</button>
+    </div>
+    <p id="settings-error" aria-live="polite" class="settings-error"></p>
+    <div id="settings-preview" aria-live="polite" class="settings-result">
+      Load the source-only field catalogue to preview a safe configuration.
+    </div>
+  </section>
+</main>
+</body>
+</html>

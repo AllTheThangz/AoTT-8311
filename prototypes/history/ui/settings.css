@@ -1,0 +1,64 @@
+.settings-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  margin-top:16px;
+}
+.settings-field {
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  min-width:0;
+  background:var(--surface-alt);
+  padding:13px;
+  border:1px solid var(--edge);
+  border-radius:9px;
+}
+.settings-field label {
+  font-size:.9rem;
+  color:var(--foreground);
+}
+.settings-field input[type="number"],.settings-field select {
+  width:100%;
+  min-height:40px;
+}
+.settings-field input[type="checkbox"] {
+  width:19px;
+  height:19px;
+  accent-color:var(--rx);
+}
+.settings-field[aria-disabled="true"] {
+  opacity:.7;
+}
+.settings-reason {
+  color:var(--muted);
+  font-size:.83rem;
+}
+summary {
+  cursor:pointer;
+  font-weight:700;
+  font-size:1.1rem;
+}
+summary:focus-visible {
+  outline:3px solid var(--focus);
+  outline-offset:4px;
+}
+.settings-error {
+  color:var(--foreground);
+  min-height:20px;
+  font-size:.93rem;
+}
+.settings-result {
+  background:var(--surface-alt);
+  border:1px solid var(--edge);
+  border-radius:9px;
+  min-height:92px;
+  padding:14px;
+  white-space:pre-line;
+}
+.settings-result strong {
+  color:var(--foreground);
+}
+@media (max-width:700px) {
+  .settings-grid { grid-template-columns:1fr; }
+}
