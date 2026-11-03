@@ -16,6 +16,16 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### H-015 wear-aware persistent journal prototype
+
+The [H-015 offline two-slot journal model](docs/H-015-OFFLINE-DUAL-SLOT-JOURNAL.md)
+defines versioned and checksummed compact hourly summaries and event
+records, a minimum 15-minute routine write cadence, bounded logical
+storage, and recovery tests for interrupted checkpoints. It refuses to
+invent calendar timestamps or 90-day continuity when clock evidence is
+missing. A real atomic UBIFS adapter, flash wear tests, and field recovery
+acceptance are **not** implemented. Nothing is written to the live stick.
+
 ### H-016 bounded historical view and exports, source preview only
 
 The [H-016 history UI and export prototype](docs/H-016-HISTORY-UI-EXPORT.md)
