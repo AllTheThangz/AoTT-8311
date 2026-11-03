@@ -226,6 +226,12 @@ eq(v.pon_state,nil,"pon_command_exception")
 eq(v.eth.RxGoodBytes,nil,"eth_timeout")
 eq(avail.host_counters,"unavailable","eth_timeout_availability")
 
+local invalid_state_provider=mk()
+local nope,nope_reason=probe.collect_one(nil,invalid_state_provider)
+eq(nope,nil,"invalid_state_rejected")
+eq(nope_reason,"invalid_state","invalid_state_reason")
+eq(#invalid_state_provider.files,0,"invalid_state_no_kernel_reads")
+eq(#invalid_state_provider.runs,0,"invalid_state_no_spawns")
 local malformed=probe.read_once({})
 eq(malformed,nil,"provider_requires_both_callbacks")
 

@@ -24,7 +24,7 @@ class OneShotNativeSourceTests(unittest.TestCase):
         result = subprocess.run(cmd, capture_output=True, text=True,
                                 timeout=30, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("AOTT_H011_NATIVE_ONE_SHOT_FIXTURE_PASS checks=211",
+        self.assertIn("AOTT_H011_NATIVE_ONE_SHOT_FIXTURE_PASS checks=215",
                       result.stdout)
 
     def test_host_lua_source_fixture(self):

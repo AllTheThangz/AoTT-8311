@@ -140,6 +140,11 @@ end
 -- One explicit invocation, no timers or background services. The result is
 -- a redacted receipt, not the boot ID or full provider readings.
 function M.collect_one(state, provider)
+    -- Reject invalid collector state *before* starting either native command.
+    if type(state) ~= "table" or state.schema ~= 1 or
+       type(state.samples) ~= "table" or type(state.events) ~= "table" then
+        return nil, "invalid_state"
+    end
     local snapshot, availability_or_error = M.read_once(provider)
     if not snapshot then return nil, availability_or_error end
     local receipt, why = history.ingest(state, snapshot)
