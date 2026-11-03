@@ -16,6 +16,17 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### C-012 offline configuration save/readback contract
+
+The [C-012 validation matrix](docs/C-012-OFFLINE-CONFIG-SAVE-CONTRACT.md)
+executes the real 54-setting LuCI schema and configuration worker under
+isolated host Lua and vendor-MIPS QEMU, with simulated boot-environment
+setters. All 54 synthetic positive saves and readbacks, field-specific
+invalid inputs, secret masking, stale-revision rejection and seven failure
+or concurrency-guard cases pass. This **does not prove** a field applied on
+an actual ONU, survived reboot or is safe on other hardware. The publicly
+available source remains a source-only r7 overlay, not a new firmware image.
+
 ### C-011 advanced system and host readback
 
 The [advanced device/host C-011 readback](docs/C-011-ADVANCED-SYSTEM-READBACK.md)
