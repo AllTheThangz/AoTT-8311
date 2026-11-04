@@ -19,7 +19,7 @@
 | D-011 | Metrics/syslog are optional | Useful for advanced owners, but not universal residential release blockers or built-in commercial dependencies |
 | D-012 | Optimize by measurement, not component utilization | Dedicated forwarding/optical hardware and reserved DMA resources should remain protected |
 | D-013 | Hardware compatibility is board-specific | Same SoC/marketing name/SFP+ fit does not establish kernel, bootcore or flash compatibility |
-| D-014 | Preserve one known working firmware bank | Reboot, stage, trial and commit remain separate actions. [S-016 source recovery](S-016-OFFLINE-CONFIG-BACKUP-RESTORE.md) refuses cross-bank or changed-firmware restore previews without separate explicit migration and fallback verification. No live bank migration is approved by source tests. |
+| D-014 | Preserve one known working firmware bank | Reboot, stage, trial and commit remain separate actions. [S-016 source recovery](S-016-OFFLINE-CONFIG-BACKUP-RESTORE.md) refuses unapproved cross-bank migration. [C-013 offline journal](C-013-OFFLINE-CRASH-RECOVERY.md) tests real process interruption and synthetic rollback but does NOT grant permission to change live config or the firmware selector. |
 | D-015 | Do not boot r7 unnecessarily when an r8-to-r8 path is safe | Original r8/A was committed without reboot, updated r8 staged to B and trial-booted while A stayed committed |
 | D-016 | Exact image hash is authoritative | Original and security-enhanced r8 share a version string but are different rootfs builds |
 | D-017 | Preserve failures and corrective actions in evidence | First guarded trial command was syntactically rejected; second reboot succeeded; original verifier reconnect failed before independent confirmation |

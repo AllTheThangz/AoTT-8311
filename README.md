@@ -16,6 +16,17 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### C-013 offline crash-safe configuration journal
+
+The [C-013 source-only transaction and recovery harness](docs/C-013-OFFLINE-CRASH-RECOVERY.md)
+uses durable Linux file and directory sync, an actual cross-process
+kernel lock, a previous verified snapshot and a pending/committed
+journal to test synthetic config writes. Separate processes are
+deliberately terminated during staging, installation, confirmation and
+cleanup; unconfirmed changes roll back and confirmed changes survive.
+It does **not** run on the ONU, cover all 54 settings, or prove
+PRX126 flash/power-loss recovery.
+
 ### S-016 protected configuration backup and offline restore planning
 
 The [S-016 redacted/optional encrypted backup and guarded restore model](docs/S-016-OFFLINE-CONFIG-BACKUP-RESTORE.md)
