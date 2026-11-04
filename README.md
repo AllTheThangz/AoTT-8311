@@ -16,6 +16,16 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### S-014 offline TLS and root-only private-key hardening
+
+The [S-014 private-key and TLS health audit](docs/S-014-OFFLINE-TLS-KEY-HARDENING.md)
+validates root-only key modes (0400 or 0600), ownership, regular-file
+identity, certificate/key pairing, SAN coverage and expiration using
+disposable source-only test fixtures. Extracted vendor-MIPS uhttpd
+completed an isolated HTTPS handshake with a 0600 synthetic private
+key on Hermes loopback. **No current certificate/key status on the
+actual ONU or live HTTPS service has been verified or changed.**
+
 ### S-013 optional remote GUI firewall, source-only
 
 The [S-013 disabled-by-default remote HTTPS policy](docs/S-013-OFFLINE-REMOTE-GUI-FIREWALL.md)
