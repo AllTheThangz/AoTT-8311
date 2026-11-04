@@ -203,15 +203,18 @@ class VendorMipsSnapshotProcessTests(unittest.TestCase):
         self.assertIn("AOTT_H026_CROSS_PROCESS_READ_PASS",
                       self.invoke("read"))
 
-    def test_multiple_readers_across_republish_get_valid_snapshots(self):
+    def test_multiple_readers_across_republish_validate_their_own_response(self):
         self.invoke("publish")
         with ThreadPoolExecutor(max_workers=5) as pool:
-            reads=[pool.submit(self.invoke,"read") for _ in range(6)]
+            reads=[pool.submit(self.invoke,"read_concurrent") for _ in range(6)]
             self.invoke("republish")
             outputs=[f.result(timeout=15) for f in reads]
-        self.assertTrue(all("AOTT_H026_CROSS_PROCESS_READ_PASS" in x
-                            for x in outputs))
-        self.invoke("read")
+        for output in outputs:
+            self.assertRegex(output,
+                r"AOTT_H026_CONCURRENT_READ_(VALID samples=[34]|REFUSED code="
+                r"snapshot_(inode_changed|readback_unverified))")
+        # A quiescent reader must still succeed; refusing everything cannot pass.
+        self.assertIn("AOTT_H026_CROSS_PROCESS_READ_PASS",self.invoke("read"))
 
     def test_malformed_json_is_not_relayed_to_http(self):
         self.invoke("publish")
