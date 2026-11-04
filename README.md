@@ -16,6 +16,16 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### C-011 stored-source readback now covers all 54 GUI fields
+
+The [nine-field sensitive identity readback](docs/C-011-SENSITIVE-IDENTITY-READBACK.md)
+adds a root-session-checked, manual Configuration-page panel for PON
+identity, registration credentials, IP-host identity and the root password
+override. It shows only valid/invalid saved format, unset, or unavailable.
+No values, credential hashes or lengths are returned. The source coverage
+test accounts for all 54 GUI fields. **Effective hardware behavior,
+authentication, persistence and deployment remain unverified.**
+
 ### C-013 offline crash-safe configuration journal
 
 The [C-013 source-only transaction and recovery harness](docs/C-013-OFFLINE-CRASH-RECOVERY.md)
@@ -587,3 +597,4 @@ AoTT-8311 is an independent community project, not an official vendor or ISP rel
 ---
 
 **AoTT-8311 | public v2r7 source-only | private original-r8 committed fallback | private enhanced-r8 uncommitted trial | vNext source-only**
+

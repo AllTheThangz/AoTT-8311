@@ -162,6 +162,15 @@ local label = named and option.name or option
 <div id="aott-pon-effective-status" role="status" aria-live="polite"></div>
 <div id="aott-pon-effective-results" role="region" aria-label="Read-only PON and OMCI comparison" hidden></div>
 </section>
+<section id="aott-identity-effective" class="cbi-section"
+         data-effective-url="<%=esc(url('admin/8311/effective_identity'))%>"
+         aria-label="Redacted sensitive identity override status">
+<h3>Identity and credential override status</h3>
+<p>Check nine stored overrides without displaying identifiers, credentials, password hashes, lengths or fingerprints. Unset is not a failed read: a vendor default or legacy value may still apply. This does not test ISP authentication, root login, live OMCI use or reboot persistence.</p>
+<button id="aott-identity-effective-refresh" type="button" class="cbi-button">Check redacted identity status</button>
+<div id="aott-identity-effective-status" role="status" aria-live="polite"></div>
+<div id="aott-identity-effective-results" role="region" aria-label="Stored override status only" hidden></div>
+</section>
 <section id="aott-reporting-effective" class="cbi-section"
          data-effective-url="<%=esc(url('admin/8311/effective_reporting'))%>"
          aria-label="OMCI reporting source status, without identity values">

@@ -113,8 +113,9 @@ DONE_HARDWARE merely because the fixture is crash-consistent.
 
 ## Production gates still required
 
-1. Finish source readback for the remaining nine identity/credential
-   GUI settings without exposing raw subscriber material.
+1. The [nine sensitive readbacks](C-011-SENSITIVE-IDENTITY-READBACK.md) now
+   close stored-source coverage to 54/54. Qualify their actual native
+   consumers and privacy on the target without exposing raw material.
 2. Map all 54 source setters to actual board-dependent persistence,
    effective consumer state, correct redaction and per-field rollback.
 3. Inspect a separately authorized and recoverable PRX126's real
