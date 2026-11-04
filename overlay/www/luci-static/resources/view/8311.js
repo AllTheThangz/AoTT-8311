@@ -1,4 +1,80 @@
 "use strict";
+function refreshIdentityEffective() {
+    const panel=document.getElementById('aott-identity-effective');
+    const button=document.getElementById('aott-identity-effective-refresh');
+    const status=document.getElementById('aott-identity-effective-status');
+    const results=document.getElementById('aott-identity-effective-results');
+    if (!panel || !button || !status || !results || button.disabled) return;
+    results.replaceChildren();results.hidden=true;
+    const url=panel.getAttribute('data-effective-url') || '';
+    try {
+        const endpoint=new URL(url,window.location.href);
+        if (!url.startsWith('/') || url.startsWith('//') || url.includes('\\') ||
+            endpoint.origin!==window.location.origin || endpoint.search || endpoint.hash ||
+            !endpoint.pathname.endsWith('/admin/8311/effective_identity')) throw new Error();
+    } catch (_) {
+        status.textContent='The local identity status endpoint is invalid.';
+        return;
+    }
+    button.disabled=true;
+    status.textContent='Checking stored override status. Values remain redacted.';
+    const names=[['gpon_sn','PON serial override'],['vendor_id','PON vendor override'],
+        ['reg_id_hex','Registration credential override'],['loid','Logical ONU ID override'],
+        ['lpwd','Logical ONU password override'],['iphost_mac','Reported IP-host MAC override'],
+        ['iphost_hostname','Reported IP-host hostname override'],
+        ['iphost_domain','Reported IP-host domain override'],
+        ['root_pwhash','Root password-hash override']];
+    const labels={valid_saved_override:'Stored override passes format checks; content redacted',
+        invalid_saved_override:'Stored override has an unsupported format; content redacted',
+        unset:'Override unset; defaults or fallback not checked',
+        unavailable:'Read unavailable; presence is unknown'};
+    request8311(url,{method:'GET',cache:'no-store'}).then(response => {
+        const data=response && response.data;
+        if (!response || response.success!==true || !data || data.schema!==1 ||
+            data.group!=='sensitive_identity_override' || data.no_device_write!==true ||
+            data.no_identity_exported!==true || data.no_credential_hash_exported!==true ||
+            data.no_raw_environment_exported!==true ||
+            data.no_olt_or_login_authentication_claim!==true ||
+            data.source_only_not_hardware_qualified!==true || !data.summary ||
+            data.summary.source_fields!==9 || data.summary.runtime_effects_verified!==0 ||
+            data.summary.hardware_qualified!==0 || !data.fields ||
+            Object.keys(data.fields).length!==9) throw new Error();
+        const table=document.createElement('table');table.className='table';
+        const head=document.createElement('tr');
+        ['Setting','Stored override','Effective state'].forEach(label => {
+            const cell=document.createElement('th');cell.textContent=label;head.appendChild(cell);
+        });
+        table.appendChild(head);
+        names.forEach(([id,label]) => {
+            const row=data.fields[id];
+            const keys=['id','source_status','content_redacted','raw_value_exported',
+                'value_hash_exported','value_length_exported','stored_override_only',
+                'fallback_value_not_resolved','runtime_effect_proven',
+                'authentication_success_proven','survives_reboot_proven','hardware_qualified'];
+            if (!row || row.id!==id || Object.keys(row).length!==keys.length ||
+                !Object.keys(row).every(k=>keys.includes(k)) ||
+                !Object.prototype.hasOwnProperty.call(labels,row.source_status) ||
+                row.content_redacted!==true || row.raw_value_exported!==false ||
+                row.value_hash_exported!==false || row.value_length_exported!==false ||
+                row.stored_override_only!==true || row.fallback_value_not_resolved!==true ||
+                row.runtime_effect_proven!==false || row.authentication_success_proven!==false ||
+                row.survives_reboot_proven!==false || row.hardware_qualified!==false) throw new Error();
+            const tr=document.createElement('tr');
+            [label,labels[row.source_status],'Runtime use, authentication and reboot persistence unverified']
+                .forEach(text => {const td=document.createElement('td');td.textContent=text;tr.appendChild(td);});
+            table.appendChild(tr);
+        });
+        results.appendChild(table);results.hidden=false;
+        status.textContent='Redacted identity check complete. No settings changed.';
+    }).catch(() => {
+        // Never echo server exceptions, raw values or attacker-controlled
+        // error strings, including when the session expires mid-request.
+        results.replaceChildren();results.hidden=true;
+        status.textContent='Identity readback unavailable. Check your administrator session. No settings changed.';
+    }).finally(() => {button.disabled=false;});
+}
+
+// END IDENTITY READBACK
 let configReview = null;
 let configGeneration = 0;
 let configWriteStarted = false;
@@ -1343,6 +1419,9 @@ $(document).ready(function() {
     $('#aott-device-effective-refresh').on('click',function(event) {
         event.preventDefault();
         refreshDeviceEffective();
+    });
+    $('#aott-identity-effective-refresh').on('click',function(event) {
+        event.preventDefault();refreshIdentityEffective();
     });
     $('#aott-reporting-effective-refresh').on('click',function(event) {
         event.preventDefault();

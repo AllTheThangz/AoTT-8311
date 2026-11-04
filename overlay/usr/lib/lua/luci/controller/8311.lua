@@ -64,6 +64,8 @@ function index()
           call("action_effective_hardware")).leaf=true
     entry({"admin", "8311", "effective_reporting"},
           call("action_effective_reporting")).leaf=true
+    entry({"admin", "8311", "effective_identity"},
+          call("action_effective_identity")).leaf=true
     entry({"admin", "8311", "security"}, call("action_r5_security"), translate("Security & access"), 8)
     entry({"admin", "8311", "security_data"}, call("action_r5_security_data")).leaf=true
 	entry({"admin", "8311", "bank_status"}, call("action_bank_status"))
@@ -846,6 +848,31 @@ end
 
 -- Authenticated manual GET only: no identity strings, credentials,
 -- raw firmware version labels, boot environment or bank changes.
+function action_effective_identity()
+    http.header("Cache-Control", "no-store, private")
+    http.header("Pragma", "no-cache")
+    http.header("X-Content-Type-Options", "nosniff")
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http,405,{success=false,error="Read-only GET required"})
+    end
+    local ok,snapshot,reason=pcall(function()
+        local probe=require "8311.effective_identity_probe"
+        return probe.live_identity(dispatcher,util)
+    end)
+    if ok and reason=="forbidden" then
+        return web.reply(http,403,{success=false,error="Administrator session required"})
+    end
+    if not ok or type(snapshot)~="table" or snapshot.schema~=1 or
+       snapshot.no_identity_exported~=true or
+       snapshot.no_credential_hash_exported~=true or
+       snapshot.no_raw_environment_exported~=true or
+       snapshot.source_only_not_hardware_qualified~=true then
+        return web.reply(http,503,{success=false,
+            error="Identity source readback unavailable; no settings changed"})
+    end
+    return web.reply(http,200,{success=true,data=snapshot})
+end
+
 function action_effective_reporting()
     if http.getenv("REQUEST_METHOD") ~= "GET" then
         return web.reply(http, 405,

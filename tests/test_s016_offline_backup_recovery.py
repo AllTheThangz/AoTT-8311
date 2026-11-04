@@ -383,8 +383,11 @@ class RestoreAdmission(unittest.TestCase):
         controller = (ROOT / "overlay/usr/lib/lua/luci/controller/8311.lua").read_text()
         self.assertNotIn("s016_offline_backup_recovery", manifest)
         self.assertNotIn("s016_offline_backup_recovery", controller)
-        self.assertEqual(len(json.loads((ROOT / "MANIFEST.json").read_text())[
-            "overlay_files"]), 81)
+        listed = {item["path"] for item in json.loads(
+            (ROOT / "MANIFEST.json").read_text())["overlay_files"]}
+        actual = {p.relative_to(ROOT / "overlay").as_posix()
+                  for p in (ROOT / "overlay").rglob("*") if p.is_file()}
+        self.assertEqual(listed, actual)
 
 
 if __name__ == "__main__":
