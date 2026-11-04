@@ -16,6 +16,16 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
+### S-016 protected configuration backup and offline restore planning
+
+The [S-016 redacted/optional encrypted backup and guarded restore model](docs/S-016-OFFLINE-CONFIG-BACKUP-RESTORE.md)
+implements a source-only redacted preview, separate scrypt/AES-256-GCM
+private archive, strict device/profile and A/B-bank compatibility checks,
+explicit recovery/operator approval and synthetic rollback after injected
+failure. The intentionally limited source schema is **not** a complete
+production backup of vendor PON, OMCI or every GUI field. No device
+configuration is read, restored, flashed, or committed.
+
 ### S-014 offline TLS and root-only private-key hardening
 
 The [S-014 private-key and TLS health audit](docs/S-014-OFFLINE-TLS-KEY-HARDENING.md)
