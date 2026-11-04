@@ -26,6 +26,46 @@ local function eq(a,b,label) ok(a==b,label) end
 local route={method="GET",route="/admin/8311/history_data"}
 local function auth() return true end
 
+-- Concurrent requests compare the HTTP body to the ONE validated IPC read
+-- used to form that response, never to a separate earlier generation.
+if action=="read_concurrent" then
+    local body,why,reads=nil,nil,0
+    local reply=endpoint.serve(route,auth,function()
+        reads=reads+1
+        body,why=ipc.read(ipc_dir,"offline_synthetic")
+        return body
+    end)
+    eq(reads,1,"single_snapshot_per_response")
+    if body then
+        eq(reply.status,200,"validated_response")
+        eq(reply.body,body,"response_matches_its_own_read")
+        local result=json.parse(body)
+        local canonical=require "8311.history_export"
+        eq(canonical.encode_checked_projection(result),body,
+           "complete_canonical_generation")
+        eq(result.kind,"aott_source_only_history","projector_shape")
+        eq(result.source_only_not_live,true,"source_only_snapshot")
+        eq(result.actual_isp_uptime_unverified,true,"no_isp_claim")
+        eq(result.history_is_volatile,true,"volatile_only")
+        ok(#result.samples==3 or #result.samples==4,"known_generation")
+        eq(reply.headers["Content-Length"],tostring(#body),"exact_length")
+        ok(not body:find("11111111-2222",1,true),"no_private_boot_identity")
+        print("AOTT_H026_CONCURRENT_READ_VALID samples="..#result.samples)
+    else
+        -- An inode replacement during a single read must remain refused.
+        -- Do not turn missing/corrupt files, access failures or any arbitrary
+        -- 503 into a successful concurrency test.
+        ok(why=="snapshot_inode_changed" or
+           why=="snapshot_readback_unverified","only_verified_race_refusal")
+        eq(reply.status,503,"mid_read_race_denied")
+        eq(reply.body,'{"error":"history_not_available"}',"redacted_refusal")
+        print("AOTT_H026_CONCURRENT_READ_REFUSED code="..why)
+    end
+    eq(reply.headers["Cache-Control"],"no-store, private, max-age=0","no_cache")
+    eq(reply.headers["X-Content-Type-Options"],"nosniff","nosniff")
+    return
+end
+
 if action=="read" or action=="read_invalid" then
     local body,err=ipc.read(ipc_dir,"offline_synthetic")
     if action=="read_invalid" then
