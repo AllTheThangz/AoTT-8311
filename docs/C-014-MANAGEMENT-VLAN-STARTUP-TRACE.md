@@ -23,6 +23,10 @@ The test is `tests/test_c014_management_vlan_path.py`. Its eight cases character
 
 The vendor boot script runs UCI defaults, while separate startup helpers and the persistent-root option affect the configuration lifecycle. Offline source inspection cannot establish whether the running PRX126 starts each boot from clean network UCI, inherits retained state, or requires board-specific switch/host handling. These findings are therefore not a confirmed explanation for the historically disabled control, and not permission to patch the only working management path.
 
+## Staged repair follow-up
+
+The [native-UCI staged transition candidate](C-014-NATIVE-UCI-STAGED-TRANSITION.md) now addresses these transition cases in disposable configuration copies, including ownership-scoped cleanup, identity-checked zones and cold persisted-file readback. It does not modify this installed startup block or enable the hidden control; physical qualification and activation remain open.
+
 ## Repair and acceptance requirements
 
 A repair must validate the requested VLAN without silently converting invalid input into a topology change, identify the management zone by verified association rather than array position, check every mutation, handle repeated/tagged-to-untagged transitions, preserve unrelated settings, and retain a recoverable previous configuration. Cleanup must remove only configuration proven to belong to this feature, not arbitrary operator-created interfaces.
