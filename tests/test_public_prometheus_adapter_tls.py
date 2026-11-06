@@ -55,14 +55,33 @@ class LocalCollectorTlsTests(unittest.TestCase):
         cls.temp=tempfile.TemporaryDirectory(prefix="aott-https-fixture-")
         cls.base=Path(cls.temp.name)
         crt,key=cls.base/"fixture.pem",cls.base/"fixture.key"
+        config=cls.base/"openssl.cnf"
         command=[
-            "openssl","req","-x509","-newkey","rsa:2048","-nodes",
+            "openssl","req","-config",str(config),
+            "-x509","-newkey","rsa:2048","-nodes",
             "-days","1","-keyout",str(key),"-out",str(crt),
             "-subj","/CN=localhost",
             "-addext","subjectAltName=DNS:localhost,IP:"+HOST
         ]
         try:
-            subprocess.run(command,check=True,capture_output=True,timeout=18)
+            # The isolated runner need not install OpenSSL's host-specific
+            # default configuration path. Keep this ephemeral CA independent
+            # of that path and of the caller's OPENSSL_CONF environment.
+            config.write_text(
+                "[req]\nprompt = no\ndistinguished_name = fixture_subject\n"
+                "default_md = sha256\n[fixture_subject]\nCN = localhost\n",
+                encoding="ascii")
+            generated=subprocess.run(command,capture_output=True,text=True,
+                                     timeout=18)
+            if generated.returncode:
+                # This command writes only the synthetic key to its private
+                # file. Bound diagnostics and hide the temporary directory;
+                # never print key bytes, bearer values, or collector responses.
+                detail=generated.stderr[-2048:].replace(
+                    str(cls.base),"<fixture-directory>")
+                raise AssertionError(
+                    "Ephemeral TLS certificate generation failed "
+                    "(openssl exit %d): %s" % (generated.returncode,detail))
             key.chmod(0o600)
             cls.server=HTTPServer((HOST,0),CollectorFixture)
             ssl_context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

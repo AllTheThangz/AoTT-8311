@@ -5,6 +5,7 @@ LuCI server-side directives stripped. All requests are blocked; no ONU
 authentication, network connection, configuration or firmware mutation.
 """
 from pathlib import Path
+import hashlib
 import os
 import re
 import shutil
@@ -13,12 +14,33 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "overlay/usr/lib/lua/luci/view/8311/monitoring.htm"
 VENDOR = Path(os.getenv("AOTT_VENDOR_ROOTFS", "/nonexistent/vendor/rootfs"))
+VENDOR_CSS_SHA256 = {
+    "cascade.css": "572ed17738111787b043ca8b16588bc0f0a24838c8855ce6e47315e6a6cbe77f",
+    "mobile.css": "dfbd518eeec68a4ca0c278913bde7b64dbdb6f0cbd9cee6fe9762b9958fabed1",
+}
+
+
+def vendor_stylesheet(name):
+    supplied = VENDOR / "www/luci-static/bootstrap" / name
+    if supplied.is_file():
+        return supplied
+    # Public CI and the immutable private runtime need no extra vendor bundle
+    # merely for two unmodified theme assets. Preserve exact image bytes and
+    # attribution; reject any substituted or edited fallback stylesheet.
+    fallback = ROOT / "tests/fixtures/vendor_css" / name
+    if fallback.is_symlink() or not fallback.is_file():
+        raise AssertionError("Preserved vendor stylesheet unavailable: " + name)
+    if hashlib.sha256(fallback.read_bytes()).hexdigest() != VENDOR_CSS_SHA256[name]:
+        raise AssertionError("Preserved vendor stylesheet hash differs: " + name)
+    return fallback
+
+
 CSS = [
-    VENDOR / "www/luci-static/bootstrap/cascade.css",
+    vendor_stylesheet("cascade.css"),
     ROOT / "overlay/www/luci-static/bootstrap/aott-theme.css",
     ROOT / "overlay/www/luci-static/bootstrap/aott-v2r1.css",
 ]
-MOBILE = VENDOR / "www/luci-static/bootstrap/mobile.css"
+MOBILE = vendor_stylesheet("mobile.css")
 try:
     from playwright.sync_api import sync_playwright
 except ImportError:

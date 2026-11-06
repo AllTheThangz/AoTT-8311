@@ -2,25 +2,36 @@
 
 The actual extracted vendor /etc/init.d/log is sourced into a host-side
 mock of OpenWrt procd. Nothing starts logd, opens a socket, or forwards logs.
-The test is optional in public source-only CI; when AOTT_VENDOR_ROOTFS is
-explicitly provided, failure to find the source is a hard error.
+A complete supplied vendor logger is preferred. The sanitized MIPS test runtime
+omits reference-only boot scripts, so a missing logger uses the exact captured,
+hash-pinned r7 baseline, which is byte-identical to the r8 vendor logger.
 """
+import hashlib
 import os
 from pathlib import Path
 import subprocess
 import unittest
 
+ROOT = Path(__file__).resolve().parents[1]
 VENDOR = Path(os.getenv("AOTT_VENDOR_ROOTFS", "/nonexistent/vendor/rootfs"))
+LOGGER_FIXTURE = ROOT / "tests/fixtures/r7_boot_baseline/log"
+LOGGER_SHA256 = "b4af1d77d5676eaec6fd4143556893cc75b45b29119f5c4f678de4060b36dc9f"
 
 
 class VendorSyslogTransportContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.script = VENDOR / "etc/init.d/log"
+        if cls.script.is_symlink() or (cls.script.exists() and
+                                       not cls.script.is_file()):
+            raise AssertionError("Supplied vendor logger must be a regular file")
         if not cls.script.is_file():
-            if "AOTT_VENDOR_ROOTFS" in os.environ:
-                raise AssertionError("Explicit vendor logger source is missing")
-            raise unittest.SkipTest("Optional vendor logging service unavailable")
+            cls.script = LOGGER_FIXTURE
+            if cls.script.is_symlink() or not cls.script.is_file():
+                raise AssertionError("Captured vendor logger must be a regular file")
+            data = cls.script.read_bytes()
+            if len(data) != 2479 or hashlib.sha256(data).hexdigest() != LOGGER_SHA256:
+                raise AssertionError("Captured vendor logger fixture changed")
 
     def run_service(self, **settings):
         config = {

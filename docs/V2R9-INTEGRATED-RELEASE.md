@@ -39,7 +39,9 @@ Use the existing private, verified enhanced-r8 base with the reviewed r9 overlay
 
 The build sequence is source validation, overlay staging, independent private rootfs copies, reviewed pin refresh, deterministic 1 MiB-block XZ SquashFS, five-member archive assembly and independent pair qualification. The archive builder checks extracted source bytes/modes, release identity, protected runtime records, fixed kernel/bootcore identities and at least 64 KiB reserve inside the unchanged rootfs volume.
 
-Validation receipts must name the exact source commit. Full combined host/vendor-MIPS/browser regression and independent image/archive receipts are recorded separately when completed. This source checkpoint does not claim those later results in advance.
+Two independent private firmware builds completed on November 6 with byte-identical SquashFS images and five-member upgrade archives. Each rootfs is **5,734,400 bytes**, leaving **487,424 bytes (476 KiB)** in the fixed 6,221,824-byte bank. All 89 source overlay files matched the independently extracted images; 184 runtime integrity records passed, with no unexpected changes outside the reviewed overlay and integrity profile. Kernel and bootcore hashes retained their qualified values.
+
+Source, native-MIPS and browser regression receipts identify their exact source commit and are tracked with [draft PR #52](https://github.com/AllTheThangz/AoTT-8311/pull/52). Preserved, hash-pinned vendor CSS and pre-monitoring boot/logger fixtures make the source checks independent of optional files omitted from a sanitized test runtime. These fixtures are test inputs and are not installed in firmware. The actual private image/archive receipts remain with the maintainer. Offline build verification does not establish r9 hardware boot or forwarding acceptance.
 
 ## Hardware transition
 

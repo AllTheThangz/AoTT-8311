@@ -1,8 +1,14 @@
 # AoTT-8311: project continuity and verified state
 
-**Successor source checkpoint:** [November 6 r9 integration](V2R9-INTEGRATED-RELEASE.md) combines the 89-file runtime and assigns the distinct r9 identity. This file retains the original November 2 hardware/source snapshot below. It must not be used as current bank evidence.
+## Current release candidate, November 6, 2026
 
-## Current local integration checkpoint, November 5, 2026
+[AoTT-8311 v2 r9](V2R9-INTEGRATED-RELEASE.md) combines the enhanced-r8 runtime and current 54-field readback work in one 89-file overlay. Two independent private firmware builds produced identical images and archives. The rootfs is 5,734,400 bytes with 487,424 bytes of bank reserve. The sanitized source is published on `release/v2r9-integrated-20261106` through [draft PR #52](https://github.com/AllTheThangz/AoTT-8311/pull/52); its body and checks identify the latest source/browser qualification. The PR is not a public binary release or a hardware acceptance claim.
+
+Fresh native read-only checks on November 6 found enhanced r8 running as a trial in bank B, original r8 committed in bank A, no pending activation, PON O5.1 and a 10 Gbps host link. Full bank A and B integrity reads passed. R9 has not been installed. The next device transition must preserve enhanced r8 B as the committed fallback before staging r9 into A, with fresh private recovery evidence and the existing distinct operational approvals.
+
+History, certificate management, firewall and native configuration-transaction prototypes remain development source outside the r9 firmware. The older checkpoints below are retained as history, not current release or bank evidence.
+
+## Historical local integration checkpoint, November 5, 2026
 
 The last full approved runtime result is `d0d4a799ee660f2ddcebbf2ad444dba052995e0e`: **1,131 distinct tests passed**, zero failures/errors/skips. The current [native-reader resolution](C-014-NATIVE-READER-RESOLUTION.md) has **35 focused tests passing** and requires its own combined regression.
 
