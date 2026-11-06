@@ -1,8 +1,16 @@
 # AoTT-8311: project continuity and verified state
 
-**Status date:** 2026-11-02. **Document type:** Maintainer handoff and public-safe snapshot, not an official binary release. This snapshot becomes historical as development progresses.
+**Successor source checkpoint:** [November 6 r9 integration](V2R9-INTEGRATED-RELEASE.md) combines the 89-file runtime and assigns the distinct r9 identity. This file retains the original November 2 hardware/source snapshot below. It must not be used as current bank evidence.
 
-**Purpose:** Prevent future engineering sessions from rediscovering settled decisions, confusing an in-progress firmware trial with a committed release, overlooking missing features, or treating untested configuration controls as functional.
+## Current local integration checkpoint, November 5, 2026
+
+The last full approved runtime result is `d0d4a799ee660f2ddcebbf2ad444dba052995e0e`: **1,131 distinct tests passed**, zero failures/errors/skips. The current [native-reader resolution](C-014-NATIVE-READER-RESOLUTION.md) has **35 focused tests passing** and requires its own combined regression.
+
+Actual read-only ONU access is available through the existing Hermes-user SSH profile with strict pinned-host verification. The earlier statement that no direct MCP target meant no usable access was incorrect. The baseline showed matching reader/wrapper/library hashes and a working native reader. The new six-key reader also succeeded on-device from standard input: two matching snapshots, three present keys, three unset, none present-empty, without exporting values or installing code.
+
+The emulated reader failure is resolved for the tested configurations. A long custom `-l` argument triggered behavior consistent with the U-Boot 2018.03 lock-path allocation defect. The unpatched reader passes all four private-image cases with a short relative lock path. The original failed evidence is preserved, not relabeled.
+
+The scoped read path now distinguishes unset and present-empty values. Actual setter tests on disposable images confirm ordinary apply/restore and the inability to restore present-empty via an empty setter argument. No live setters were invoked. Production write/restore, cache coordination, durable storage and physical interruption/reboot acceptance remain open. Source publication remains unresolved and the deployable overlay stays unchanged.
 
 ## Start here every session
 

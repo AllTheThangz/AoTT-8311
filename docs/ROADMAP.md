@@ -1,5 +1,11 @@
 # AoTT-8311 roadmap and current development stages
 
+## Current release integration, November 6, 2026
+
+The [v2r9 candidate](V2R9-INTEGRATED-RELEASE.md) combines the enhanced-r8 runtime and 54-field readback implementation in one 89-file overlay. Complete its exact-source regression and private image pair qualification, then use the latest operator state for any separately approved hardware transition. Native VLAN writes, history activation and certificate/firewall controls remain separate development work outside this runtime.
+
+The November 2 state below remains a dated historical checkpoint.
+
 **Verified project checkpoint:** November 2, 2026. This roadmap describes historical work, private hardware milestones and desired future work separately. For all work IDs, dependencies and completion gates, see [the delivery plan](DELIVERY-PLAN-AND-ACCEPTANCE.md).
 
 ## Public source versus private hardware

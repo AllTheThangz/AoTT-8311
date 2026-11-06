@@ -69,6 +69,46 @@ def validate_relative(root: Path, rel: str):
     return candidate
 
 
+# r8 introduced a persistent security store and a vendor S11 boot hook.
+# Require explicit immutable postwrite profile records for all new critical
+# modules and both existing S11/S12 boot links. A hash of the whole archive
+# alone must not be treated as a complete runtime boot qualification.
+R8_CRITICAL_FILES = (
+    "etc/init.d/sysctl",
+    "usr/libexec/8311-monitoring-restore",
+    "usr/lib/lua/8311/monitor_store.lua",
+    "usr/lib/lua/8311/monitor_restore.lua",
+    "usr/lib/lua/8311/monitoring.lua",
+    "usr/lib/lua/luci/view/8311/monitoring.htm",
+    "usr/lib/lua/8311/tools.lua",
+    "etc/uci-defaults/zzz-8311",
+)
+R8_CRITICAL_LINKS = {
+    "etc/rc.d/S11sysctl": "../init.d/sysctl",
+    "etc/rc.d/S12log": "../init.d/log",
+}
+
+# r9 ships all seven configuration readback groups. Pin every new native
+# reader and model so an omitted module cannot pass archive qualification.
+R9_READBACK_CRITICAL_FILES = (
+    "usr/lib/lua/8311/effective_device_probe.lua",
+    "usr/lib/lua/8311/effective_device_state.lua",
+    "usr/lib/lua/8311/effective_hardware_probe.lua",
+    "usr/lib/lua/8311/effective_hardware_state.lua",
+    "usr/lib/lua/8311/effective_identity_probe.lua",
+    "usr/lib/lua/8311/effective_identity_state.lua",
+    "usr/lib/lua/8311/effective_pon_probe.lua",
+    "usr/lib/lua/8311/effective_pon_state.lua",
+    "usr/lib/lua/8311/effective_probe.lua",
+    "usr/lib/lua/8311/effective_reporting_probe.lua",
+    "usr/lib/lua/8311/effective_reporting_state.lua",
+    "usr/lib/lua/8311/effective_state.lua",
+    "usr/lib/lua/8311/effective_vlan_probe.lua",
+    "usr/lib/lua/8311/effective_vlan_state.lua",
+    "usr/sbin/8311-tc-readonly-verify.sh",
+)
+
+
 def overlay_allowlist(manifest: Path):
     data=json.loads(Path(manifest).read_text())
     require(data.get("source_only") is True and
@@ -117,6 +157,7 @@ def assess(root: Path, manifest: Path):
     errors=[]
     output=[]
     seen=set()
+    critical_records={}
     for line in lines:
         parts=line.strip().split()
         if not parts:
@@ -131,6 +172,7 @@ def assess(root: Path, manifest: Path):
         require(scope in ("common","candidate"),"Unknown runtime profile scope")
         require(rel not in seen,"Duplicate runtime profile record")
         seen.add(rel)
+        critical_records[rel]=(kind,scope)
         file=validate_relative(root,rel)
         entries+=1
         if kind=="link":
@@ -155,6 +197,31 @@ def assess(root: Path, manifest: Path):
         changed.append(rel)
         output.append("file candidate "+rel+" "+str(actual[0])+" "+actual[1]+"\n")
     require(entries>=11,"Suspiciously short runtime profile")
+    revision = json.loads(Path(manifest).read_text()).get("revision", "")
+    revision_number = int(revision[1:]) if isinstance(revision, str) and re.fullmatch(r"r[1-9][0-9]*", revision) else 0
+    # Revision changes must not silently switch off the inherited boot pins.
+    monitoring_required = revision_number >= 8 or "usr/lib/lua/8311/monitoring.lua" in allowed
+    if monitoring_required:
+        for rel in R8_CRITICAL_FILES:
+            require(critical_records.get(rel) == ("file","candidate"),
+                    "R8_CRITICAL_RUNTIME_PIN_ABSENT_OR_WRONG_SCOPE: "+rel)
+            candidate = root / rel
+            require(rel in allowed and
+                    (candidate.stat().st_size,digest(candidate))==allowed[rel],
+                    "R8_CRITICAL_RUNTIME_NOT_SOURCE_MANIFEST_PINNED: "+rel)
+        for rel,target in R8_CRITICAL_LINKS.items():
+            require(critical_records.get(rel) == ("link","common") and
+                    (root / rel).is_symlink() and
+                    str((root / rel).readlink())==target,
+                    "R8_VENDOR_BOOT_LINK_NOT_VERIFIED: "+rel)
+    if revision_number >= 9 or any(rel in allowed for rel in R9_READBACK_CRITICAL_FILES):
+        for rel in R9_READBACK_CRITICAL_FILES:
+            require(critical_records.get(rel) == ("file","candidate"),
+                    "R9_READBACK_RUNTIME_PIN_ABSENT_OR_WRONG_SCOPE: "+rel)
+            candidate = root / rel
+            require(rel in allowed and
+                    (candidate.stat().st_size,digest(candidate))==allowed[rel],
+                    "R9_READBACK_RUNTIME_NOT_SOURCE_MANIFEST_PINNED: "+rel)
     require(not errors,"Protected or unapproved runtime pin mismatch: "+
             ", ".join(sorted(errors)[:9]))
     return {

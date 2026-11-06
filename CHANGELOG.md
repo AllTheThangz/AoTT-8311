@@ -1,5 +1,17 @@
 # AoTT-8311 Changelog
 
+
+## v2r9 (integrated offline candidate)
+
+- Combined the security-enhanced r8 monitoring/runtime source with seven Configuration readback groups covering all 54 existing GUI fields.
+- Preserved protected collector credentials, durable monitoring restore, remote syslog, TLS-key permission visibility and existing A/B controls.
+- Added explicit runtime integrity requirements for 15 readback files, while preserving r8 monitoring and S11/S12 boot-link requirements.
+- Assigned unique r9 machine/display identity and refreshed relevant browser cache labels. The monitoring token format remains compatible.
+- Retained unfinished history, certificate, firewall and native VLAN transaction prototypes outside the 89-file firmware overlay.
+- Hardware installation and acceptance are not claimed by this source integration. See [r9 release scope](docs/V2R9-INTEGRATED-RELEASE.md).
+
+The older release entries below retain their historical acceptance state.
+
 ## v2r7 (privately hardware-qualified and committed on one PRX126)
 
 ### Graph contrast and web UI

@@ -5,19 +5,19 @@
       "bytes": 138,
       "executable": false,
       "path": "etc/8311_version",
-      "sha256": "5d4d2a2e2e806dda8913a5049362b948fde8819bf8b4fd5c24186054801ea53e"
+      "sha256": "817f717925af830fdb9832f8a35c0a3be2e02bfdb2294c078c8686a0c01c646b"
     },
     {
       "bytes": 238,
       "executable": false,
       "path": "etc/aott_release",
-      "sha256": "da051523ede06d35d2cc553bea5a6b2a85f048e6366d0210feca4ce8971ce35a"
+      "sha256": "a8829df973ddf0777989b263eec161a495ddcdcb48e0149586dd7207545d765b"
     },
     {
       "bytes": 288,
       "executable": false,
       "path": "etc/banner",
-      "sha256": "c114fd2b2c12e495f1d35fa556bb949627db9d2e063c82e5734e277974383216"
+      "sha256": "8dfaeeb6c363563e75631e37862c9fbcda2bc099f7449016a9a5f75b375b4f1d"
     },
     {
       "bytes": 164,
@@ -66,6 +66,12 @@
       "executable": true,
       "path": "etc/init.d/_8311-sysinit.sh",
       "sha256": "baeec7644dc4e0791ff4ebc9c1adf1208069a278fced0c921add0d929b486fdc"
+    },
+    {
+      "bytes": 1552,
+      "executable": true,
+      "path": "etc/init.d/sysctl",
+      "sha256": "10cfe9cb697089016ab6929c40f68927c2b4696c87a58511122566d871c44d1e"
     },
     {
       "bytes": 70,
@@ -218,10 +224,10 @@
       "sha256": "b4e3f1f4c5376d336164666c54099f2befc858ddf166a9492abe792dcb26c16e"
     },
     {
-      "bytes": 10131,
+      "bytes": 11471,
       "executable": false,
       "path": "usr/lib/lua/8311/health.lua",
-      "sha256": "db6cc606f99cb2ef342b5d2fd10afed2a93d8931a64299143c8d75c213e65080"
+      "sha256": "b53bb1ccdc38f9cadf9dc357341beb239c6d99dfdc199e59124845dfa23914c6"
     },
     {
       "bytes": 3008,
@@ -236,10 +242,28 @@
       "sha256": "0a48626907448eef0c8f45802ad635cd42e661a297b555640c41646920ee1fda"
     },
     {
-      "bytes": 5472,
+      "bytes": 3118,
+      "executable": false,
+      "path": "usr/lib/lua/8311/monitor_restore.lua",
+      "sha256": "49607947050cde1b465eb8114514724f4c4f0849c783777a148efa500cdd3ee0"
+    },
+    {
+      "bytes": 9691,
+      "executable": false,
+      "path": "usr/lib/lua/8311/monitor_store.lua",
+      "sha256": "472e0f01ec3d70b0f5f9c32bd4ab176338820b4d95a6e10dd5dda5c1e8629c8c"
+    },
+    {
+      "bytes": 19490,
+      "executable": false,
+      "path": "usr/lib/lua/8311/monitoring.lua",
+      "sha256": "69d585ba81d15547f735f98ff8820048d172522e21d26e02f7f51261385a70e0"
+    },
+    {
+      "bytes": 6039,
       "executable": false,
       "path": "usr/lib/lua/8311/tools.lua",
-      "sha256": "792795d6ae10c23254a16b727027dbf464bf82c53fcf9375a6217a02335617fe"
+      "sha256": "49f0d7a6fce40ad13ba4c57664b16bd99ceb87667e8b1537af357027084b047a"
     },
     {
       "bytes": 7186,
@@ -251,7 +275,7 @@
       "bytes": 112,
       "executable": false,
       "path": "usr/lib/lua/8311/version.lua",
-      "sha256": "4e7e182dab912eab150675b51e1b28cf5372584194f42a17ba6b5ffa1c9af799"
+      "sha256": "3c3f07269b0b38c159c36c99e0b07e185c8d9be5c84739c39e9fd215131bf0ae"
     },
     {
       "bytes": 3440,
@@ -260,10 +284,10 @@
       "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
     },
     {
-      "bytes": 53446,
+      "bytes": 58967,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "cddde92590b264741199a5afd421cc22cf624decb14d124b6e1d6f51f8f55ac7"
+      "sha256": "b1154baea65bad49db4d097aab9ebdda313cf4deb0d76d4097efc4cb898e45ca"
     },
     {
       "bytes": 19502,
@@ -275,13 +299,19 @@
       "bytes": 9109,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/firmware.htm",
-      "sha256": "f2bf58c9eaa43650923f22dfd73d7c86d5bef2fb98051b2b1c260506b34eb772"
+      "sha256": "ac873f965e8e3c8bb737934f9e5817a2079d554d6f7d87501785e2c8cfe876e0"
     },
     {
       "bytes": 5787,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/health.htm",
       "sha256": "d4c5bad01254dfc37392c0417a5e3dec717108dcd2b2b7cd8331ef0fef91d019"
+    },
+    {
+      "bytes": 15444,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/8311/monitoring.htm",
+      "sha256": "a72147365790ecb6a71a060dfaccbdd4e876fd0a4f06b24dc834f52104e15533"
     },
     {
       "bytes": 1394,
@@ -296,10 +326,10 @@
       "sha256": "5a92db3e0de4e82a82581a8b286d48fdd2de0f54e7c43624218e79090c4d6e21"
     },
     {
-      "bytes": 4236,
+      "bytes": 4361,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/security.htm",
-      "sha256": "faeda74e70548e3ced422c513a5d59bd798d8366b0869263dd3b982a1f6b14a8"
+      "sha256": "a42e67af5b801ad929dc05d85973846da99fa2a4b80a08bc8f5161d1a70c9a26"
     },
     {
       "bytes": 1843,
@@ -326,10 +356,10 @@
       "sha256": "9bd5f0c0c085bfd3c50fd409712744e541ed1de0b175945011f1a14a5c4c3215"
     },
     {
-      "bytes": 14803,
+      "bytes": 15039,
       "executable": false,
       "path": "usr/lib/lua/luci/view/themes/bootstrap/header.htm",
-      "sha256": "062c895dde3206200717cd677fe8a5e331f7262444a7c5bd47a8796adc27166a"
+      "sha256": "b18ce0d645334ebf4ffd118ef2a5e353ae7b142b2d34f166549b19e786d126fe"
     },
     {
       "bytes": 220,
@@ -372,6 +402,12 @@
       "executable": true,
       "path": "usr/libexec/8311-mib-edit.lua",
       "sha256": "c8e7baefc848c3796d610f92cafefe4a0c87e83870e7b688474d21bc58ba6f17"
+    },
+    {
+      "bytes": 241,
+      "executable": true,
+      "path": "usr/libexec/8311-monitoring-restore",
+      "sha256": "eac46f078fa1759085e1c3f462699230e60cc2e348ba27f2600a9fd7fa55368c"
     },
     {
       "bytes": 136,
@@ -488,10 +524,10 @@
       "sha256": "5e03825440490baf77fc9d3a498a39b6e1efa8ea95db3886b206888f40753b6c"
     },
     {
-      "bytes": 13529,
+      "bytes": 13749,
       "executable": false,
       "path": "www/luci-static/resources/view/8311-v2r1.js",
-      "sha256": "0dacc1bed3bb683f2b07a5832589ff8060b042efe7080a4f9c709b0b8d2bc9d8"
+      "sha256": "1ad7dd0fea1c170fd70f9c5998d1298efd3fe8035f9dca811665a755951a6018"
     },
     {
       "bytes": 81513,
@@ -501,8 +537,8 @@
     }
   ],
   "product": "AoTT-8311",
-  "release": "AoTT-8311-v2r7",
-  "revision": "r7",
+  "release": "AoTT-8311-v2r9",
+  "revision": "r9",
   "schema": 1,
   "secrets_included": false,
   "source_only": true,

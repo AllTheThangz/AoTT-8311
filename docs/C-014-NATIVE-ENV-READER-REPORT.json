@@ -1,0 +1,76 @@
+{
+  "basis": "EXTRACTED_VENDOR_UTILITY_ON_GENERATED_REGULAR_FILES",
+  "binary_or_vendor_runtime_modified": false,
+  "cases": [
+    {
+      "config_path_form": "relative",
+      "exit_code": -7,
+      "generated_crc_verified": true,
+      "input_images_unchanged": true,
+      "redundant": false,
+      "status": "NATIVE_READER_SIGNAL_7",
+      "stderr_sha256": "96aa1c64d29559cbe2ebaf7852656a92d26b68f8c913304f4e6ff2c96b7ca6de",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timed_out": false
+    },
+    {
+      "config_path_form": "absolute",
+      "exit_code": -7,
+      "generated_crc_verified": true,
+      "input_images_unchanged": true,
+      "redundant": false,
+      "status": "NATIVE_READER_SIGNAL_7",
+      "stderr_sha256": "96aa1c64d29559cbe2ebaf7852656a92d26b68f8c913304f4e6ff2c96b7ca6de",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timed_out": false
+    },
+    {
+      "config_path_form": "relative",
+      "exit_code": -7,
+      "generated_crc_verified": true,
+      "input_images_unchanged": true,
+      "redundant": true,
+      "status": "NATIVE_READER_SIGNAL_7",
+      "stderr_sha256": "96aa1c64d29559cbe2ebaf7852656a92d26b68f8c913304f4e6ff2c96b7ca6de",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timed_out": false
+    },
+    {
+      "config_path_form": "absolute",
+      "exit_code": -7,
+      "generated_crc_verified": true,
+      "input_images_unchanged": true,
+      "redundant": true,
+      "status": "NATIVE_READER_SIGNAL_7",
+      "stderr_sha256": "96aa1c64d29559cbe2ebaf7852656a92d26b68f8c913304f4e6ff2c96b7ca6de",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timed_out": false
+    }
+  ],
+  "fixture_removed": true,
+  "help_exit_code": 0,
+  "interpretation": "A failed emulation probe blocks this adapter; it does not diagnose the running ONU.",
+  "native_binary_sha256": "815053e739c4150d21209c84e4f1a1cc3840da9bbace5ebea3679b32bf8ff388",
+  "native_setter_invocations": 0,
+  "physical_device_tested": false,
+  "production_activation_allowed": false,
+  "reader_qualified_for_synthetic_backend": false,
+  "runtime_dependency_sha256": {
+    "lib/8311-env-lock.sh": "d097d963b0de9c28ccf578b0788c70e12d16a92c5c7506edcf5268881b4a51e6",
+    "lib/libc.so": "430a3f02ccb93a3a103ae492fa4d4fe5714bb68337e15cc6e663f0414382a97f",
+    "lib/libgcc_s.so.1": "43e77e84a436f913441dafb99458e8c81b66f754f08433ec3918c62ef279cbec",
+    "usr/sbin/fwenv_get": "b34fc862497676184e9f851ca68e0e3fb90351752a5dfd37cb9f20151d017ff3",
+    "usr/sbin/fwenv_set": "ba33fd1b7021064f4fd143fc5083561dd51249cebbd3888b3a6421c813817682"
+  },
+  "schema": 1,
+  "status": "BLOCKED_NATIVE_ENVIRONMENT_READER",
+  "trace": {
+    "config_open_observed": true,
+    "environment_image_open_observed": false,
+    "exit_code": -7,
+    "hardware_device_open_observed": false,
+    "stderr_sha256": "26e1b3723f3c5876ec72f134f0653dc9bef6b7eba25b9fc4082de86f5ee45c31"
+  },
+  "version_exit_code": 0,
+  "version_reported": "2018.03"
+}

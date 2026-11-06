@@ -1,0 +1,78 @@
+{
+  "basis": "EXTRACTED_VENDOR_UTILITY_ON_GENERATED_REGULAR_FILES",
+  "binary_or_vendor_runtime_modified": false,
+  "cases": [
+    {
+      "config_path_form": "relative",
+      "exit_code": 0,
+      "generated_crc_verified": true,
+      "input_images_unchanged": true,
+      "redundant": false,
+      "status": "SYNTHETIC_READER_PASS",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "4fbfa92a8074bf1a9b860dacf30adbe1ee8b1ec23fa2931db9ee0b5139669e5e",
+      "timed_out": false
+    },
+    {
+      "config_path_form": "absolute",
+      "exit_code": 0,
+      "generated_crc_verified": true,
+      "input_images_unchanged": true,
+      "redundant": false,
+      "status": "SYNTHETIC_READER_PASS",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "4fbfa92a8074bf1a9b860dacf30adbe1ee8b1ec23fa2931db9ee0b5139669e5e",
+      "timed_out": false
+    },
+    {
+      "config_path_form": "relative",
+      "exit_code": 0,
+      "generated_crc_verified": true,
+      "input_images_unchanged": true,
+      "redundant": true,
+      "status": "SYNTHETIC_READER_PASS",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "4fbfa92a8074bf1a9b860dacf30adbe1ee8b1ec23fa2931db9ee0b5139669e5e",
+      "timed_out": false
+    },
+    {
+      "config_path_form": "absolute",
+      "exit_code": 0,
+      "generated_crc_verified": true,
+      "input_images_unchanged": true,
+      "redundant": true,
+      "status": "SYNTHETIC_READER_PASS",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "4fbfa92a8074bf1a9b860dacf30adbe1ee8b1ec23fa2931db9ee0b5139669e5e",
+      "timed_out": false
+    }
+  ],
+  "fixture_removed": true,
+  "help_exit_code": 0,
+  "interpretation": "Short private lock-path qualification does not authorize a live write or prove physical durability.",
+  "lock_argument": "locks",
+  "lock_path_relative_to_private_cwd": true,
+  "native_binary_sha256": "815053e739c4150d21209c84e4f1a1cc3840da9bbace5ebea3679b32bf8ff388",
+  "native_setter_invocations": 0,
+  "physical_device_tested": false,
+  "production_activation_allowed": false,
+  "reader_qualified_for_synthetic_backend": true,
+  "runtime_dependency_sha256": {
+    "lib/8311-env-lock.sh": "d097d963b0de9c28ccf578b0788c70e12d16a92c5c7506edcf5268881b4a51e6",
+    "lib/libc.so": "430a3f02ccb93a3a103ae492fa4d4fe5714bb68337e15cc6e663f0414382a97f",
+    "lib/libgcc_s.so.1": "43e77e84a436f913441dafb99458e8c81b66f754f08433ec3918c62ef279cbec",
+    "usr/sbin/fwenv_get": "b34fc862497676184e9f851ca68e0e3fb90351752a5dfd37cb9f20151d017ff3",
+    "usr/sbin/fwenv_set": "ba33fd1b7021064f4fd143fc5083561dd51249cebbd3888b3a6421c813817682"
+  },
+  "schema": 2,
+  "status": "SYNTHETIC_READ_PROBE_PASSED",
+  "trace": {
+    "config_open_observed": true,
+    "environment_image_open_observed": true,
+    "exit_code": 0,
+    "hardware_device_open_observed": false,
+    "stderr_sha256": "9bfd604e0a2394441a76802ba5a88829ae144721b7d7f54e3c16571d7d267bb8"
+  },
+  "version_exit_code": 0,
+  "version_reported": "2018.03"
+}

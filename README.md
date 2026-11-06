@@ -4,9 +4,23 @@
 
 AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible web interface, deeper optical and network diagnostics, security visibility, and guarded A/B firmware management.
 
-**Public firmware source:** `AoTT-8311-v2r7` is the latest source-only release on `main`. **Private hardware state as of November 2, 2026:** original `AoTT-8311-v2r8` is committed in bank A and security-enhanced `AoTT-8311-v2r8` is successfully trial-booted in bank B, but **bank B is not permanently committed**. The private r8 builds are not public source or ready-to-flash releases. See [the dated project checkpoint](docs/PROJECT-CONTINUITY.md).
+**Firmware source in this checkout:** `AoTT-8311-v2r9`, an integrated offline candidate combining security-enhanced r8 monitoring with all 54 configuration-field readback contracts. See [the r9 release scope and build requirements](docs/V2R9-INTEGRATED-RELEASE.md).
+
+**Private hardware checkpoint, November 6, 2026:** original `AoTT-8311-v2r8` remains committed in bank A and security-enhanced `AoTT-8311-v2r8` is active in bank B, but **bank B is not permanently committed**. Fresh independent read-only checks confirmed PON association, a 10 Gbps host link and recovery consistency. This source integration establishes no r9 hardware trial. See [r9 integration](docs/V2R9-INTEGRATED-RELEASE.md) and [the historical project checkpoint](docs/PROJECT-CONTINUITY.md).
 
 > **Important:** This repository currently provides a **secret-sanitized source overlay, not a ready-to-flash firmware image**. Proprietary vendor components, actual subscriber provisioning, and production credentials are deliberately excluded.
+
+## AoTT-8311 v2 r9 candidate
+
+The runtime overlay now combines optional syslog and protected external metrics, durable monitoring restoration, HTTPS-key permission visibility, and seven manual Configuration readback panels. The 89-file manifest and runtime integrity checks cover the complete combined runtime.
+
+The readbacks distinguish stored settings, configured values and observed kernel/device evidence. The sensitive-identity panel returns only redacted status. All 54 existing fields have a readback contract; full hardware effectiveness and persistence remain separate qualification work.
+
+The history, certificate, firewall and native VLAN transaction development remains outside the installed overlay. [Release scope](docs/V2R9-INTEGRATED-RELEASE.md) identifies exactly what ships and what remains in development.
+
+### Monitoring implementation references
+
+The integrated monitoring runtime retains the [r8 implementation record](docs/V2R8-IMPLEMENTATION-STATUS.md), [persistence design](docs/V2R8-PERSISTENCE-DESIGN.md), [boot audit](docs/V2R8-BOOT-READINESS-AUDIT.md), [stage-readiness record](docs/V2R8-STAGE-READINESS.md), [historical hardware acceptance](docs/V2R8-HARDWARE-TRIAL-ACCEPTANCE.md), [management-access audit](docs/V2R8-MANAGEMENT-ACL-AUDIT.md), and [generic external collector example](examples/monitoring/README.md). These dated records support the inherited implementation and do not certify r9 hardware acceptance.
 
 ## Current development handoff and future direction
 
@@ -420,7 +434,7 @@ AoTT-8311 **builds on** the existing [8311 Community Firmware](https://github.co
 
 The source includes authenticated **Live Health** and **Security & Access** views. Health data can be refreshed at selectable intervals without automatically changing configuration. v2r7 improves light/dark Overview graph contrast.
 
-Existing diagnostic JSON can be consumed by external monitoring systems. The **private r8 hardware-trial build** adds GUI-controlled optional remote syslog and authenticated read-only metrics source functionality; its complete collector delivery and persistence paths have not been fully qualified. **Public main still contains r7 source only.** Users supply their own receiver, collector, storage, dashboards and alerts. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and the [dated project checkpoint](docs/PROJECT-CONTINUITY.md).
+Existing diagnostic JSON can be consumed by external monitoring systems. The **private r8 hardware-trial build** adds GUI-controlled optional remote syslog and authenticated read-only metrics source functionality; its complete collector delivery and persistence paths have not been fully qualified. **r9 integrates its source with the configuration readback modules.** Users supply their own receiver, collector, storage, dashboards and alerts. See [monitoring architecture](docs/MONITORING-AND-TELEMETRY.md) and the [dated project checkpoint](docs/PROJECT-CONTINUITY.md).
 
 ### A/B upgrade safety
 
@@ -441,7 +455,7 @@ These operations require a compatible complete firmware build and an independent
 | --- | --- |
 | Primary device | OEM/Potron LL-XS1010 XGS-PON SFP+ ONU |
 | Platform | PRX126-SFP-PON, PRX300-family vendor firmware baseline |
-| Public main source | `AoTT-8311-v2r7` source-only; no public full firmware image |
+| This source candidate | `AoTT-8311-v2r9` integrated offline source; no public full firmware image |
 | Latest privately trial-booted firmware | Security-enhanced `AoTT-8311-v2r8` in bank B, **uncommitted** as of November 2, 2026 |
 | Verified on-device fallback | Original `AoTT-8311-v2r8` committed in bank A; earlier r7/r6 images preserved privately off-device |
 | Next-generation development | vNext capability, history, reliability and broader hardware support; source-only, not installed |
@@ -596,5 +610,5 @@ AoTT-8311 is an independent community project, not an official vendor or ISP rel
 
 ---
 
-**AoTT-8311 | public v2r7 source-only | private original-r8 committed fallback | private enhanced-r8 uncommitted trial | vNext source-only**
+**AoTT-8311 | v2r9 integrated offline candidate | original-r8 fallback and enhanced-r8 trial | further features in source development**
 

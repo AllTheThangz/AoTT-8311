@@ -1,0 +1,305 @@
+# v2r8 implementation status: draft source and hardware-trial evidence
+
+Status: **private one-shot hardware trial boot verified, but not permanently committed, merged or publicly released**.
+
+The base is the committed v2r7 source for the qualified PRX126-SFP-PON hardware family. Initial development was offline. After independently verifying complete A/B backups, an approved stage wrote private r8 to inactive bank A. A separately approved one-shot trial successfully booted r8, while retaining committed r7 in bank B. No permanent commit, ISP identity change or monitoring configuration change was made. Public examples contain no deployment addresses.
+
+## Implemented in this development branch
+
+- A lightweight Lua module uses existing UCI and the vendor's OpenWrt logging service. A read-only inspection of the qualified vendor image verified that `/etc/init.d/log` supports `log_remote`, `log_ip`, `log_port`, and `log_proto` with **UDP and TCP** transport options.
+- The authenticated Monitoring & Telemetry page configures remote syslog, an exact allowed IPv4 collector address and optional metrics. The administrator can generate, rotate or revoke a separate 256-bit random read-only token. Only a domain-separated SHA-256 digest is persisted. A new token is shown once over HTTPS.
+- Form submission requires LuCI session/CSRF validation, rejects unknown fields and malformed addresses/ports, checks a saved-configuration revision, locks concurrent AoTT monitoring writes, applies a single UCI system section, and reloads only the logger. A failed reload attempts to restore and verify the previous configuration.
+- A bounded, locally generated test log message returns a correlation marker. It cannot confirm that a UDP or TCP collector received the message.
+- The inherited anonymous metrics service is replaced with an administrator-authenticated metrics view and an external read-only metrics route. The external route requires HTTPS, the exact allowed source IP, a socket destination matching the configured management address, and the X-AoTT-Metrics-Token header. Forwarded/proxy identity headers are ignored.
+- The existing Live Health page remains authenticated and provides additional Ethernet and GEM diagnostics. No database, Python runtime, exporter service or flash-based historical log storage is installed.
+- The external JSON metrics path now bounds the inherited PON registration probe using the already-installed BusyBox timeout and a 1 KiB output limit. A timeout, overflow or failed read yields an unavailable PLOAM value rather than a false zero; interactive PON status remains unchanged. A target-MIPS fixture checks failure modes.
+- The current vendor remote-log service has **no supported severity filtering knob**. Do not expose a nonfunctional severity setting; collectors may apply their own filtering.
+
+## Validation performed
+
+- Static Lua 5.1 parser checks for the module and LuCI controller.
+- Isolated source-level Lua tests using mocked UCI, logging processes and locks. The tests cover invalid configuration, stale revision, successful save, test emission and failed-logging-service rollback.
+- The same Lua fixture passed in target MIPS Lua under QEMU. Security-negative tests exercise wrong or missing tokens, non-HTTPS requests, mismatched source and destination IPs, spoofed forwarded headers, stale credential requests, rotation and revocation.
+- Full source manifest and privacy/disclosure gates passed after adding the candidate files.
+- A **size-only** private SquashFS measurement using XZ and 1 MiB blocks is **5,701,632 bytes** against v2r7 **5,689,344 bytes**, a delta of **12 KiB**. Remaining fixed-bank capacity is **520,192 bytes (508 KiB)**. This is not a qualified flashable image.
+- Python regression tests and actual browser tests must be rerun on the final candidate, including CI with the Chromium requirements enforced.
+
+**Important:** this is not firmware qualification. The private size-only filesystem still carries the v2r7 runtime integrity profile. Its hashes are not updated for new files, it is not eligible for an upgrade archive, and it must not be installed onto a device.
+
+The draft monitoring configuration and credential transitions write the durable desired state before modifying live UCI settings. A failed live apply can leave pending durable settings that **may activate at the next boot**. The interface reports this explicitly and requires review rather than claiming that a failed apply fully cancels the operator's request. Token revocation remains fail closed while the r8 route is active.
+
+## Persistence and vendor-runtime qualification findings
+
+The vendor source explicitly documents that stock boot can delete rootfs_data
+while the separate ptconf volume survives. The r8 draft restores reviewed
+settings from a protected persistent record during boot. The running r8
+trial confirms the mounted UBIFS volume and S11 restore hook, but a durable
+record has not been configured. Configured restore and interrupted writes
+remain unqualified.
+
+- The extracted vendor LuCI UCI model passed synthetic configuration,
+  token rotation/revocation and default-value tests under host Lua 5.1 and
+  the real vendor MIPS Lua interpreter under QEMU.
+- The exact vendor uhttpd Lua request handler passed synthetic TLS, socket
+  address and custom HTTP-header mapping checks under both interpreters.
+- The host-only atomic private record prototype passed six negative and
+  round-trip tests, including symlinks, unsafe permissions, duplicate JSON
+  keys, malformed addresses and invalid token states.
+- A disposable vendor-runtime lab parsed the proposed record with target
+  MIPS jsonfilter and round-tripped settings through the actual target
+  MIPS UCI CLI using a fresh temporary configuration.
+- The source candidate now includes a root-only, atomic JSON record store on the persistent ptconf UBIFS volume, an optional bounded restore call in the vendor's already-registered S11 sysctl service, before the S12 logger. The original UCI defaults are preserved unchanged. This avoids relying on a first-boot-created rc.d symlink that might disappear during rootfs_data reset. The target-MIPS nixio/jsonc store parser passed offline tests for symlinks, permissions, malformed mounts, canonical JSON and readback.
+  persistent-write integration has been added to the firmware.
+
+See [durable monitoring design](V2R8-PERSISTENCE-DESIGN.md).
+
+### Interrupted-revocation and vendor CLI hardening
+
+A security audit found that an ordinary settings save could copy an old live
+credential back into durable storage after a prior revocation succeeded
+durably but its live UCI commit failed. This loophole is closed: **normal
+saves and token rotation now require durable/live consistency**, while
+revocation remains available during a mismatch.
+
+Boot restoration also rejects unrelated pending UCI edits and reverts its
+own staged changes when an allowlisted set or commit operation fails.
+An isolated harness drives the exact boot-restore module against the real
+vendor MIPS UCI CLI using only disposable configuration directories.
+It covers successful restore, idempotence, unrelated settings, missing
+records, and injected set/commit failures with staged-state cleanup.
+
+The expanded local suite now passes **312 tests** (four browser-dependent skips), including generic external collector, vendor syslog transport, management ACL and r8 critical runtime-profile pin contracts. These are not power-loss, real UBIFS, or A/B hardware acceptance tests.
+
+### Fully isolated vendor UCI commit tests
+
+The first private vendor CLI harness used a custom staging search path and
+incorrectly counted staged values as committed. The vendor UCI command also
+needs /proc/self/fd during commit, which was absent from that first chroot.
+
+The corrected test suite clones the extracted vendor rootfs into a private
+scratch chroot, binds /proc only inside a temporary mount namespace and
+uses the vendor default UCI staging path **inside the chroot**. No host
+staging path or running device configuration is changed.
+
+Five end-to-end tests now confirm physical configuration-file readback,
+repeated no-op restore, unrelated pending settings rejection, failed
+middle-option revert and failed commit revert. An incidental synthetic
+staging file from the earlier experiment was preserved off-path in a
+private local test backup, not deleted or published.
+
+This is still a disposable filesystem integration test, not proof that
+the r8 hook survives actual UBIFS power loss or A/B transitions.
+
+### Vendor syslog, collector endpoints and operator examples
+
+- Source-mocked procd tests run the extracted vendor logger start callback
+  and confirm the exact logread command for UDP and TCP, optional TCP null
+  framing, receiver port and disabled or rejected settings. They do not
+  claim an external collector received a message.
+- The controller's actual read-only JSON actions pass positive and
+  negative isolated Lua checks: denied bearer, non-GET requests, disabled
+  export, authorized numeric-only JSON and bounded sensor error handling.
+- A public, optional [off-device Prometheus adapter](../examples/monitoring/README.md)
+  uses Python's standard library on the operator's collector machine,
+  verifies HTTPS, accepts a private token file, exposes only eight
+  documented numeric metrics and rate-limits polls with a cache.
+  No collector service or runtime dependency is bundled on the ONU.
+- An [ACL audit](V2R8-MANAGEMENT-ACL-AUDIT.md) records that the vendor's
+  uhttpd listener binds wildcard IPv4/IPv6. Effective firewall and older
+  firmware fallback behavior must still be tested on recoverable hardware.
+
+### Boot startup registration correction
+
+The initial draft shipped a new S11 init script but did not include a
+durable startup link in the compressed image. Dynamically creating the
+link in UCI defaults is not sufficient when rootfs_data can be discarded.
+Adding a symlink to the public source is also prohibited by this project's
+source-only verifier.
+
+The reviewed implementation now retains the vendor's existing, immutable
+S11sysctl rc.d link and adds one optional 12-second bounded call after
+the original sysctl operations. The restore runs only when a durable
+monitoring record exists. Stock UCI defaults match the qualified r7
+source byte-for-byte, and no additional symlink or resident daemon is
+distributed. Real boot timing and behavior remain unqualified.
+
+## Three-pass preboot audit and privately qualified archive
+
+The independent boot audit corrected the r8 startup packaging to reuse
+the vendor's immutable S11sysctl rc.d symlink. The source-only project
+forbids newly introduced symlinks, so a first-boot-generated startup link
+would not survive every possible rootfs_data reset. The vendor sysctl
+logic is preserved, with one bounded optional restore after its original
+operations; stock UCI defaults remain byte-identical to qualified r7.
+
+A separate private scratch release was assigned canonical v2r8 identity
+without changing this public draft's historical r7 labels. Its refreshed
+runtime candidate pins passed inspection. Independent r8 SquashFS images
+and complete private upgrade archives were byte-identical. The standard
+five-component archive, exact kernel and bootcore hashes, hardware
+profile and release labels passed separate offline qualification.
+After pinning eight critical runtime files and the existing S11/S12
+startup links, the current private r8 image measures **5,701,632 bytes**
+with **508 KiB** fixed-bank headroom. The earlier 5,697,536-byte
+archive and associated private kit were superseded and are blocked
+from staging.
+
+The original private build archives retain build-time **UNTRIALED_OFFLINE_ONLY**
+labels, but the approved stage and one-shot hardware trial have since
+succeeded. Immutable build-time labels do not describe the current boot state.
+See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md).
+
+## Private stage-only preparation
+
+The native r7 upgrader accepted the r8 archive using `--validate` in an
+offline, networkless, flash-device-masked MIPS chroot. Postwrite candidate
+qualification was checked separately: the refreshed r8 runtime profile
+passes, whereas the stale r7 candidate pins fail as expected.
+
+A private, hashed bank-A stage kit has been prepared with reviewed
+runtime policy inputs. Its offline gate fails closed for tampering,
+symlinks, reversed bank selection and false authorization, and marks
+fresh bank state, fresh complete A/B backups and independent stage-only
+approval as missing.
+
+**Subsequent hardware outcome:** Full pre-stage backups passed, r8 was
+successfully staged into A, and a separate one-shot boot confirmed r8
+running in A with v2r7 still committed in B. No permanent commit or
+additional reboot was requested. See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md)
+and the historical [stage readiness](V2R8-STAGE-READINESS.md).
+
+## Read-only native metrics concurrency qualification
+
+Four sequential and six two-client concurrent reads ran on the trial-booted
+r8 ONU with all eight numeric metrics present and PON O5.1 throughout.
+Median end-to-end native metric-function read times were **1.016 seconds**
+sequentially and **1.776 seconds** with two clients. Available memory
+remained near 386 MiB and the one-minute load average ranged from 0.29
+before to 0.69 after the short test. These results do not yet qualify
+authenticated HTTPS collectors, larger concurrency or long-term load.
+See [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md).
+
+## Live collector-denial, TLS and IPv6 socket checks
+
+An extended management-side read-only check confirmed collector 403
+denials for anonymous and invalid-token requests, forged forwarded
+addresses, and fake bearer authorization. Unsupported HEAD/POST returned
+405; plain HTTP redirected with 307. TLS 1.2/1.3 negotiated, but the
+self-issued certificate lacks a Subject Alternative Name and fails
+default certificate-chain verification.
+
+The real IPv4 and IPv6 socket tables show wildcard HTTP/HTTPS listeners.
+The ONU has seven IPv6 link-local addresses, no global IPv6 addresses
+and no IPv6 default route at this snapshot. Applied IPv6 filtering,
+same-link reachability and untrusted/WAN ingress are not independently
+verified. The configured WAN reject policy is not proof of active
+kernel enforcement. See [management ACL audit](V2R8-MANAGEMENT-ACL-AUDIT.md)
+and [hardware trial acceptance](V2R8-HARDWARE-TRIAL-ACCEPTANCE.md).
+
+## Posttrial source-only Monitoring page correction
+
+The live r8 trial has a valid ptconf UBIFS mount and no configured monitoring
+record. The original page conflated that expected clean installation with a
+persistent settings integrity mismatch. A source-only patch now recognizes a
+clean installation **only** when the durable directory is absent, mounted
+ptconf is verified and all active settings are at safe defaults. Broken
+paths, unmounted storage, missing files inside an existing store directory,
+credentials and non-default logging/collector settings remain warnings.
+Collector access still requires a valid matching durable record.
+
+New cases passed in the vendor MIPS Lua implementation. An additional
+source-only initialization guard now prevents ordinary saves and rotation
+when a persistent store directory already exists without a valid matching
+record, or when the mount or live defaults are untrusted. Only a truly
+unconfigured installation may create its first durable record. Explicit
+revocation remains the fail-closed recovery path.
+
+The subsequent full source suite passed 369 tests without skips using the
+preserved private v2r7 vendor runtime for isolated MIPS Lua, vendor UCI,
+boot restoration and syslog fixture tests. This includes 54 actual
+Chromium/Playwright browser tests. Two additional cases validate the
+real LuCI monitoring template and vendor styles at mobile and desktop widths.
+
+An isolated offline rootfs variant was independently built twice into
+byte-identical SquashFS images of 5,705,728 bytes, leaving 516,096 bytes
+of fixed-bank headroom. Its embedded runtime profile adds the ten critical
+monitoring/startup records verified by the original private stage policy,
+and repins exactly three posttrial monitoring files. Both strict profile
+checks and direct SquashFS critical-member reads passed. The first image
+pair failed deterministic reproducibility because of a directory timestamp,
+and was rejected; the corrected independent pair matched.
+
+This is a private size-only **NOT FLASHABLE** qualification, not a new
+five-member upgrade archive or a second hardware qualification. The
+sanitized source manifest still identifies its earlier r7 baseline and
+cannot be misrepresented as a frozen canonical r8 release. The posttrial
+source changes are **not** on the running ONU. No on-device state changed.
+
+## Continued posttrial security and integration qualification
+
+The unmerged draft now has an explicit administrative recovery action for a
+writable but incomplete monitoring store with no active token. Normal
+configuration writes and rotation remain locked during durable/live
+mismatch. The reset uses the existing authenticated, CSRF-checked
+revocation operation, writes the disabled durable state first, and retains
+fail-closed behavior for unsafe storage. No recovery endpoint is anonymous.
+
+Three additional offline HTTPS tests exercise the real external adapter
+against an ephemeral loopback TLS server with an independently trusted
+certificate. Correct-token export succeeds, revoked-token requests return
+collection_failure without stale measurements, and untrusted certificate
+verification fails before any HTTP application request is handled.
+These tests do not provision a live ONU token or establish real collector
+delivery.
+
+A source-only OpenWrt WAN-zone audit flags unresolved interface
+references, a default input ACCEPT policy and the absence of a WAN INPUT
+hook in a generated firewall plan. The private read-only live snapshot
+reproduced all of those findings. This is a configuration gap, **not**
+independent proof of Internet exposure or applied kernel filtering.
+
+The latest full suite passes **379 tests, zero skipped**, including
+55 real Chromium/Playwright cases and preserved vendor MIPS/UCI
+fixtures. The private posttrial source was independently rebuilt into
+two identical, size-only SquashFS images of 5,705,728 bytes with
+516,096 bytes of remaining fixed-bank capacity. Strict embedded r8
+runtime profile checks and critical image-member readbacks passed.
+These are marked **NOT FLASHABLE**; no new complete installer archive,
+hardware stage, boot, permanent commit or public release occurred.
+
+## Further post-freeze TLS and NAT security findings
+
+A newer read-only audit found that the live management TLS certificate
+is self-issued, lacks a SAN and fails identity validation even after
+temporary explicit certificate trust. The persistent private key is
+root-owned but has access mode 0644; the web service runs under root.
+The private key contents were not read or copied.
+
+The draft Security & Access page now classifies root-owned private
+key file modes and unsafe symlink/owner states without leaking the key
+path or data. A host Lua 5.1 and real vendor MIPS Lua fixture validated
+read-only status and warning behavior, including restricted and
+overexposed permissions. This patch is not on the live stick or in the
+previously qualified private r8 firmware archives.
+
+Two concurrent trusted-host TLS sessions were seen by the ONU as one
+public IPv4 egress address, illustrating source NAT aliasing. The
+draft Monitoring page now states that an exact-IP allowlist cannot
+uniquely identify a client in this condition. Per-client gateway
+filtering before NAT or preserved-source management routing is required
+in addition to the HTTPS collector token.
+
+These findings do not authorize certificate changes, firewall edits,
+collector enrollment, firmware staging or any reboot.
+
+## Remaining release-blocking work
+
+1. **Collector authorization qualification:** A separate HTTPS-only, read-only token and exact IPv4 allowlist exist in offline source. Verify actual target HTTP header/TLS and management socket behavior, credential permissions, negative requests and persistence in an isolated recoverable environment.
+2. **Access network:** Verify management-interface firewall ACLs and the absence of untrusted/WAN exposure on recoverable hardware. The request-level socket destination and source-IP checks are defense in depth, not a substitute for firewall testing.
+3. **Persistence:** the durable store, early restore and fail-closed dual-record authorization are implemented in source and pass offline tests, but have not been qualified on an actual mounted ptconf UBIFS volume or across real reboot and A/B switching. Test interrupted writes, receiver reachability, low-space behavior and the original boot sequence on recoverable hardware.
+4. **Performance:** benchmark concurrent basic metrics scrapes, expensive detailed `pontop` reads, idle memory and active CPU usage. Do not implement new background polling before measuring.
+5. **Browser UX:** run real Chromium form submission/failure/test-event scenarios at desktop and mobile widths. Resolve all accessibility and styling defects before GUI signoff.
+6. **Release freeze:** assign canonical r8 release identity, refresh all source manifest and runtime-integrity pins, verify actual compressed image archive and original vendor ABI, independently rebuild twice and complete full native regression tests.
+7. **Hardware:** complete full-bank backups, stage-only and one-shot trial passed. R8 runs in A with committed r7 in B. Permanent commit is not authorized, and extended stability and monitoring-function testing remain open.
+
+See [v2r8 plan](V2R8-PLAN.md) and the [monitoring integration design](MONITORING-AND-TELEMETRY.md). The r8 branch remains a candidate until every P0 gate is satisfied.

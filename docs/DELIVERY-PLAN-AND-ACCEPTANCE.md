@@ -1,5 +1,15 @@
 # AoTT-8311 delivery backlog, sequencing and acceptance
 
+## Release integration checkpoint, November 6, 2026
+
+| ID | State | Deliverable and evidence |
+| --- | --- | --- |
+| R9-001 | DONE_SOURCE | Integrated enhanced-r8 runtime and all 54 source readback contracts in an 89-file r9 overlay; [scope and integration decisions](V2R9-INTEGRATED-RELEASE.md) |
+| R9-002 | IN_PROGRESS | Exact-commit combined regression, private reproducible rootfs/archive pair and independent qualification |
+| R9-003 | NOT_STARTED | Hardware stage/trial acceptance of that exact qualified r9 archive |
+
+The immediate deliverable is the integrated firmware candidate. Further C-013/C-014 write-path development remains in source fixtures and is not a prerequisite for packaging the already integrated read-only runtime. Existing hardware approvals and current-state receipts govern any later device action.
+
 **Baseline date:** 2026-11-02. **State:** roadmap with real evidence references and explicitly open work. This backlog is not a statement that planned functionality exists.
 
 Status values: DONE_SOURCE, DONE_HARDWARE, IN_PROGRESS, NOT_STARTED, BLOCKED, CONDITIONAL. A task marked DONE_SOURCE remains unqualified on production hardware until DONE_HARDWARE evidence exists.
@@ -26,8 +36,8 @@ All later tasks are open unless specifically updated with new test artifacts. Ea
 | C-010 | DONE_SOURCE | Reproducible source-derived capability registry | All 54 current GUI fields, backend namespace, source/line references, 4 hidden/missing candidates, 2 legacy aliases and 13 offline vendor UCI domains inventoried. 16 targeted tests pass on private r8 and public r7 source. Native runtime-qualified setters/effective states still belong to C-011/C-012. |
 | C-011 | IN_PROGRESS | Backend read/effective-value contract | Source readback contracts now cover **54 of 54 GUI fields**: the previous 45 plus [nine redacted identity/credential overrides](C-011-SENSITIVE-IDENTITY-READBACK.md). New root-only manual GET route and Configuration panel use the real save validator and distinguish valid/invalid saved source, unset and unavailable, without returning contents, hashes or lengths. An executable union test checks all 54 real GUI IDs with no omissions or overlap. This closes stored-source coverage, not actual runtime consumption, OLT/root authentication, native setter behavior, persistence, hardware qualification or deployment. |
 | C-012 | IN_PROGRESS | Table-driven positive/negative setting tests | [Offline full-schema contract](C-012-OFFLINE-CONFIG-SAVE-CONTRACT.md) exercises all 54 fields using real Lua schema and simulated writes/readback, including vendor MIPS QEMU, negative inputs, stale revision and partial-write guards. Real native writes, effect, reboot durability and recovery remain unqualified. |
-| C-013 | IN_PROGRESS | Persistence and recovery test matrix | [C-013 offline crash-safe transaction journal](C-013-OFFLINE-CRASH-RECOVERY.md) tests real local Linux fcntl ownership, durable prior/candidate/journal ordering, separate process death and SIGKILL, unconfirmed rollback, post-confirmation cleanup, stale revision and inode attacks using *only* benign synthetic settings. Hardware uhttpd/service restart, flash/NAND/UBIFS, cold boot, A/B bank transition, full 54-field setting persistence, alternate physical recovery and true power-cut checks remain unqualified. |
-| C-014 | IN_PROGRESS | Repair management VLAN | [Actual startup-block characterization](C-014-MANAGEMENT-VLAN-STARTUP-TRACE.md) reproduces fresh tagged/untagged configuration, stale state after a retained-state tagged-to-untagged replay, masked VLAN-write failure, positional firewall-zone assignment and a logging-only setter in eight offline tests. No boot logic was changed and the GUI control remains hidden. Actual persistence, LCT/host VLAN path, zone association, checked repair, alternate management recovery and forwarding acceptance remain unqualified. |
+| C-013 | IN_PROGRESS | Persistence and recovery test matrix | The isolated service passed all 1,166 parent tests without per-run approval. The new journal-coordinated native VLAN adapter adds real vendor-utility apply/restore on generated redundant images; its 24 cases and full regression are pending. Physical storage, actual cache files, reboot and power-loss qualification remain open. |
+| C-014 | IN_PROGRESS | Repair management VLAN | Version-three transaction source connects native VLAN apply/restore to the existing journal, independent worker and supervisor. It refuses unsupported empty restoration and observed unknown changes. It remains fixture-bound, unpublished and undeployed; no production GUI or live environment writer is enabled. |
 | C-015 | NOT_STARTED | Audit missing device_sn and factory_mode | Verify real vendor support and effects, identity sensitivity, safe bounds; expose only after hardware qualification |
 | C-016 | NOT_STARTED | Inventory remaining UCI/vendor settings | Classify 13 UCI domains plus runtime/OMCI/optics; provide read-only or unsupported explanation where necessary |
 | C-017 | NOT_STARTED | GUI functionality and correctness audit | Every tab, option, chart, button, page, save, readback and error state operates in light/dark/mobile and authenticated paths |
@@ -124,9 +134,9 @@ Avoid mandatory external cloud dependencies, enterprise PKI, full databases, rou
 
 ## What to do next, without another planning loop
 
-**Current next source task:** C-014 management-VLAN tracing and recovery design. C-010 discovery, C-012 schema tests and C-011 stored-source readback coverage now account for all 54 existing fields, but native effective behavior and persistence remain unqualified. Continue C-013 backend integration without treating a source-only journal as an on-device watchdog.
+**Next firmware task:** complete R9-002 against the integrated candidate, preserving the latest native-transaction tests as development source. **Further configuration development:** continue the guarded write/restore adapter with explicit refusal of unsupported present-empty restoration and qualified cache handling. The read-only device baseline is complete; do not ask the operator to repeat it. C-010 discovery, C-012 schema tests and C-011 stored-source readback coverage now account for all 54 existing fields, but native effective behavior and persistence remain unqualified. Continue C-013 backend integration without treating a source-only journal as an on-device watchdog.
 
-**Second:** C-014. Investigate the hidden management VLAN through startup and UCI without modifying production management routes; design a hardware-safe migration/revert test.
+**Hardware prerequisite:** use the verified existing SSH profile for appropriately scoped read-only checks. Native writing, reboot/bank operations and disruptive tests remain separate approval-bound actions.
 
 **History follow-through:** qualify the existing H-011 through H-028 source collector and its authenticated UI against measured PRX126 resources before runtime installation. Source integration is not an installed sampler or proof of subscriber Internet availability.
 
