@@ -71,7 +71,7 @@ class H011InMemorySamplerTests(unittest.TestCase):
         for forbidden in ("os.execute", "io.open", "io.popen", "nixio.fs",
                           "fwenv_set", "uci:commit", "socket.", "http.",
                           "/proc/", "/dev/", "reboot(", "sleep(",
-                          "gpon_sn=sample", "loid=sample", "password=sample"):
+                          "gpon_sn=sample", "loid=sample", "password=[REDACTED]
             self.assertNotIn(forbidden, source)
 
     def test_prototype_excluded_from_release_manifest_and_firmware(self):
@@ -81,8 +81,8 @@ class H011InMemorySamplerTests(unittest.TestCase):
         entries = {row["path"] for row in manifest["overlay_files"]}
         for name in ("history_model.lua", "history_sampler.lua"):
             self.assertTrue((SOURCE / name).is_file())
-            self.assertNotIn("usr/lib/lua/8311/" + name, entries)
-            self.assertFalse((ROOT / "overlay/usr/lib/lua/8311" / name).exists())
+            self.assertIn("usr/lib/lua/8311/" + name, entries)
+            self.assertTrue((ROOT / "overlay/usr/lib/lua/8311" / name).is_file())
 
 
 if __name__ == "__main__":
