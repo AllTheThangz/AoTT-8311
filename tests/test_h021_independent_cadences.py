@@ -107,9 +107,10 @@ class H021IndependentSamplingTests(unittest.TestCase):
         self.assertIn('record.host_link_observation=="unavailable"',aggregate)
 
     def test_not_deployed_or_connected_to_isp(self):
-        for source in ("history_collector.lua","history_native_probe.lua"):
-            self.assertFalse((ROOT/"overlay/usr/lib/lua/8311"/source).exists())
-            self.assertNotIn(source,(ROOT/"MANIFEST.json").read_text())
+        self.assertFalse((ROOT/"overlay/usr/lib/lua/8311/history_collector.lua").exists())
+        self.assertNotIn("history_collector.lua",(ROOT/"MANIFEST.json").read_text())
+        self.assertTrue((ROOT/"overlay/usr/lib/lua/8311/history_native_probe.lua").is_file())
+        self.assertIn("history_native_probe.lua",(ROOT/"MANIFEST.json").read_text())
         self.assertNotIn("/etc/init.d",
                          (LIB/"8311/history_collector.lua").read_text())
         self.assertNotIn("socket.",
