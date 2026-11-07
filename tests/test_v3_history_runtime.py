@@ -26,6 +26,31 @@ class V3HistoryRuntimeTests(unittest.TestCase):
         self.assertEqual(p.returncode,0,p.stderr)
         self.assertIn("AOTT_V3_HISTORY_RUNTIME_FIXTURE_PASS",p.stdout)
 
+    def test_vendor_mips_production_lock_and_snapshot_path(self):
+        if os.geteuid()!=0:
+            self.skipTest("Production lock fixture requires root-owned /run")
+        if not shutil.which("qemu-mips-static") or not (VENDOR/"usr/bin/lua").is_file():
+            self.skipTest("Vendor MIPS runtime unavailable")
+        runtime=Path("/run/aott-history")
+        if runtime.exists():
+            self.skipTest("/run/aott-history already exists")
+        runtime.mkdir(mode=0o700)
+        try:
+            p=subprocess.run([
+                "qemu-mips-static","-L",str(VENDOR),str(VENDOR/"usr/bin/lua"),
+                str(ROOT/"tests/v3_history_production_lock_fixture.lua"),str(LUA)
+            ],cwd=ROOT,capture_output=True,text=True,timeout=25)
+            self.assertEqual(p.returncode,0,p.stderr)
+            self.assertIn("AOTT_V3_HISTORY_PRODUCTION_LOCK_PASS",p.stdout)
+            self.assertFalse((runtime/"snapshot.json").exists())
+        finally:
+            for name in ("snapshot.json.new","snapshot.json","publication.lock","collector.lock"):
+                path=runtime/name
+                if path.exists() and not path.is_symlink():
+                    path.unlink()
+            if runtime.exists():
+                runtime.rmdir()
+
     def test_service_is_opt_in_and_has_no_respawn(self):
         init=(OVERLAY/"etc/init.d/8311-history").read_text()
         self.assertIn('config_get enabled main enabled 0',init)
