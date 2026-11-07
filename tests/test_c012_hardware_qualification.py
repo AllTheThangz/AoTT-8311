@@ -10,6 +10,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "tools"
 MATRIX_PATH = ROOT / "docs/C-012-HARDWARE-QUALIFICATION-MATRIX.json"
+BASELINE_PATH = ROOT / "docs/C-012-PRX126-READONLY-BASELINE.json"
 
 sys.path.insert(0, str(TOOLS))
 import build_capability_registry as registry  # noqa: E402
@@ -151,6 +152,40 @@ class C012HardwareQualificationMatrixTests(unittest.TestCase):
         self.assertFalse(committed["contains_runtime_values_or_credentials"])
         self.assertFalse(
             committed["policy"]["generic_continue_authorizes_live_mutation"])
+
+    def test_public_readonly_baseline_is_value_free_and_bounded(self):
+        baseline = json.loads(BASELINE_PATH.read_text())
+        self.assertEqual(
+            baseline["status"], "C012_PRX126_READONLY_BASELINE_PUBLIC_SAFE")
+        self.assertEqual(baseline["summary"]["fields_accounted"], 54)
+        self.assertEqual(
+            baseline["summary"]["read_only_baselines_observed"], 54)
+        self.assertEqual(
+            baseline["summary"]["runtime_effect_proven_ids"],
+            ["gateway", "hostname", "ipaddr", "lct_mac", "netmask"],
+        )
+        self.assertEqual(
+            baseline["summary"]["fully_hardware_qualified_fields"], 0)
+        self.assertEqual(
+            {row["id"] for row in baseline["fields"]}, self.source_ids)
+        self.assertTrue(all(
+            row["hardware_qualified"] is False
+            for row in baseline["fields"]))
+        safety = baseline["safety"]
+        for key in (
+            "raw_setting_values_included",
+            "subscriber_identity_values_included",
+            "credential_values_or_hashes_included",
+            "private_network_addresses_included",
+            "mac_addresses_included",
+            "boot_id_included",
+            "device_writes",
+            "firmware_writes",
+            "reboot",
+            "bank_state_changed",
+        ):
+            self.assertFalse(safety[key])
+        self.assertTrue(safety["before_after_device_state_identical"])
 
     def test_tool_has_no_device_transport_or_mutation_dispatch(self):
         source = (TOOLS / "build_c012_hardware_qualification.py").read_text()
