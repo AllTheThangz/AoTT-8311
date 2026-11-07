@@ -1,4 +1,4 @@
-"""Current r9 source, historical r7 acceptance and private r8 trial records."""
+"""Current r9 hardware acceptance plus preserved historical release records."""
 
 import json
 import re
@@ -23,13 +23,19 @@ class CurrentReleaseDocumentationTests(unittest.TestCase):
         cls.manifest = json.loads((ROOT / "MANIFEST.json").read_text())
 
     def test_latest_hardware_status_and_fallback(self):
-        # The public release remains r7, but the private hardware has since
-        # moved to original r8/A committed and enhanced r8/B as a trial.
         self.assertIn("Firmware source in this checkout:", self.readme)
         self.assertIn("AoTT-8311-v2r9", self.readme)
-        self.assertIn("security-enhanced", self.readme)
-        self.assertIn("bank B is not permanently committed", self.readme)
-        self.assertIn("original-r8 fallback", self.readme)
+        self.assertIn("Private hardware acceptance, November 7, 2026", self.readme)
+        self.assertIn("permanently committed in bank A", self.readme)
+        self.assertIn("Enhanced r8 remains complete and valid in bank B", self.readme)
+        self.assertIn("V2R9-HARDWARE-ACCEPTANCE.md", self.readme)
+        self.assertIn("v2r9 (privately hardware-qualified and committed", self.changelog)
+        for phrase in ("AoTT-8311-v2r9", "Active bank | A", "Committed bank | A",
+                       "PON state | O5.1", "Host Ethernet | 10,000 Mbps",
+                       "Bank B native integrity | passed", "offline-candidate"):
+            self.assertIn(phrase.lower(), self.r9accept.lower())
+
+        # Older accepted releases remain documented as historical evidence.
         self.assertIn("historical v2r7 acceptance", self.readme.lower())
         self.assertIn("v2r7 (privately hardware-qualified and committed", self.changelog)
         self.assertIn("v2r7 is committed on firmware bank B", self.changelog)
