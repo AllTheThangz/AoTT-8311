@@ -46,7 +46,7 @@ class CurrentReleaseDocumentationTests(unittest.TestCase):
             self.assertIn(phrase.lower(), self.r7accept.lower())
 
     def test_historical_records_remain_unmodified_in_meaning(self):
-        self.assertEqual(self.meta["revision"], "r9")
+        self.assertEqual(self.meta["revision"], "r1")
         self.assertEqual(self.meta["status"], "offline-candidate")
         self.assertEqual(self.meta["hardware_profile"], "potron-prx126-aott-v1")
         self.assertIn("UNTRIALED_OFFLINE_ONLY", self.r7build)
@@ -64,11 +64,12 @@ class CurrentReleaseDocumentationTests(unittest.TestCase):
         self.assertIn("source-only", self.readme)
         self.assertIn("scope defined, implementation not started", self.plan)
         self.assertIn("v2r9", self.roadmap)
+        self.assertEqual(self.meta["version"], "v3")
         self.assertIn("permanently committed in A", self.roadmap)
         self.assertIn("enhanced r8", self.roadmap.lower())
         self.assertIn("bank-B recovery image", self.roadmap)
         self.assertIn("MONITORING-AND-TELEMETRY.md", self.readme)
-        self.assertEqual(self.meta["revision"], "r9")
+        self.assertEqual(self.meta["revision"], "r1")
 
     def test_public_source_preserves_privacy_and_manifest(self):
         data = self.readme + self.changelog + self.r7accept + self.r9accept + self.roadmap + self.plan
