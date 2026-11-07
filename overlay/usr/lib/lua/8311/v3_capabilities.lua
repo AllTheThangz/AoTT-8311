@@ -26,6 +26,11 @@ function M.snapshot()
         exists("/usr/lib/lua/8311/native_management_reader.lua") and
         exists("/usr/lib/lua/8311/recovery_storage.lua") and
         exists("/usr/lib/lua/8311/vlan_transition.lua")
+    local tls_candidate =
+        exists("/usr/lib/lua/8311/tls_candidate.lua") and
+        exists("/usr/lib/lua/8311/tls_key_hardener.lua") and
+        exists("/usr/libexec/8311-tls-key-permissions") and
+        exists("/etc/init.d/8311-tls-key-permissions")
     local tls_key = exists("/usr/libexec/8311-root-hash-valid")
     local config_readback =
         exists("/usr/lib/lua/8311/effective_probe.lua") and
@@ -49,9 +54,9 @@ function M.snapshot()
                 history_runtime and "integrated_opt_in_unqualified" or
                     (history_core and "integrated_inactive" or "unavailable"),
                 "Opt-in RAM-only sampling, bounded exports and authenticated local history are integrated. Disabled by default; persistent history and final hardware resource qualification remain gated."),
-            feature("tls","TLS/key health",
-                tls_key and "integrated" or "unavailable",
-                "Existing key-health checks retained; certificate generation/import activation remains gated."),
+            feature("tls","TLS certificates and key protection",
+                (tls_key and tls_candidate) and "candidate_generation_integrated_activation_gated" or "unavailable",
+                "Persistent HTTPS key mode is hardened to root-only and inactive self-signed SAN candidates can be generated locally. Activation/import remain rollback-gated."),
             feature("remote_gui","Remote management firewall","disabled",
                 "Remote GUI remains off by default; future enablement requires explicit firewall policy and recovery checks.")
         }

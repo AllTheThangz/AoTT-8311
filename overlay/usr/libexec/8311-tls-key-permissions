@@ -1,0 +1,8 @@
+#!/usr/bin/lua
+local h=require "8311.tls_key_hardener"
+local result,why=h.run()
+if not result then
+    io.stderr:write("aott-tls-key-permissions: "..tostring(why).."\n")
+    os.exit(1)
+end
+print(result.status)

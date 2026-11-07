@@ -1,0 +1,127 @@
+<%-
+local tools=require "8311.tools"
+local esc=tools.html_escape
+local c=candidate or {}
+local s=security or {}
+-%>
+<%+header%>
+<h2>HTTPS certificates</h2>
+<p class="aott-section-intro">V3 certificate preparation for local management HTTPS. Candidate generation is local and inactive. It does not replace the certificate used by uhttpd, reload HTTPS, change UCI, or write the candidate to persistent storage.</p>
+
+<section class="aott-fw-panel">
+  <h3>Active HTTPS key protection</h3>
+  <table class="table">
+    <tr class="tr"><td class="td left">Private-key access</td><td class="td left"><strong><%=esc(s.tls_private_key_permissions or "unknown")%></strong></td></tr>
+    <tr class="tr"><td class="td left">V3 boot hardening</td><td class="td left">Root-only 0600 enforced for the qualified persistent key inode</td></tr>
+    <tr class="tr"><td class="td left">HTTPS activation</td><td class="td left">Unchanged by this page</td></tr>
+  </table>
+  <% if s.tls_private_key_permissions=="overexposed" then %>
+  <p class="alert-message warning">The currently observed persistent HTTPS key is more permissive than V3 allows. The V3 post-uhttpd hardener corrects the qualified key inode to mode 0600 during V3 boot.</p>
+  <% end %>
+</section>
+
+<section class="aott-fw-panel">
+  <h3>Inactive self-signed candidate</h3>
+  <p>Candidate state: <strong id="tls-candidate-state"><%=c.candidate_ready==true and "ready" or "absent"%></strong>.</p>
+  <% if c.candidate_ready==true then %>
+  <p>Certificate SHA-256: <code id="tls-candidate-fingerprint"><%=esc(c.certificate_sha256)%></code></p>
+  <p>Private key: root-only <strong><%=esc(c.private_key_mode or "0600")%></strong>. Candidate activation: <strong>not available</strong>.</p>
+  <% else %>
+  <p id="tls-candidate-fingerprint">No inactive candidate is present.</p>
+  <% end %>
+
+  <form id="tls-candidate-generate" action="<%=url('admin/8311/tls_generate')%>" method="post">
+    <input type="hidden" name="token" value="<%=esc(token)%>">
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="tls-dns">DNS SANs</label>
+      <div class="cbi-value-field">
+        <input id="tls-dns" name="dns_sans" type="text" maxlength="1024" placeholder="onu.example.net">
+        <p class="aott-hint">Optional. Separate up to four total DNS/IPv4 identities with spaces or commas. Wildcards are not accepted in this stage.</p>
+      </div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="tls-ip">IPv4 SANs</label>
+      <div class="cbi-value-field">
+        <input id="tls-ip" name="ip_sans" type="text" maxlength="1024" placeholder="management IPv4 address">
+      </div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="tls-days">Validity</label>
+      <div class="cbi-value-field">
+        <input id="tls-days" name="days" type="number" min="1" max="397" step="1" value="365" required>
+      </div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="tls-key-type">Key type</label>
+      <div class="cbi-value-field">
+        <select id="tls-key-type" name="key_type">
+          <option value="ec-p256" selected>ECDSA P-256</option>
+          <option value="rsa-2048">RSA 2048</option>
+        </select>
+      </div>
+    </div>
+    <button class="cbi-button cbi-button-apply" id="tls-generate-button" type="submit" <% if c.candidate_ready==true then %>disabled<% end %>>Generate inactive candidate</button>
+  </form>
+  <form id="tls-candidate-discard" action="<%=url('admin/8311/tls_discard')%>" method="post">
+    <input type="hidden" name="token" value="<%=esc(token)%>">
+    <button class="cbi-button" id="tls-discard-button" type="submit" <% if c.candidate_ready~=true then %>disabled<% end %>>Discard inactive candidate</button>
+  </form>
+  <p id="tls-operation-status" class="aott-hint" role="status" aria-live="polite">No certificate operation has been requested.</p>
+</section>
+
+<section class="aott-fw-panel">
+  <h3>Activation gate</h3>
+  <p><strong>Install/activate is intentionally unavailable.</strong> Activation requires verified backup of the active certificate/key/config, an isolated uhttpd load test, a timed rollback path, a second local recovery path, and a real browser handshake to the intended management identity.</p>
+  <p>Operator-owned certificate import remains validation-only until equivalent native key/chain validation and rollback are integrated.</p>
+</section>
+
+<script>
+(function(){
+  "use strict";
+  var generate=document.getElementById("tls-candidate-generate");
+  var discard=document.getElementById("tls-candidate-discard");
+  var status=document.getElementById("tls-operation-status");
+  function setBusy(value){
+    var g=document.getElementById("tls-generate-button");
+    var d=document.getElementById("tls-discard-button");
+    if(g)g.disabled=value;
+    if(d)d.disabled=value;
+  }
+  async function post(form){
+    var response=await fetch(form.action,{
+      method:"POST",credentials:"same-origin",cache:"no-store",
+      headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8","Accept":"application/json"},
+      body:new URLSearchParams(new FormData(form)).toString()
+    });
+    var data=await response.json();
+    if(!response.ok||!data||data.success!==true)throw new Error(data&&data.error?data.error:"TLS operation failed");
+    return data;
+  }
+  if(generate)generate.addEventListener("submit",async function(event){
+    event.preventDefault();setBusy(true);status.textContent="Generating and hardening an inactive TLS candidate...";
+    try{
+      var data=await post(generate);
+      status.textContent="Inactive candidate generated. HTTPS remains unchanged. Certificate SHA-256: "+data.certificate_sha256;
+      document.getElementById("tls-candidate-state").textContent="ready";
+      document.getElementById("tls-candidate-fingerprint").textContent=data.certificate_sha256;
+      document.getElementById("tls-discard-button").disabled=false;
+    }catch(error){status.textContent="Candidate generation refused: "+error.message;
+    }finally{
+      document.getElementById("tls-generate-button").disabled=
+        document.getElementById("tls-candidate-state").textContent==="ready";
+    }
+  });
+  if(discard)discard.addEventListener("submit",async function(event){
+    event.preventDefault();setBusy(true);status.textContent="Discarding inactive TLS candidate...";
+    try{
+      await post(discard);
+      status.textContent="Inactive candidate discarded. HTTPS was unchanged.";
+      document.getElementById("tls-candidate-state").textContent="absent";
+      document.getElementById("tls-candidate-fingerprint").textContent="No inactive candidate is present.";
+      document.getElementById("tls-generate-button").disabled=false;
+      document.getElementById("tls-discard-button").disabled=true;
+    }catch(error){status.textContent="Candidate discard refused: "+error.message;setBusy(false);}
+  });
+}());
+</script>
+<%+footer%>

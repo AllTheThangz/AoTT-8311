@@ -21,6 +21,7 @@ local monitoring = require "8311.monitoring"
 local history_config = require "8311.history_config"
 local history_snapshot = require "8311.history_live_snapshot"
 local management_preflight = require "8311.management_preflight"
+local tls_candidate = require "8311.tls_candidate"
 local effective_probe = require "8311.effective_probe"
 local effective_device_probe = require "8311.effective_device_probe"
 local effective_pon_probe = require "8311.effective_pon_probe"
@@ -85,7 +86,10 @@ function index()
           translate("Management preflight"), 11)
     entry({"admin", "8311", "management_vlan_preview"},
           post("action_management_vlan_preview")).leaf=true
-    entry({"admin", "8311", "v3"}, call("action_v3"), translate("V3 status"), 12)
+    entry({"admin", "8311", "tls"}, call("action_tls"), translate("HTTPS certificates"), 12)
+    entry({"admin", "8311", "tls_generate"}, post("action_tls_generate")).leaf=true
+    entry({"admin", "8311", "tls_discard"}, post("action_tls_discard")).leaf=true
+    entry({"admin", "8311", "v3"}, call("action_v3"), translate("V3 status"), 13)
     entry({"admin", "8311", "v3_status"}, call("action_v3_status")).leaf=true
     entry({"admin", "8311", "monitoring_save"},
           post("action_r8_monitoring_save")).leaf=true
@@ -1317,6 +1321,68 @@ function action_management_vlan_preview()
             native_present_empty=plan.native_present_empty,
             production_write_allowed=false
         } or {success=false,error=why or "Management VLAN preview unavailable"})
+end
+
+function action_tls()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    local candidate,why=tls_candidate.status()
+    if not candidate then
+        candidate={status="unavailable",candidate_ready=false}
+    end
+    local ok,security=pcall(health.security)
+    if not ok or type(security)~="table" then security={} end
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    http.header("Referrer-Policy", "no-referrer")
+    return ltemplate.render("8311/tls", {candidate=candidate,security=security})
+end
+
+local function tls_https_required()
+    local value=http.getenv("HTTPS")
+    return value=="on" or value=="1"
+end
+
+function action_tls_generate()
+    if not tls_https_required() then
+        return web.reply(http,403,{success=false,error="HTTPS is required for TLS candidate operations"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values=operation_form({
+        dns_sans=true,ip_sans=true,days=true,key_type=true
+    })
+    if not values then return end
+    local state,why,status=tls_candidate.generate(values)
+    return web.reply(http,status or 503,
+        state and {
+            success=true,candidate_ready=state.candidate_ready,
+            certificate_sha256=state.certificate_sha256,
+            certificate_bytes=state.certificate_bytes,
+            private_key_bytes=state.private_key_bytes,
+            private_key_mode=state.private_key_mode,
+            dns_san_count=state.dns_san_count,
+            ipv4_san_count=state.ipv4_san_count,
+            validity_days=state.validity_days,
+            key_type=state.key_type,
+            active_https_changed=false,
+            install_available=false
+        } or {success=false,error=why or "TLS candidate generation failed"})
+end
+
+function action_tls_discard()
+    if not tls_https_required() then
+        return web.reply(http,403,{success=false,error="HTTPS is required for TLS candidate operations"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values=operation_form({})
+    if not values then return end
+    local state,why,status=tls_candidate.discard()
+    return web.reply(http,status or 503,
+        state and {success=true,candidate_ready=false,active_https_changed=false}
+            or {success=false,error=why or "TLS candidate discard failed"})
 end
 
 function action_v3()
