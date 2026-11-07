@@ -1,16 +1,19 @@
 # AoTT-8311 delivery backlog, sequencing and acceptance
 
-## Release integration checkpoint, November 6, 2026
+## Release integration checkpoint, November 7, 2026
 
 | ID | State | Deliverable and evidence |
 | --- | --- | --- |
 | R9-001 | DONE_SOURCE | Integrated enhanced-r8 runtime and all 54 source readback contracts in an 89-file r9 overlay; [scope and integration decisions](V2R9-INTEGRATED-RELEASE.md) |
-| R9-002 | IN_PROGRESS | Exact-commit combined regression, private reproducible rootfs/archive pair and independent qualification |
-| R9-003 | NOT_STARTED | Hardware stage/trial acceptance of that exact qualified r9 archive |
+| R9-002 | DONE_SOURCE | Exact combined regression passed 1,304/1,304 with zero failures/errors/skips; two independent private builds matched byte-for-byte and final image/runtime qualification passed |
+| R9-003 | DONE_HARDWARE | Exact qualified r9 staged into bank A, one-shot trial booted and independently accepted on one PRX126 while enhanced r8 remained committed in B |
+| R9-004 | DONE_HARDWARE | Separately authorized guarded permanent commit of running r9 A; final active A / committed A / no pending / not trial, with no reboot or firmware rewrite; [hardware acceptance](V2R9-HARDWARE-ACCEPTANCE.md) |
 
-The immediate deliverable is the integrated firmware candidate. Further C-013/C-014 write-path development remains in source fixtures and is not a prerequisite for packaging the already integrated read-only runtime. Existing hardware approvals and current-state receipts govern any later device action.
+The r9 release-integration lifecycle is complete for the tested PRX126 device. The repository remains source-only. Build-time `release.json` metadata intentionally retains `offline-candidate`; later hardware qualification is recorded in the acceptance document rather than rewriting historical build evidence.
 
-**Baseline date:** 2026-11-02. **State:** roadmap with real evidence references and explicitly open work. This backlog is not a statement that planned functionality exists.
+Further C-012/C-013/C-014 configuration write-path work, C-017 GUI qualification, history/telemetry deployment, certificate management, performance measurement and cross-stick support remain roadmap work.
+
+**Baseline date:** 2026-11-07. **State:** roadmap with real evidence references and explicitly open work. This backlog is not a statement that planned functionality exists.
 
 Status values: DONE_SOURCE, DONE_HARDWARE, IN_PROGRESS, NOT_STARTED, BLOCKED, CONDITIONAL. A task marked DONE_SOURCE remains unqualified on production hardware until DONE_HARDWARE evidence exists.
 
@@ -18,13 +21,17 @@ Status values: DONE_SOURCE, DONE_HARDWARE, IN_PROGRESS, NOT_STARTED, BLOCKED, CO
 
 | ID | State | Completion evidence and limits |
 | --- | --- | --- |
+| R9-001 | DONE_SOURCE | 89-file integrated r9 overlay with all 54 stored-source readback contracts |
+| R9-002 | DONE_SOURCE | 1,304/1,304 combined regression; reproducible private build pair; final image and runtime-profile audit |
+| R9-003 | DONE_HARDWARE | Exact r9 A one-shot trial verified on one PRX126; PON O5.1, 10 Gbps, recovery, both banks and immutable runtime checks passed |
+| R9-004 | DONE_HARDWARE | r9 A permanently committed without reboot or firmware rewrite; enhanced r8 remains valid in B |
 | CP-001 | DONE_SOURCE | Static registry of 54 environment GUI fields and 13 vendor UCI config domains; exposes known disabled/missing candidates. No per-field hardware qualification |
 | CP-002 | DONE_SOURCE | vNext Lua history math handles exact unsigned-64 counter deltas and bounded PON/Ethernet transitions; 53 fixture checks on host and vendor MIPS Lua. Not deployed |
-| CP-003 | DONE_SOURCE | vNext 391 regression tests, zero skips, manifest/disclosure checks pass when run against appropriate reference vendor rootfs |
+| CP-003 | DONE_SOURCE | Historical vNext regression milestone; superseded for the r9 release by the 1,304-test combined acceptance run |
 | R8-001 | DONE_HARDWARE | Security-enhanced r8 staged, booted and independently read back on one PRX126 device |
-| R8-002 | DONE_HARDWARE | Original r8 in A protected as committed fallback; enhanced r8 trial active in B, both valid at last check |
-| R8-003 | IN_PROGRESS | Updated r8/B trial still uncommitted; residential run-time acceptance and optional final commit decision remain open |
-| CP-004 | IN_PROGRESS | Durable private project ledger and public-safe continuity documentation in progress in a separate docs branch |
+| R8-002 | DONE_HARDWARE | Enhanced r8 ultimately committed in bank B as the verified recovery image before r9 staging |
+| R8-003 | DONE_HARDWARE | Residential r8 runtime accepted sufficiently for recovery use; superseded as active firmware by committed r9 A |
+| CP-004 | IN_PROGRESS | Durable private project ledger and public-safe continuity documentation continue as the roadmap evolves |
 
 All later tasks are open unless specifically updated with new test artifacts. Each work item should have an assignee before a release work cycle, but no assignee is invented here.
 
@@ -32,7 +39,7 @@ All later tasks are open unless specifically updated with new test artifacts. Ea
 
 | ID | Status | Deliverable | Pass criteria and dependencies |
 | --- | --- | --- | --- |
-| R8-010 | NOT_STARTED | Current residential trial acceptance | Confirm relevant OLT service, router Internet functionality where testable, operational UI, stable PON/host link and live recovery. No automatic B commit |
+| R8-010 | DONE_HARDWARE | Historical r8 residential acceptance | PON/host link, Internet path where observed, management and recovery were accepted before enhanced r8 B became the committed recovery image for r9 |
 | C-010 | DONE_SOURCE | Reproducible source-derived capability registry | All 54 current GUI fields, backend namespace, source/line references, 4 hidden/missing candidates, 2 legacy aliases and 13 offline vendor UCI domains inventoried. 16 targeted tests pass on private r8 and public r7 source. Native runtime-qualified setters/effective states still belong to C-011/C-012. |
 | C-011 | IN_PROGRESS | Backend read/effective-value contract | Source readback contracts now cover **54 of 54 GUI fields**: the previous 45 plus [nine redacted identity/credential overrides](C-011-SENSITIVE-IDENTITY-READBACK.md). New root-only manual GET route and Configuration panel use the real save validator and distinguish valid/invalid saved source, unset and unavailable, without returning contents, hashes or lengths. An executable union test checks all 54 real GUI IDs with no omissions or overlap. This closes stored-source coverage, not actual runtime consumption, OLT/root authentication, native setter behavior, persistence, hardware qualification or deployment. |
 | C-012 | IN_PROGRESS | Table-driven positive/negative setting tests | [Offline full-schema contract](C-012-OFFLINE-CONFIG-SAVE-CONTRACT.md) exercises all 54 fields using real Lua schema and simulated writes/readback, including vendor MIPS QEMU, negative inputs, stale revision and partial-write guards. Real native writes, effect, reboot durability and recovery remain unqualified. |
@@ -42,7 +49,7 @@ All later tasks are open unless specifically updated with new test artifacts. Ea
 | C-016 | NOT_STARTED | Inventory remaining UCI/vendor settings | Classify 13 UCI domains plus runtime/OMCI/optics; provide read-only or unsupported explanation where necessary |
 | C-017 | NOT_STARTED | GUI functionality and correctness audit | Every tab, option, chart, button, page, save, readback and error state operates in light/dark/mobile and authenticated paths |
 | R-010 | NOT_STARTED | A/B identity and release build labels | All future builds have unique build ID and exact rootfs hash, not only an r8 string. Archive, UI and receipts agree |
-| R-011 | CONDITIONAL | Explicit permanent B commit | Only after real acceptance, separate user authorization, fresh exact hashes, native full-bank checks and independent target approval |
+| R-011 | DONE_HARDWARE | Historical enhanced-r8 B commit | Completed under separate authorization before r9 staging; r8 B remains the intact recovery image after r9 A was later committed |
 
 **Order:** C-010 -> C-011 -> C-012 -> C-013. Investigate C-014/C-015 alongside registry work but never make the only production unit the first destructive test. C-017 tracks all UI controls. R8-010 is independent from vNext source work.
 
