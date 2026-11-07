@@ -368,6 +368,12 @@
       "sha256": "96fbf6d67e4dcd5ca3cd25602c127f21dfee1747cdd16d9d7a4a36befe0cade9"
     },
     {
+      "bytes": 778,
+      "executable": false,
+      "path": "usr/lib/lua/8311/root_credential_guard.lua",
+      "sha256": "045c5df3c0da35971390544c513fc6d0cf2abe6e534bb5d7f740b5e0b045090e"
+    },
+    {
       "bytes": 9054,
       "executable": false,
       "path": "usr/lib/lua/8311/tls_candidate.lua",
@@ -578,6 +584,12 @@
       "sha256": "eac46f078fa1759085e1c3f462699230e60cc2e348ba27f2600a9fd7fa55368c"
     },
     {
+      "bytes": 703,
+      "executable": true,
+      "path": "usr/libexec/8311-root-credential-ready",
+      "sha256": "18fd49a9a27e5da29ba1a5f5214eefaaef255e95609f380680b63d99da6a89b6"
+    },
+    {
       "bytes": 136,
       "executable": true,
       "path": "usr/libexec/8311-root-hash-valid",
@@ -626,10 +638,10 @@
       "sha256": "94729cc57e44bafc4c4883d075b5e453e668c1f61d77cda4865e65073dcbf2e9"
     },
     {
-      "bytes": 12890,
+      "bytes": 13477,
       "executable": true,
       "path": "usr/sbin/8311-firmware-upgrade.sh",
-      "sha256": "7b06c604cbea57cd56c31628331693d4c068d194ccc0123779f8abf9e5c6c00e"
+      "sha256": "3f5c516c9abb0dde71c4c75a4c53da91cf825c43e1df5bfe0cd0cf3ba5911041"
     },
     {
       "bytes": 6575,
@@ -638,10 +650,10 @@
       "sha256": "6fc66f886894ccb1f47f4fce974674769626eaf86c76cbb67b6f3847a2f4a683"
     },
     {
-      "bytes": 1364,
+      "bytes": 1720,
       "executable": true,
       "path": "usr/sbin/8311-persist-root-password.sh",
-      "sha256": "bff003f0235219608a5ae3fac7b50dc9ee0ef9be0a1cf81cf0f12c6e4793462e"
+      "sha256": "9621b3492dc460addf62e2fdf8791be46d345574ab867b26724cfa3dd279c9b6"
     },
     {
       "bytes": 557,

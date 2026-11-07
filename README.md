@@ -530,6 +530,7 @@ To build actual firmware, obtain a **legally authorized, clean, compatible vendo
 ## Default access and security
 
 - **Default account name:** `root`.
+- **V3 credential preservation:** future V3 upgrades refuse bank writes when the running administrator credential is blank, unsupported, or still the known factory root password. See [V3 administrator credential preservation](docs/V3-CREDENTIAL-PRESERVATION.md).
 - **Initial credentials:** No login password is supplied by this source repository. Configure unique device credentials and verify persistence after reboot.
 - **Factory example settings:** [examples/factory-defaults.env.example](examples/factory-defaults.env.example) contains intentionally unusable placeholders, not active credentials.
 - **PON identity:** Use only your own authorized registration details from your provider. Never publish a real PON serial, registration ID, LOID, or password.

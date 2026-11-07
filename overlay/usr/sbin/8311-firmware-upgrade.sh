@@ -9,6 +9,14 @@ MAINT_LIBEXEC=${MAINT8311_LIBEXECDIR:-"$SCRIPT_DIR/../libexec"}
 export MAINT8311_LIBDIR="$MAINT_LIBDIR" MAINT8311_BINDIR="$MAINT_BINDIR"
 . "$MAINT_LIBDIR/8311-upgrade-lib.sh" || exit 1
 . "$MAINT_LIBDIR/8311-env-lock.sh" || exit 1
+preserve_admin_credential() {
+    local helper="$MAINT_BINDIR/8311-persist-root-password.sh"
+    [ -x "$helper" ] ||
+        fail "Administrator credential persistence helper is unavailable; no bank was written."
+    "$helper" >/dev/null 2>&1 ||
+        fail "Administrator credential is not deployment-ready. Set a unique root password and verify persistence before upgrading."
+}
+
 usage() {
 	printf 'Usage: %s [--validate] [--install] [--yes] [--trial|--no-commit] [--expect-active BANK --expect-target BANK --expect-state-guard SHA256] [--reboot] FILE\n' "$0"
 	printf '%s\n' 'With no mode, validates and installs. Default install stages a qualified bank without changing boot selection.' \
@@ -167,6 +175,10 @@ if [ -n "$EXPECT_STATE_GUARD" ]; then
     [ "$ACTUAL_STATE_GUARD" = "$EXPECT_STATE_GUARD" ] ||
         fail "Bank state changed or confirmation expired before the first write."
 fi
+# Credential persistence is the first installation-side environment change.
+# If it cannot be verified, no firmware bank receipt, validity selector or
+# image volume is modified.
+preserve_admin_credential
 persist_receipt "$INSTALL_BANK" incomplete || fail "Cannot persist the incomplete-bank receipt."
 set_environment "img_valid$INSTALL_BANK" false || fail "Cannot mark target incomplete."
 rm -f /tmp/8311-alt-firmware

@@ -20,6 +20,8 @@ security and compatibility work into one deployment line.
 
 ## Deployment gates
 
+V3 does not replace committed r9 until the current administrator password has been changed from the known factory default and its hash persistence has been verified on r9. The V3 installer adds an automatic credential-preservation gate for subsequent upgrades. See [credential preservation](V3-CREDENTIAL-PRESERVATION.md).
+
 V3 does not replace committed r9 until the exact built image passes full source
 regression, reproducible build pair, image-size/headroom validation, read-only
 hardware preflight, configuration persistence/recovery checks, authenticated GUI
