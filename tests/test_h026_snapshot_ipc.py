@@ -56,10 +56,11 @@ class HistoryApiSourceTests(unittest.TestCase):
             "history_snapshot_shape.lua","history_snapshot_ipc.lua",
             "history_http_readonly.lua",
         ):
-            self.assertNotIn(basename,manifest)
-            self.assertFalse((OVERLAY/"8311"/basename).exists())
-        self.assertNotIn("history_data",
-                         (OVERLAY/"luci/controller/8311.lua").read_text())
+            self.assertIn(basename,manifest)
+            self.assertTrue((OVERLAY/"8311"/basename).is_file())
+        controller=(OVERLAY/"luci/controller/8311.lua").read_text()
+        self.assertNotIn("history_data",controller)
+        self.assertNotIn('entry({"8311", "history',controller)
         gateway=(HISTORY/"8311/history_http_readonly.lua").read_text()
         for expected in (
             'request.method~="GET"',
