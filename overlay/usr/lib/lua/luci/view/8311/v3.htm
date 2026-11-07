@@ -1,0 +1,37 @@
+<%+header%>
+<%
+local cap = require "8311.v3_capabilities"
+local state = cap.snapshot()
+local function esc(v) return luci.util.pcdata(tostring(v or "")) end
+%>
+<div class="cbi-map aott-v3">
+  <h2>AoTT-8311 V3</h2>
+  <div class="cbi-map-descr">
+    V3 is the deployment line promoted from the hardware-qualified v2r9 release candidate.
+    Residential bridge operation remains the priority: local control, recovery, bounded diagnostics,
+    optional telemetry, and no remote-management exposure by default.
+  </div>
+  <div class="cbi-section">
+    <h3>Deployment baseline</h3>
+    <table class="table">
+      <tr class="tr"><td class="td left">Release</td><td class="td left">AoTT-8311-v3 r1</td></tr>
+      <tr class="tr"><td class="td left">Baseline</td><td class="td left"><%=esc(state.baseline)%></td></tr>
+      <tr class="tr"><td class="td left">Profile</td><td class="td left">Residential XGS-PON bridge / management</td></tr>
+      <tr class="tr"><td class="td left">Remote GUI default</td><td class="td left">Disabled</td></tr>
+    </table>
+  </div>
+  <div class="cbi-section">
+    <h3>V3 capability state</h3>
+    <table class="table">
+      <tr class="tr table-titles"><th class="th">Capability</th><th class="th">State</th><th class="th">Detail</th></tr>
+      <% for _,f in ipairs(state.features) do %>
+      <tr class="tr">
+        <td class="td left"><%=esc(f.label)%></td>
+        <td class="td left"><strong><%=esc(f.state)%></strong></td>
+        <td class="td left"><%=esc(f.detail)%></td>
+      </tr>
+      <% end %>
+    </table>
+  </div>
+</div>
+<%+footer%>
