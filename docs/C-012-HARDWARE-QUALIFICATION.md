@@ -84,15 +84,38 @@ A field becomes `FULLY_QUALIFIED` only when all applicable stages have
 independent evidence for the named hardware profile. Source references,
 matching UCI values, O5.1, or a successful setter exit code are not enough.
 
-## Immediate hardware work
+## First committed-r9 hardware baseline
 
-The next hardware action is **read-only**, not a mutation: collect a bounded
-baseline from the committed r9 runtime and record which of the existing
-effective-state probes can produce genuine current evidence for each field.
+The first bounded read-only baseline is now complete on the committed r9
+PRX126 reference unit. The public-safe evidence is
+[`C-012-PRX126-READONLY-BASELINE.json`](C-012-PRX126-READONLY-BASELINE.json).
 
-Only after that baseline should the four lower-risk candidates be considered
-for controlled mutation tests. Management, link/boot/pin, PON/OMCI, identity,
-and VLAN fields stay behind their stronger gates.
+All seven installed readback groups returned their complete field sets, so all
+54 fields have a hardware-executed read-only baseline record. Device state was
+identical before and after the observation. No setting, bank, firmware image,
+service, or boot state was changed, and no raw setting value, address, MAC,
+subscriber identity, credential, password hash, or boot ID is published.
+
+Five fields currently have an independently observed runtime effect from the
+existing r9 probes:
+
+- `hostname` from the running kernel hostname;
+- `ipaddr` and `netmask` from the live management interface;
+- `gateway` from the live management-route observation, including an
+  explicitly observed no-gateway state where applicable;
+- `lct_mac` from the live interface MAC observation.
+
+This is **not** full qualification of those five fields. It establishes only
+their read-only effective baseline. No native mutation, persistence, negative
+path, restart/reboot, or recovery test has been run.
+
+The other 49 fields remain configured/source/readback evidence without an
+independently proven runtime effect in this baseline. Their matrix gates do
+not change.
+
+The next mutation work, when separately authorized, should start with the four
+lower-risk candidates `lang`, `hostname`, `timezone`, and `ntp_servers`
+and must preserve the stronger recovery/test-OLT gates for the other 50 fields.
 
 ## Safety and publication boundary
 
