@@ -19,7 +19,7 @@ AoTT-8311 V3r1 now contains an optional local history worker and authenticated H
 
 ## Source and vendor-runtime qualification
 
-The current combined V3 source suite passes 1,202 tests with zero failures or errors. Tests requiring an unavailable browser or optional private runtime are skipped rather than reported as passes.
+The current combined V3 source suite passes 1,217 tests with zero failures or errors. Tests requiring an unavailable browser or optional private runtime are skipped rather than reported as passes.
 
 The V3 history-specific fixture also passes under both host Lua 5.1 and the extracted PRX126 vendor MIPS Lua/nixio runtime. An affected-component vendor-runtime regression passed 157 substantive tests, including H-011 through H-027 history primitives, the H-024 supervisor, cross-process lock/restart cases, and the V3 live-history paths.
 

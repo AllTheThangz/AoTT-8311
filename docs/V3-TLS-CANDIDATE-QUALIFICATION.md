@@ -1,13 +1,14 @@
 # V3 TLS candidate and private-key hardening qualification
 
-**Status:** runtime candidate generation integrated, activation gated. The production r9 HTTPS service and certificate were not changed.
+**Status:** runtime candidate generation and guarded self-signed activation integrated; operator-owned certificate import remains gated. The production r9 HTTPS service and certificate were not changed.
 
-AoTT-8311 V3r1 adds two TLS improvements for residential management:
+AoTT-8311 V3r1 adds three TLS improvements for residential management:
 
-1. a narrowly scoped boot-time permission hardener for the existing persistent HTTPS private key; and
-2. an authenticated HTTPS-only page that generates or discards an inactive self-signed certificate/key candidate in volatile /tmp storage.
+1. a narrowly scoped boot-time permission hardener for the existing persistent HTTPS private key;
+2. an authenticated HTTPS-only page that generates or discards a self-signed certificate/key candidate in volatile /tmp storage; and
+3. guarded activation of that generated candidate through persistent backup, uhttpd restart, a 180-second browser-confirmation window, automatic rollback, and boot-time recovery of an unconfirmed transaction.
 
-Neither feature replaces the active certificate. Candidate installation, uhttpd reload, persistent certificate rotation, and imported certificate activation remain blocked until rollback and browser-handshake qualification is complete.
+Operator-owned certificate import remains blocked until its validated leaf/key/chain material can enter this same bounded rollback transaction.
 
 ## Read-only r9 finding
 
@@ -53,24 +54,35 @@ The independently maintained S-010 offline harness continues to qualify the exac
 
 IPv6 SAN generation is proven in the offline harness but is not yet exposed by the V3 runtime page. It remains a follow-up before complete S-010 feature closure.
 
+## Guarded self-signed activation
+
+Activation operates only on the fixed persistent uhttpd paths under /ptconf/8311/uhttpd and never changes the configured UCI certificate/key paths.
+
+Before replacement, V3 requires a unique deployment-ready root credential and a running Dropbear recovery service. It copies the current persistent certificate and key into root-only rollback files, syncs those files, records a persistent pending-activation marker, atomically replaces the active key and certificate, and restarts uhttpd.
+
+The detached activation worker waits up to 180 seconds for explicit confirmation. The administrator must reconnect through HTTPS after the restart and confirm the certificate presented by that new HTTPS session. If confirmation is absent, malformed, or the restart fails, V3 restores the previous pair and restarts uhttpd. If the device reboots while activation is pending, early sysinit restores the previous pair before the normal uhttpd startup.
+
+Confirmation is tied to the persistent pending transaction and its exact job ID. It may be submitted from a newly authenticated root LuCI session because certificate replacement can invalidate the browser's original session connection. No anonymous confirmation route exists.
+
 ## Qualification evidence
 
-The focused V3 TLS and legacy security suite passes 33 tests with zero failures, including the real vendor-MIPS px5g tests on the extracted PRX126 rootfs.
+The focused V3 TLS activation, candidate, and legacy hardening suite passes 41 tests with zero failures against the extracted PRX126 vendor runtime. It includes:
+
+- confirmed activation;
+- timeout rollback;
+- uhttpd restart-failure rollback;
+- refusal when the second recovery path is unavailable;
+- simulated process death followed by boot recovery;
+- HTTPS-only root-authenticated activation and confirmation routes;
+- pending-marker and job-ID confirmation binding; and
+- the existing real vendor-MIPS uhttpd loopback TLS handshake using a 0600 key.
 
 The V3 runtime validation/hardening contract passes under both host Lua 5.1 and the extracted PRX126 vendor MIPS Lua runtime.
 
-## Activation and import gates
+## Remaining import gate
 
-The page intentionally exposes no install/activate route. Activation requires:
+Operator-owned certificate import remains at the S-011 validation stage until equivalent native leaf/key/chain validation, secure bounded upload, and browser-trust checks are connected to the same guarded activation transaction.
 
-1. exact backup and readback of the active certificate, private key and uhttpd configuration;
-2. candidate key/certificate validation on the target runtime;
-3. isolated uhttpd candidate-load and local TLS handshake verification;
-4. a second local recovery path that remains available if HTTPS activation fails;
-5. timed automatic rollback unless the new HTTPS path is explicitly confirmed;
-6. real browser verification against the intended management DNS/IP identity;
-7. reboot and A/B-bank persistence checks.
-
-Operator-owned certificate import remains at the S-011 validation stage until equivalent native leaf/key/chain validation, secure bounded upload, rollback, and browser trust checks are integrated.
+IPv6 SAN generation is also still absent from the runtime candidate UI even though the offline vendor harness proves it.
 
 This document authorizes no change to the production r9 HTTPS certificate or service.

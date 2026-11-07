@@ -49,22 +49,26 @@ class V3TlsRuntimeTests(unittest.TestCase):
                           "fw_setenv","fwenv_set","ubiupdatevol","reboot"):
             self.assertNotIn(forbidden,src)
 
-    def test_controller_routes_are_https_authenticated_and_no_install(self):
+    def test_controller_routes_are_https_authenticated_and_import_remains_blocked(self):
         ctl=(OVERLAY/"usr/lib/lua/luci/controller/8311.lua").read_text()
         self.assertIn('entry({"admin", "8311", "tls"}',ctl)
         self.assertIn('entry({"admin", "8311", "tls_generate"}',ctl)
         self.assertIn('entry({"admin", "8311", "tls_discard"}',ctl)
-        self.assertNotIn('"tls_install"',ctl)
+        self.assertIn('entry({"admin", "8311", "tls_activate"}',ctl)
+        self.assertIn('entry({"admin", "8311", "tls_confirm"}',ctl)
+        self.assertNotIn('"tls_import"',ctl)
         self.assertIn("tls_https_required()",ctl)
         self.assertIn("dispatcher.test_post_security(true)",ctl)
         self.assertIn("active_https_changed=false",ctl)
         self.assertIn("install_available=false",ctl)
 
-    def test_view_states_activation_gate(self):
+    def test_view_states_guarded_activation_and_import_boundary(self):
         view=(OVERLAY/"usr/lib/lua/luci/view/8311/tls.htm").read_text()
         self.assertIn("Inactive self-signed candidate",view)
-        self.assertIn("Install/activate is intentionally unavailable",view)
-        self.assertIn("HTTPS remains unchanged",view)
+        self.assertIn("Guarded activation",view)
+        self.assertIn("Activate candidate with rollback",view)
+        self.assertIn("Confirm this HTTPS certificate",view)
+        self.assertIn("Operator-owned certificate import remains validation-only",view)
         self.assertNotIn("private key contents",view.lower())
 
     def test_vendor_px5g_offline_generator_still_qualifies(self):

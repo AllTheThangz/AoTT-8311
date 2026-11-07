@@ -82,7 +82,7 @@ for _,name in ipairs({
     "luci.template","luci.http","luci.dispatcher","luci.sys",
     "luci.ltn12","nixio.bit","luci.model.uci","8311.health","8311.monitoring",
     "8311.history_config","8311.history_live_snapshot","8311.management_preflight",
-    "8311.tls_candidate",
+    "8311.tls_candidate","8311.tls_activation",
     "8311.effective_probe","8311.effective_device_probe",
     "8311.effective_pon_probe","8311.effective_vlan_probe",
     "8311.effective_hardware_probe","8311.effective_reporting_probe",

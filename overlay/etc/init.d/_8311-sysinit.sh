@@ -85,6 +85,13 @@ boot() {
 	[ -f "/ptconf/8311/dropbear" ] && rm -fv "/ptconf/8311/dropbear"
 	mkdir -p /ptconf/8311 /ptconf/8311/dropbear /ptconf/8311/uhttpd /ptconf/8311/.ssh
 	chmod 700 /ptconf/8311/dropbear /ptconf/8311/uhttpd /ptconf/8311/.ssh
+	# A TLS activation that was not explicitly confirmed must never survive
+	# a reboot into uhttpd startup. Restore the persistent pre-activation pair.
+	if [ -x /usr/libexec/8311-tls-recover-pending ] &&
+	   ! /usr/libexec/8311-tls-recover-pending >/dev/null 2>&1; then
+		echo "Security: pending HTTPS certificate recovery failed before web startup" | to_console
+		return 1
+	fi
 	ln -fsv /ptconf/8311/.ssh/authorized_keys /ptconf/8311/dropbear/authorized_keys
 
 	if [ -n "$DROPBEAR_RSA_KEY" ]; then

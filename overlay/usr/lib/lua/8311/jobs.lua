@@ -10,7 +10,7 @@ local WORKER = "/usr/libexec/8311-job-worker"
 local MAX_UPLOAD, MAX_ARCHIVE = 24 * 1024 * 1024, 32 * 1024 * 1024
 local MAX_BYTES, MAX_JOBS, TTL = 96 * 1024 * 1024, 12, 7200
 local OUTPUT_LIMIT = 8192
-local kinds = { firmware_validate=true, firmware_install=true, bank_operation=true, support=true }
+local kinds = { firmware_validate=true, firmware_install=true, bank_operation=true, tls_activate=true, support=true }
 local bank_actions = {verify="check-json", trial="trial", commit="commit", cancel_trial="cancel-trial", return_saved="rollback", reboot="reboot"}
 local terminal = { succeeded=true, failed=true, cancelled=true }
 
@@ -143,13 +143,14 @@ local function enough_space(bytes)
 end
 
 local function load_job(id, owner)
-	if not ident(id) or not owner_ok(owner) or not directory(ROOT) then return nil, "Job not found" end
+	if not ident(id) or (owner ~= nil and not owner_ok(owner)) or not directory(ROOT) then return nil, "Job not found" end
 	local dir = ROOT .. "/" .. id
 	if not directory(dir) then return nil, "Job not found" end
 	local request = read_json(dir .. "/request.json")
 	local record = read_json(dir .. "/status.json")
-	if not request or request.id ~= id or request.owner ~= owner or not kinds[request.kind]
-		or not record or record.id ~= id or record.kind ~= request.kind then return nil, "Job not found" end
+	if not request or request.id ~= id or (owner ~= nil and request.owner ~= owner) or not owner_ok(request.owner)
+		or not kinds[request.kind] or not record or record.id ~= id
+		or record.kind ~= request.kind then return nil, "Job not found" end
 	return record, request, dir
 end
 
@@ -311,7 +312,7 @@ function M.start(kind, args, owner)
 	if (kind == "support" and support_busy) or (kind ~= "support" and firmware_busy) then
 		return abort("A job of this type is already active; wait for its result")
 	end
-	local reserve = kind == "support" and MAX_ARCHIVE or (kind == "bank_operation" and 65536 or args.size)
+	local reserve = kind == "support" and MAX_ARCHIVE or ((kind == "bank_operation" or kind == "tls_activate") and 65536 or args.size)
 	if type(reserve) ~= "number" or reserve < 1024 or reserve > MAX_ARCHIVE then return abort("Invalid job size") end
 	if bytes + reserve + 65536 > MAX_BYTES or not enough_space(reserve * 3 + pending_bytes) then return abort("Insufficient temporary memory for this job") end
 	local id = token()
@@ -322,6 +323,13 @@ function M.start(kind, args, owner)
 	if kind == "support" then request_args = {full=args.full == true}
 	elseif kind == "bank_operation" then request_args = {
         action=args.action, bank=args.bank, state_guard=args.state_guard}
+	elseif kind == "tls_activate" then
+        if type(args.certificate_sha256) ~= "string" or
+            #args.certificate_sha256 ~= 64 or
+            args.certificate_sha256:find("[^0-9a-f]") then
+            return abort("Invalid TLS candidate fingerprint")
+        end
+        request_args = {certificate_sha256=args.certificate_sha256}
 	else
 		request_args, err = copy_upload(args, owner, dir .. "/firmware.tar")
 		if not request_args then return abort(err) end
@@ -349,6 +357,41 @@ function M.start(kind, args, owner)
 		return nil, err
 	end
 	return M.get(id, owner)
+end
+
+function M.confirm_tls(id)
+	-- Confirmation may come from a new authenticated root session after the
+	-- browser accepts the new certificate. The persistent pending marker binds
+	-- the job ID; the controller independently requires a root admin session.
+	local record, request, dir = load_job(id, nil)
+	if not record then return nil, request end
+	if request.kind ~= "tls_activate" or record.state ~= "running" then
+		return nil, "TLS activation is not awaiting confirmation"
+	end
+	local pending, why = require("8311.tls_activation").pending()
+	if not pending or pending.pending ~= true or pending.job_id ~= id then
+		return nil, why or "TLS activation has not reached the confirmation window"
+	end
+	local path = dir .. "/tls-confirm"
+	local existing = fs.lstat(path)
+	if existing then
+		local st = private(path, "reg", 600)
+		local raw = st and st.size == 19 and fs.readfile(path, 20)
+		if raw == "AOTT-TLS-CONFIRM-1\n" then return public(record, dir) end
+		return nil, "Unsafe TLS confirmation marker"
+	end
+	local fd = nixio.open(path, nixio.open_flags("wronly", "creat", "excl"), 600)
+	if not fd then return nil, "Cannot create TLS confirmation marker" end
+	local data = "AOTT-TLS-CONFIRM-1\n"
+	local wrote = fd:writeall(data)
+	local synced = fd:sync()
+	local closed = fd:close()
+	local st = private(path, "reg", 600)
+	if wrote ~= #data or synced ~= true or not closed or not st or st.size ~= #data
+		or fs.readfile(path, #data + 1) ~= data then
+		return nil, "TLS confirmation marker verification failed"
+	end
+	return public(record, dir)
 end
 
 function M.cancel(id, owner)
@@ -392,6 +435,15 @@ function M.worker(id)
 	if request.kind == "support" then
 		argv = {"/usr/sbin/8311-support.sh", "--output", outpath, "--cancel-file", dir .. "/cancel"}
 		if request.args.full then argv[#argv+1] = "--full" end
+	elseif request.kind == "tls_activate" then
+        local fingerprint=request.args.certificate_sha256
+        if type(fingerprint) ~= "string" or #fingerprint ~= 64 or
+            fingerprint:find("[^0-9a-f]") then
+            rc, output = 1, "Stored TLS candidate fingerprint is invalid"
+        else
+            argv = {"/usr/bin/lua", "/usr/libexec/8311-tls-activate.lua",
+                    dir, fingerprint}
+        end
 	elseif request.kind == "bank_operation" and bank_actions[request.args.action] then
         local guard = request.args.state_guard
         if type(guard) ~= "string" or #guard ~= 64 or guard:find("[^0-9a-f]") then

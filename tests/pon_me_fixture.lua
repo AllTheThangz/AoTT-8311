@@ -121,6 +121,7 @@ package.preload["8311.history_config"] = function() return {} end
 package.preload["8311.history_live_snapshot"] = function() return {} end
 package.preload["8311.management_preflight"] = function() return {} end
 package.preload["8311.tls_candidate"] = function() return {} end
+package.preload["8311.tls_activation"] = function() return {} end
 package.preload["8311.uploads"] = function() return {} end
 package.preload["8311.jobs"] = function() return {} end
 

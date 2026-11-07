@@ -22,6 +22,7 @@ local history_config = require "8311.history_config"
 local history_snapshot = require "8311.history_live_snapshot"
 local management_preflight = require "8311.management_preflight"
 local tls_candidate = require "8311.tls_candidate"
+local tls_activation = require "8311.tls_activation"
 local effective_probe = require "8311.effective_probe"
 local effective_device_probe = require "8311.effective_device_probe"
 local effective_pon_probe = require "8311.effective_pon_probe"
@@ -89,6 +90,8 @@ function index()
     entry({"admin", "8311", "tls"}, call("action_tls"), translate("HTTPS certificates"), 12)
     entry({"admin", "8311", "tls_generate"}, post("action_tls_generate")).leaf=true
     entry({"admin", "8311", "tls_discard"}, post("action_tls_discard")).leaf=true
+    entry({"admin", "8311", "tls_activate"}, post("action_tls_activate")).leaf=true
+    entry({"admin", "8311", "tls_confirm"}, post("action_tls_confirm")).leaf=true
     entry({"admin", "8311", "v3"}, call("action_v3"), translate("V3 status"), 13)
     entry({"admin", "8311", "v3_status"}, call("action_v3_status")).leaf=true
     entry({"admin", "8311", "monitoring_save"},
@@ -1333,10 +1336,12 @@ function action_tls()
     end
     local ok,security=pcall(health.security)
     if not ok or type(security)~="table" then security={} end
+    local pending,pending_why=tls_activation.pending()
+    if not pending then pending={pending=false,error=pending_why} end
     http.header("Cache-Control", "no-store, private")
     http.header("X-Content-Type-Options", "nosniff")
     http.header("Referrer-Policy", "no-referrer")
-    return ltemplate.render("8311/tls", {candidate=candidate,security=security})
+    return ltemplate.render("8311/tls", {candidate=candidate,security=security,pending=pending})
 end
 
 local function tls_https_required()
@@ -1383,6 +1388,59 @@ function action_tls_discard()
     return web.reply(http,status or 503,
         state and {success=true,candidate_ready=false,active_https_changed=false}
             or {success=false,error=why or "TLS candidate discard failed"})
+end
+
+function action_tls_activate()
+    if not tls_https_required() then
+        return web.reply(http,403,{success=false,error="HTTPS is required for TLS activation"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=operation_form({certificate_sha256=true})
+    if not values then return end
+    if type(values.certificate_sha256)~="string" or
+       #values.certificate_sha256~=64 or
+       values.certificate_sha256:find("[^0-9a-f]") then
+        return web.reply(http,422,{success=false,error="Refresh the TLS candidate before activation"})
+    end
+    local state,why=tls_candidate.status()
+    if not state or state.candidate_ready~=true or
+       state.certificate_sha256~=values.certificate_sha256 then
+        return web.reply(http,409,{success=false,error=why or "TLS candidate changed; refresh before activation"})
+    end
+    local pending,pending_why=tls_activation.pending()
+    if not pending then
+        return web.reply(http,503,{success=false,error=pending_why or "TLS activation state unavailable"})
+    end
+    if pending.pending then
+        return web.reply(http,409,{success=false,error="A TLS activation is already awaiting confirmation"})
+    end
+    local record,error_code=jobs.start("tls_activate",
+        {certificate_sha256=values.certificate_sha256},
+        dispatcher.context.authsession)
+    return web.reply(http,record and 202 or 409,
+        record and {success=true,job=record,rollback_seconds=tls_activation.WAIT_SECONDS}
+            or {success=false,error=error_code or "TLS activation could not start"})
+end
+
+function action_tls_confirm()
+    if not tls_https_required() then
+        return web.reply(http,403,{success=false,error="HTTPS is required to confirm TLS activation"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=operation_form({job_id=true})
+    if not values then return end
+    local record,why=jobs.confirm_tls(values.job_id)
+    return web.reply(http,record and 200 or 409,
+        record and {success=true,job=record}
+            or {success=false,error=why or "TLS activation confirmation was refused"})
 end
 
 function action_v3()

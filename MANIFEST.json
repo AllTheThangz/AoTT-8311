@@ -74,10 +74,10 @@
       "sha256": "563b085da82448f8b76fb51d5b93cbf406e3aa9686599f3b9cebb60c41e3b40f"
     },
     {
-      "bytes": 3901,
+      "bytes": 4277,
       "executable": true,
       "path": "etc/init.d/_8311-sysinit.sh",
-      "sha256": "baeec7644dc4e0791ff4ebc9c1adf1208069a278fced0c921add0d929b486fdc"
+      "sha256": "3c9d3875b668f514440df535c244fbf3dea07c845df867175ccf11870719392a"
     },
     {
       "bytes": 1552,
@@ -326,10 +326,10 @@
       "sha256": "6e466e3e6f66a552127d71907f8d4489ba7601f38fc4685d8cbed022f4a78c95"
     },
     {
-      "bytes": 21077,
+      "bytes": 23506,
       "executable": false,
       "path": "usr/lib/lua/8311/jobs.lua",
-      "sha256": "0a48626907448eef0c8f45802ad635cd42e661a297b555640c41646920ee1fda"
+      "sha256": "a6055a7d4bca9114604c5e551809bec7994126a4397d50b1f5e5a98f754c99ca"
     },
     {
       "bytes": 7881,
@@ -374,6 +374,12 @@
       "sha256": "045c5df3c0da35971390544c513fc6d0cf2abe6e534bb5d7f740b5e0b045090e"
     },
     {
+      "bytes": 15223,
+      "executable": false,
+      "path": "usr/lib/lua/8311/tls_activation.lua",
+      "sha256": "5f64afb93bb003cdce0a730654c59e128e93950095ffa90dce1aa669219eab66"
+    },
+    {
       "bytes": 9054,
       "executable": false,
       "path": "usr/lib/lua/8311/tls_candidate.lua",
@@ -398,10 +404,10 @@
       "sha256": "4f1534db7215b38451dfbde68fd021604fbc87260c0e1482d1597b2ce8b33b89"
     },
     {
-      "bytes": 3703,
+      "bytes": 4108,
       "executable": false,
       "path": "usr/lib/lua/8311/v3_capabilities.lua",
-      "sha256": "a5f945e27934da4772921d1d35dd3a10f11c33e359a2b27936574ba9b378c59f"
+      "sha256": "4cc3d4deec5c61011c238769f40f4f5a58a236e55a762c87264156e3014433f4"
     },
     {
       "bytes": 112,
@@ -422,10 +428,10 @@
       "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
     },
     {
-      "bytes": 67326,
+      "bytes": 70227,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "62294a190ec0bb710b8ead2c4ceef39f9a42c14280a5bf14da413685da8ed518"
+      "sha256": "9ed32c866056603f7ff552ab579aa265a7328e9e7edd0458d20ab40af0ecf9b3"
     },
     {
       "bytes": 19502,
@@ -488,10 +494,10 @@
       "sha256": "46578014d45489b1dde0d3b92d9432b0cf0a56365f14251a96de2c04c7c8f084"
     },
     {
-      "bytes": 6950,
+      "bytes": 10397,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/tls.htm",
-      "sha256": "abb174221620c2c3f216248b5ae5a9ea506eb9b4a307f6d5b5ba558df2300a25"
+      "sha256": "855510e6df5b74f84828f782f3defd4252460b66aa41462612574dea530d49a5"
     },
     {
       "bytes": 1576,
@@ -608,10 +614,22 @@
       "sha256": "97ed004891fe4594747e4125d47aee34c30882df34e23004c0d54e0d101259f8"
     },
     {
+      "bytes": 784,
+      "executable": true,
+      "path": "usr/libexec/8311-tls-activate.lua",
+      "sha256": "a239fce29e6fa03d018f0592aa37946223615cb91568f9ae18b763a6386b2be5"
+    },
+    {
       "bytes": 210,
       "executable": true,
       "path": "usr/libexec/8311-tls-key-permissions",
       "sha256": "1faffb0329656073f55ef3d7acae345db1848b0bf09fca3d6390a2ad27f2326c"
+    },
+    {
+      "bytes": 330,
+      "executable": true,
+      "path": "usr/libexec/8311-tls-recover-pending",
+      "sha256": "760c2fedace2b41192859ede06bebc4c9d8f3459281441a0c2456dcdbb2dbef0"
     },
     {
       "bytes": 1606,

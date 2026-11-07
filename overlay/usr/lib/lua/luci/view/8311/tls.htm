@@ -3,10 +3,11 @@ local tools=require "8311.tools"
 local esc=tools.html_escape
 local c=candidate or {}
 local s=security or {}
+local p=pending or {}
 -%>
 <%+header%>
 <h2>HTTPS certificates</h2>
-<p class="aott-section-intro">V3 certificate preparation for local management HTTPS. Candidate generation is local and inactive. It does not replace the certificate used by uhttpd, reload HTTPS, change UCI, or write the candidate to persistent storage.</p>
+<p class="aott-section-intro">V3 certificate management for local HTTPS. Candidate generation remains inactive until you explicitly start a guarded activation. Activation backs up the current persistent pair, restarts uhttpd, and rolls back automatically unless the new HTTPS session is confirmed within the displayed window.</p>
 
 <section class="aott-fw-panel">
   <h3>Active HTTPS key protection</h3>
@@ -70,9 +71,26 @@ local s=security or {}
 </section>
 
 <section class="aott-fw-panel">
-  <h3>Activation gate</h3>
-  <p><strong>Install/activate is intentionally unavailable.</strong> Activation requires verified backup of the active certificate/key/config, an isolated uhttpd load test, a timed rollback path, a second local recovery path, and a real browser handshake to the intended management identity.</p>
-  <p>Operator-owned certificate import remains validation-only until equivalent native key/chain validation and rollback are integrated.</p>
+  <h3>Guarded activation</h3>
+  <% if p.pending==true then %>
+    <p class="alert-message warning"><strong>A certificate activation is pending confirmation.</strong> This page loaded through HTTPS after uhttpd was restarted. Confirm only after verifying the browser is presenting the intended certificate. If confirmation is not received, the previous persistent certificate/key pair is restored automatically.</p>
+    <p>Pending candidate SHA-256: <code><%=esc(p.certificate_sha256)%></code></p>
+    <form id="tls-activation-confirm" action="<%=url('admin/8311/tls_confirm')%>" method="post">
+      <input type="hidden" name="token" value="<%=esc(token)%>">
+      <input type="hidden" name="job_id" value="<%=esc(p.job_id)%>">
+      <button class="cbi-button cbi-button-apply" id="tls-confirm-button" type="submit">Confirm this HTTPS certificate</button>
+    </form>
+  <% elseif c.candidate_ready==true then %>
+    <p>Activation requires a unique persisted root credential and a running SSH recovery service. V3 backs up the current persistent certificate/key pair before replacement. The browser must reconnect through the new certificate and confirm it within 180 seconds or V3 restores the previous pair.</p>
+    <form id="tls-candidate-activate" action="<%=url('admin/8311/tls_activate')%>" method="post">
+      <input type="hidden" name="token" value="<%=esc(token)%>">
+      <input type="hidden" name="certificate_sha256" value="<%=esc(c.certificate_sha256)%>">
+      <button class="cbi-button cbi-button-apply" id="tls-activate-button" type="submit">Activate candidate with rollback</button>
+    </form>
+  <% else %>
+    <p>Generate and review an inactive candidate before activation becomes available.</p>
+  <% end %>
+  <p>Operator-owned certificate import remains validation-only until equivalent native key/chain validation is integrated into this same rollback transaction.</p>
 </section>
 
 <script>
@@ -80,12 +98,18 @@ local s=security or {}
   "use strict";
   var generate=document.getElementById("tls-candidate-generate");
   var discard=document.getElementById("tls-candidate-discard");
+  var activate=document.getElementById("tls-candidate-activate");
+  var confirmActivation=document.getElementById("tls-activation-confirm");
   var status=document.getElementById("tls-operation-status");
   function setBusy(value){
     var g=document.getElementById("tls-generate-button");
     var d=document.getElementById("tls-discard-button");
+    var a=document.getElementById("tls-activate-button");
+    var c=document.getElementById("tls-confirm-button");
     if(g)g.disabled=value;
     if(d)d.disabled=value;
+    if(a)a.disabled=value;
+    if(c)c.disabled=value;
   }
   async function post(form){
     var response=await fetch(form.action,{
@@ -120,7 +144,36 @@ local s=security or {}
       document.getElementById("tls-candidate-fingerprint").textContent="No inactive candidate is present.";
       document.getElementById("tls-generate-button").disabled=false;
       document.getElementById("tls-discard-button").disabled=true;
+      var a=document.getElementById("tls-activate-button");if(a)a.disabled=true;
     }catch(error){status.textContent="Candidate discard refused: "+error.message;setBusy(false);}
+  });
+  if(activate)activate.addEventListener("submit",async function(event){
+    event.preventDefault();
+    if(!window.confirm("Activate this certificate now? HTTPS will restart. You must reconnect and confirm the new certificate within 180 seconds or V3 will restore the previous certificate."))return;
+    setBusy(true);
+    status.textContent="Starting guarded TLS activation. HTTPS will restart briefly...";
+    try{
+      var data=await post(activate);
+      status.textContent="Activation job started. Reconnect to this HTTPS page, accept the intended certificate if prompted, then confirm it before the rollback window expires.";
+      try{sessionStorage.setItem("aott-tls-job",data.job.id);}catch(ignored){}
+      window.setTimeout(function(){window.location.reload();},3000);
+    }catch(error){
+      status.textContent="TLS activation refused: "+error.message;
+      setBusy(false);
+    }
+  });
+  if(confirmActivation)confirmActivation.addEventListener("submit",async function(event){
+    event.preventDefault();setBusy(true);
+    status.textContent="Confirming the certificate presented by this HTTPS session...";
+    try{
+      await post(confirmActivation);
+      status.textContent="Certificate confirmation accepted. V3 is finalizing the persistent activation.";
+      try{sessionStorage.removeItem("aott-tls-job");}catch(ignored){}
+      window.setTimeout(function(){window.location.reload();},1500);
+    }catch(error){
+      status.textContent="TLS confirmation refused: "+error.message;
+      setBusy(false);
+    }
   });
 }());
 </script>
