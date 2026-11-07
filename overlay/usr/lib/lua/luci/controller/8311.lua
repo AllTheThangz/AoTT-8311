@@ -75,6 +75,8 @@ function index()
     -- collector route performs its own TLS, IP and bearer checks.
     entry({"admin", "8311", "monitoring"}, call("action_r8_monitoring"),
           translate("Monitoring & telemetry"), 9)
+    entry({"admin", "8311", "v3"}, call("action_v3"), translate("V3 status"), 10)
+    entry({"admin", "8311", "v3_status"}, call("action_v3_status")).leaf=true
     entry({"admin", "8311", "monitoring_save"},
           post("action_r8_monitoring_save")).leaf=true
     entry({"admin", "8311", "monitoring_test"},
@@ -1218,6 +1220,25 @@ end
 
 -- The monitoring page and its APIs are inside the authenticated
 -- admin/8311 route tree; writes also require LuCI's CSRF check.
+function action_v3()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    return ltemplate.render("8311/v3", {})
+end
+
+function action_v3_status()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    local cap = require "8311.v3_capabilities"
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    return web.reply(http, 200, cap.snapshot())
+end
+
 function action_r8_monitoring()
     if http.getenv("REQUEST_METHOD") ~= "GET" then
         return web.reply(http, 405, {success=false,error="GET required"})
