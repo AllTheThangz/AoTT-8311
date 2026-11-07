@@ -4,11 +4,19 @@
 
 AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible web interface, deeper optical and network diagnostics, security visibility, and guarded A/B firmware management.
 
-**Firmware source in this checkout:** `AoTT-8311-v2r9`, the integrated r9 source corresponding to the privately hardware-qualified and committed image on one PRX126 device. The canonical `release.json` retains `offline-candidate` as an immutable build-stage marker. See [the r9 release scope and build requirements](docs/V2R9-INTEGRATED-RELEASE.md) and [r9 hardware acceptance](docs/V2R9-HARDWARE-ACCEPTANCE.md).
+**Firmware source in this checkout:** AoTT-8311-v3r1, the V3 development line promoted from the privately hardware-qualified AoTT-8311-v2r9 release-candidate baseline. V3r1 is source-only and is **not yet hardware-qualified or deployed**. The exact r9 image remains the currently proven PRX126 runtime and recovery reference.
 
 **Private hardware acceptance, November 7, 2026:** the exact qualified `AoTT-8311-v2r9` image is running and permanently committed in bank A on one LL-XS1010 / PRX126-SFP-PON device. Enhanced r8 remains complete and valid in bank B as the recovery image. Independent trial and post-commit checks confirmed PON O5.1, a 10 Gbps host link, recovery access, both complete bank images, and the pinned r9 runtime set. See [r9 hardware acceptance](docs/V2R9-HARDWARE-ACCEPTANCE.md), [r9 integration](docs/V2R9-INTEGRATED-RELEASE.md), and [project continuity](docs/PROJECT-CONTINUITY.md).
 
 > **Important:** This repository currently provides a **secret-sanitized source overlay, not a ready-to-flash firmware image**. Proprietary vendor components, actual subscriber provisioning, and production credentials are deliberately excluded.
+
+## AoTT-8311 V3 development line
+
+V3 turns the r9 release-candidate foundation into a deployment-oriented residential firmware line rather than continuing the v2rN revision cadence. The first V3 integration cut adds a major-version identity, a capability-status surface, and moves the already-tested bounded local-history primitives into the firmware overlay while keeping collection inactive by default.
+
+The V3 branch deliberately retains r9's proven PON/OMCI runtime, management-routing compatibility, guarded A/B firmware lifecycle, and recovery assumptions. Remote GUI access remains disabled by default. Configuration mutation, durable history, certificate management, remote-access firewalling, and additional hardware support remain qualification-gated until their exact production paths pass the documented acceptance gates.
+
+See [V3 deployment foundation](docs/V3-DEPLOYMENT-FOUNDATION.md).
 
 ## AoTT-8311 v2 r9
 
