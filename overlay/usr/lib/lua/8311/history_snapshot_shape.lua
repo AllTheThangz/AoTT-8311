@@ -180,10 +180,13 @@ local function event_ok(x)
     })
 end
 function M.validate(data)
+    local source_header=type(data)=="table" and
+        data.kind=="aott_source_only_history" and data.source_only_not_live==true
+    local live_header=type(data)=="table" and
+        data.kind=="aott_local_history" and data.source_only_not_live==false
     if not fields(data,ROOT) or data.schema~=1 or
-       data.kind~="aott_source_only_history" or
+       (not source_header and not live_header) or
        data.max_export_items~=100 or
-       data.source_only_not_live~=true or
        data.history_is_volatile~=true or
        data.actual_isp_uptime_unverified~=true or
        data.optics_history_unavailable~=true or

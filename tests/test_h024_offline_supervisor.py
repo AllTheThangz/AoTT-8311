@@ -58,7 +58,12 @@ class OfflineSupervisorSourceChecks(unittest.TestCase):
         for filename in ("h024_worker.lua","h024_wrapper.sh",
                          "8311-history.init-candidate"):
             self.assertNotIn(filename,manifest)
-        self.assertFalse((ROOT/"overlay/etc/init.d/8311-history").exists())
+        runtime=(ROOT/"overlay/etc/init.d/8311-history")
+        self.assertTrue(runtime.is_file())
+        deployed=runtime.read_text()
+        self.assertIn('config_get enabled main enabled 0',deployed)
+        self.assertIn('[ "$enabled" = "1" ] || return 0',deployed)
+        self.assertNotIn("procd_set_param respawn",deployed)
         self.assertFalse((ROOT/"overlay/usr/libexec/h024_wrapper.sh").exists())
 
     def test_hard_synthetic_admission_and_no_live_commands(self):

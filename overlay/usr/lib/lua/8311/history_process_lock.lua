@@ -86,12 +86,15 @@ function M.acquire(directory)
         safe_close(fd)
         return nil,"collector_lock_changed_after_acquire"
     end
-    local handle={schema=1,source_only_not_deployed=true}
-    TOKENS[handle]={fd=fd,directory=directory}
+    local production=directory==PRODUCTION_DIR
+    local handle={schema=1,source_only_not_deployed=not production,
+                  production_runtime=production}
+    TOKENS[handle]={fd=fd,directory=directory,production=production}
     HELD[directory]=handle
     return handle,{
         schema=1,status="advisory_owner_acquired",
-        source_only_not_deployed=true,
+        source_only_not_deployed=not production,
+        production_runtime=production,
         cross_process_fcntl_lock=true,
         lifetime="held_file_descriptor",
         lock_file_is_never_unlinked=true,
@@ -116,7 +119,8 @@ function M.release(handle)
     HELD[private.directory]=nil
     return {
         status="advisory_owner_released",
-        source_only_not_deployed=true,
+        source_only_not_deployed=not private.production,
+        production_runtime=private.production,
         lock_file_is_never_unlinked=true,
         no_device_setting_write=true,
     }
@@ -129,7 +133,8 @@ function M.status(handle)
     end
     return {
         status="owned_in_this_process",
-        source_only_not_deployed=true,
+        source_only_not_deployed=not private.production,
+        production_runtime=private.production,
         must_keep_fd_open=true,
         cross_process_lock_held=true,
         no_pon_or_firmware_operation=true,

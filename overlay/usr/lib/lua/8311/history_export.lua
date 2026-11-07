@@ -137,9 +137,13 @@ end
 -- No raw device output or boot ID is copied to public data.
 -- Only events matching the newest private epoch can be displayed, so a
 -- reboot resetting uptime can never make old events appear new.
-function M.project(state,range,limit)
+function M.project(state,range,limit,mode)
     range=range or "hour"
     limit=limit or 100
+    mode=mode or "source_preview"
+    if mode~="source_preview" and mode~="local_runtime" then
+        return nil,"invalid_export_mode"
+    end
     if not int(limit,1,MAX_RAW) then return nil,"invalid_export_limit" end
     local allowed=false
     for _,name in ipairs(RANGES) do
@@ -184,13 +188,14 @@ function M.project(state,range,limit)
         windows[name]=window(v)
     end
     return {
-        schema=1,kind="aott_source_only_history",
+        schema=1,
+        kind=mode=="local_runtime" and "aott_local_history" or "aott_source_only_history",
         range=range,
         windows=windows,samples=samples,events=events,
         max_export_items=MAX_RAW,
         raw_sample_export_is_bounded=true,
         raw_event_export_is_bounded=true,
-        source_only_not_live=true,
+        source_only_not_live=mode~="local_runtime",
         raw_tail_independent_of_selected_range=true,
         history_is_volatile=true,
         actual_isp_uptime_unverified=true,
@@ -264,8 +269,8 @@ function M.encode_checked_projection(projection)
     return encoded
 end
 
-function M.export_json(state,range,limit)
-    local projection,why=M.project(state,range,limit)
+function M.export_json(state,range,limit,mode)
+    local projection,why=M.project(state,range,limit,mode)
     if not projection then return nil,why end
     local encoded,err=encode(projection,0,false)
     if not encoded then return nil,err end
@@ -300,8 +305,8 @@ local function row(values)
     end
     return table.concat(fields,",")
 end
-function M.export_csv(state,range,limit)
-    local projection,why=M.project(state,range,limit)
+function M.export_csv(state,range,limit,mode)
+    local projection,why=M.project(state,range,limit,mode)
     if not projection then return nil,why end
     local lines={table.concat(CSV_COLUMNS,",")}
     local selected=projection.windows[projection.range]

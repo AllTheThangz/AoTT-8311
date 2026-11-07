@@ -13,7 +13,7 @@ security and compatibility work into one deployment line.
 - The r9 A/B recovery and guarded firmware lifecycle remain unchanged.
 - The tested bounded history model, sampler, aggregation/export, preference and
   authenticated handoff primitives are included in the firmware overlay.
-- History collection remains inactive until the production sampler lifecycle is qualified on-device.
+- An opt-in local-history lifecycle is integrated: a single low-priority foreground worker, disabled by default, samples PON and host Ethernet independently into bounded RAM and publishes only through verified owner/publication locks. Persistent history remains disabled pending durability qualification.
 - A V3 status page and authenticated JSON endpoint distinguish installed,
   activated and hardware-qualified capabilities.
 - Remote GUI exposure remains disabled by default.
@@ -26,4 +26,4 @@ hardware preflight, configuration persistence/recovery checks, authenticated GUI
 audit, bounded history resource testing, TLS/security checks, a one-shot
 inactive-bank trial, and independent postboot PON/10G/management/bank verification.
 
-Committed r9 remains the recovery reference during initial V3 qualification.
+Committed r9 remains the recovery reference during initial V3 qualification. See [V3 local history runtime qualification](V3-HISTORY-RUNTIME-QUALIFICATION.md) for the opt-in worker design, vendor-runtime tests, and read-only PRX126 resource reference.

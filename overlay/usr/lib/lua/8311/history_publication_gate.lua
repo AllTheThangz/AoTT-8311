@@ -6,13 +6,18 @@
 -- NOT installed, no procd, firmware, PON, network or flash operation.
 local M={}
 local NAME="publication.lock"
+local PRODUCTION_DIR="/run/aott-history"
 local HELD={}
 local TOKENS=setmetatable({}, {__mode="k"})
 
 local function allowed(directory,mode)
+    if mode=="production_runtime" and directory==PRODUCTION_DIR then return true end
     return mode=="offline_synthetic" and type(directory)=="string" and
         #directory<=110 and
         directory:match("^/var/tmp/aott%-h022%-lock%-test%-[%w%-]+$")~=nil
+end
+local function deployed(directory)
+    return directory==PRODUCTION_DIR
 end
 local function dir_ok(st)
     return type(st)=="table" and st.type=="dir" and st.uid==0 and
@@ -91,7 +96,8 @@ function M.admit_writer(directory,mode)
     TOKENS[token]={fd=fd,directory=directory}
     HELD[directory]=token
     return token,{status="verified_snapshot_admitted",
-        source_only_not_deployed=true,no_onu_or_network_io=true}
+        source_only_not_deployed=not deployed(directory),
+        production_runtime=deployed(directory),no_onu_or_network_io=true}
 end
 
 function M.revoke_writer(token)
@@ -103,7 +109,8 @@ function M.revoke_writer(token)
     TOKENS[token]=nil
     HELD[held.directory]=nil
     return {status="publication_admission_revoked",
-        source_only_not_deployed=true,no_snapshot_deleted=true}
+        source_only_not_deployed=not deployed(held.directory),
+        production_runtime=deployed(held.directory),no_snapshot_deleted=true}
 end
 
 -- Separate HTTP-side admission check: no creation, no wait, no
@@ -145,4 +152,5 @@ function M.reader_admitted(directory,mode)
 end
 
 M.NAME=NAME
+M.PRODUCTION_DIR=PRODUCTION_DIR
 return M

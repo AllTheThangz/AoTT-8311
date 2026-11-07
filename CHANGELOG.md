@@ -6,11 +6,11 @@
 - Promoted the hardware-qualified v2r9 line to the V3 development identity while retaining r9 as the proven PRX126 release-candidate baseline.
 - Added an authenticated V3 status page and JSON capability summary that distinguishes integrated, inactive, qualified and disabled features.
 - Moved eleven already-tested bounded history/read-only handoff primitives into the firmware overlay for production integration.
-- Kept history collection inactive by default: no new init service, automatic collector, remote endpoint or persistent history writer is enabled by this cut.
+- Added an opt-in local-history init service and authenticated administrator History UI/API. The service is disabled by default, has no procd respawn loop, samples into bounded RAM only, publishes through dual kernel-lock freshness gates, and enables no persistent history writer or anonymous endpoint.
 - Kept remote GUI management disabled by default and preserved the r9 guarded A/B recovery lifecycle.
 - Updated V3 cache identities and retained the existing metrics credential digest domain for upgrade compatibility.
 - Expanded release tests so shipped history primitives remain bounded and non-autostarting instead of relying on their absence from the firmware overlay.
-- Full host/source regression: 1,181 tests passed with environment-dependent browser/proprietary-runtime tests skipped; no failures or errors.
+- Full host/source regression after local-history integration: 1,189 tests passed with environment-dependent browser/proprietary-runtime tests skipped; no failures or errors. The history-specific contract also passes under the extracted PRX126 vendor MIPS Lua/nixio runtime.
 
 See [V3 deployment foundation](docs/V3-DEPLOYMENT-FOUNDATION.md).
 

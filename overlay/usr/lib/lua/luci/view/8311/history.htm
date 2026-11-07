@@ -1,0 +1,174 @@
+<%-
+local tools=require "8311.tools"
+local esc=tools.html_escape
+-%>
+<%+header%>
+<link rel="stylesheet" href="<%=media%>/aott-history.css?v=aott-8311-v3-history1">
+<script defer src="<%=resource%>/view/aott-history.js?v=aott-8311-v3-history1"></script>
+
+<h2>Local history</h2>
+<p class="aott-section-intro">Optional, low-overhead local history for PON association, host Ethernet link state and measured host-interface throughput. History is RAM-only in this V3 stage. It does not claim ISP uptime, does not test the public Internet, and does not write periodic history to flash.</p>
+
+<form id="aott-history-settings" action="<%=url('admin/8311/history_save')%>" method="post">
+  <input type="hidden" name="token" value="<%=esc(token)%>">
+  <input type="hidden" name="revision" value="<%=esc(history.revision)%>">
+  <section class="aott-fw-panel" aria-labelledby="history-settings-title">
+    <h3 id="history-settings-title">Collector settings</h3>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="history-enabled">Local sampling</label>
+      <div class="cbi-value-field">
+        <select id="history-enabled" name="enabled">
+          <option value="0" <% if history.enabled=="0" then %>selected<% end %>>Disabled</option>
+          <option value="1" <% if history.enabled=="1" then %>selected<% end %>>Enabled</option>
+        </select>
+        <p class="aott-hint">Disabled is the firmware default. Enabling starts one low-priority foreground worker with no automatic respawn loop.</p>
+      </div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="history-pon-interval">PON sample interval</label>
+      <div class="cbi-value-field">
+        <select id="history-pon-interval" name="pon_interval_seconds">
+          <% for _,v in ipairs({"60","120","300"}) do %>
+          <option value="<%=v%>" <% if history.pon_interval_seconds==v then %>selected<% end %>><%=v%> seconds</option>
+          <% end %>
+        </select>
+      </div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="history-host-interval">Host Ethernet sample interval</label>
+      <div class="cbi-value-field">
+        <select id="history-host-interval" name="host_interval_seconds">
+          <% for _,v in ipairs({"30","60","120","300"}) do %>
+          <option value="<%=v%>" <% if history.host_interval_seconds==v then %>selected<% end %>><%=v%> seconds</option>
+          <% end %>
+        </select>
+      </div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="history-samples">RAM sample limit</label>
+      <div class="cbi-value-field">
+        <input id="history-samples" name="ram_sample_limit" type="number" min="30" max="720" step="1" value="<%=esc(history.ram_sample_limit)%>">
+      </div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="history-events">RAM event limit</label>
+      <div class="cbi-value-field">
+        <input id="history-events" name="ram_event_limit" type="number" min="16" max="256" step="1" value="<%=esc(history.ram_event_limit)%>">
+      </div>
+    </div>
+    <p>Worker state: <strong id="history-worker-state"><%=history.service_running==true and "running" or history.service_running==false and "stopped" or "unknown"%></strong>. Persistent history: <strong>not enabled in this stage</strong>.</p>
+    <div class="history-actions">
+      <button class="cbi-button cbi-button-apply" id="history-save" type="submit">Save &amp; apply history settings</button>
+    </div>
+    <p id="history-settings-status" class="aott-hint" role="status" aria-live="polite">Settings are read from this ONU. Service state is checked independently through the collector lock.</p>
+  </section>
+</form>
+
+<main class="aott-history" id="aott-history" data-history-url="<%=url('admin/8311/history_data')%>">
+  <div class="aott-history-head">
+    <div>
+      <h3>Connection and throughput history</h3>
+      <p id="prototype-notice" class="notice" role="status">Local history is disabled, starting, or waiting for its first validated sample.</p>
+    </div>
+    <div class="filters">
+      <label for="history-range">View history</label>
+      <select id="history-range">
+        <option value="hour">Last hour</option>
+        <option value="day">Last 24 hours</option>
+        <option value="week">Last 7 days</option>
+        <option value="month">Last 30 days</option>
+        <option value="ninety_days">Last 90 days</option>
+      </select>
+      <label for="history-theme">Appearance</label>
+      <select id="history-theme">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+      <button id="history-refresh" class="cbi-button" type="button">Refresh history</button>
+    </div>
+  </div>
+
+  <section class="aott-panel">
+    <h3>What is actually known</h3>
+    <div class="aott-status-grid">
+      <div><span class="stat-label">Optical registration</span><strong id="pon-state">Unavailable</strong></div>
+      <div><span class="stat-label">Host Ethernet</span><strong id="host-state">Unavailable</strong></div>
+      <div><span class="stat-label">Internet path</span><strong id="wan-state">Not verified</strong></div>
+      <div><span class="stat-label">Optical power history</span><strong id="optics-state">Not collected</strong></div>
+    </div>
+    <p class="footnote">PON association and Ethernet link status do not establish Internet service. Measurements use monotonic ONU uptime and are reset across reboot epochs.</p>
+  </section>
+
+  <section class="aott-panel">
+    <h3>Measured host Ethernet throughput</h3>
+    <div class="aott-status-grid">
+      <div><span class="stat-label">RX average</span><strong id="rx-average">Unavailable</strong></div>
+      <div><span class="stat-label">RX peak</span><strong id="rx-peak">Unavailable</strong></div>
+      <div><span class="stat-label">TX average</span><strong id="tx-average">Unavailable</strong></div>
+      <div><span class="stat-label">TX peak</span><strong id="tx-peak">Unavailable</strong></div>
+    </div>
+    <div class="legend"><span class="rx-line"></span> RX, host Ethernet <span class="tx-line"></span> TX, host Ethernet</div>
+    <svg id="history-chart" role="img" aria-label="No measured throughput to graph" viewBox="0 0 640 240" preserveAspectRatio="xMidYMid meet"></svg>
+    <p id="chart-caption" class="footnote" role="status">No retained measurements.</p>
+    <p id="coverage-message" class="coverage" role="status">No measured history has been loaded.</p>
+  </section>
+
+  <div class="two-panel">
+    <section class="aott-panel">
+      <h3>Recent observations</h3>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Uptime</th><th>PON</th><th>Host link</th><th>RX Mbps</th><th>TX Mbps</th></tr></thead>
+        <tbody id="history-sample-rows"></tbody>
+      </table></div>
+    </section>
+    <section class="aott-panel">
+      <h3>Observed state changes</h3>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Uptime</th><th>Observation</th><th>Detail</th></tr></thead>
+        <tbody id="history-event-rows"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <section class="aott-panel">
+    <h3>Bounded exports</h3>
+    <p class="footnote">Exports contain at most 100 latest-epoch samples and events, with no boot UUID, PON credentials, MAC addresses, log payloads, or destination addresses.</p>
+    <div class="download-row">
+      <button type="button" id="history-json" disabled>Export JSON</button>
+      <button type="button" id="history-csv" disabled>Export CSV</button>
+    </div>
+    <p id="history-export-status" class="footnote" aria-live="polite">No validated history loaded.</p>
+  </section>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var form=document.getElementById("aott-history-settings");
+  var status=document.getElementById("history-settings-status");
+  var save=document.getElementById("history-save");
+  if(!form||!status||!save)return;
+  form.addEventListener("submit",async function(event){
+    event.preventDefault();
+    save.disabled=true;
+    status.textContent="Saving history settings and reconciling the local worker...";
+    try{
+      var response=await fetch(form.action,{
+        method:"POST",credentials:"same-origin",cache:"no-store",
+        headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8","Accept":"application/json"},
+        body:new URLSearchParams(new FormData(form)).toString()
+      });
+      var data=await response.json();
+      if(!response.ok||!data||data.success!==true)throw new Error(data&&data.error?data.error:"Operation failed");
+      form.querySelector('[name="revision"]').value=data.revision;
+      document.getElementById("history-worker-state").textContent=
+        data.service_running===true?"running":data.service_running===false?"stopped":"unknown";
+      status.textContent="History settings applied. Refresh history after the next scheduled sample.";
+      if(window.AoTTHistoryView&&window.AoTTHistoryView.refresh)setTimeout(window.AoTTHistoryView.refresh,800);
+    }catch(error){
+      status.textContent="History settings not confirmed: "+error.message;
+    }finally{save.disabled=false;}
+  });
+}());
+</script>
+<%+footer%>

@@ -20,6 +20,23 @@ class V3FoundationTests(unittest.TestCase):
         for name in needed:
             self.assertTrue((ROOT/"overlay/usr/lib/lua/8311"/name).is_file(),name)
 
+    def test_opt_in_history_runtime_ships_disabled_by_default(self):
+        overlay=ROOT/"overlay"
+        for relative in (
+            "etc/init.d/8311-history",
+            "usr/libexec/8311-history-wrapper",
+            "usr/libexec/8311-history-worker.lua",
+            "usr/lib/lua/8311/history_config.lua",
+            "usr/lib/lua/8311/history_live_snapshot.lua",
+            "usr/lib/lua/luci/view/8311/history.htm",
+            "www/luci-static/resources/view/aott-history.js",
+            "www/luci-static/bootstrap/aott-history.css",
+        ):
+            self.assertTrue((overlay/relative).is_file(),relative)
+        init=(overlay/"etc/init.d/8311-history").read_text()
+        self.assertIn('config_get enabled main enabled 0',init)
+        self.assertNotIn("procd_set_param respawn",init)
+
     def test_v3_status_is_authenticated_tree_only(self):
         c=(ROOT/"overlay/usr/lib/lua/luci/controller/8311.lua").read_text()
         self.assertIn('entry({"admin", "8311", "v3"}',c)

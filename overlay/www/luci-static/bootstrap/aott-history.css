@@ -1,0 +1,69 @@
+.aott-history {
+  --history-bg:var(--aott-pane);
+  --history-alt:var(--aott-pane-alt);
+  --history-text:var(--aott-text);
+  --history-muted:var(--aott-muted);
+  --history-edge:var(--aott-border);
+  --history-rx:#086b97;
+  --history-tx:#146e3e;
+  color:var(--history-text);
+}
+html[data-aott-theme="dark"] .aott-history {
+  --history-rx:#81d4fa;
+  --history-tx:#a8ecab;
+}
+.aott-history .aott-history-head {
+  display:flex;gap:20px;justify-content:space-between;align-items:flex-start;
+  margin:12px 0 18px;
+}
+.aott-history .filters {display:grid;gap:7px;min-width:210px}
+.aott-history .aott-panel {
+  background:var(--history-bg);border:1px solid var(--history-edge);
+  border-radius:10px;padding:18px;margin:14px 0;
+}
+.aott-history .notice {
+  background:var(--history-alt);border:1px solid var(--history-edge);
+  border-radius:7px;padding:10px 12px;font-weight:600;
+}
+.aott-history .aott-status-grid {
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;
+}
+.aott-history .aott-status-grid>div {
+  background:var(--history-alt);border:1px solid var(--history-edge);
+  border-radius:7px;padding:12px;display:flex;flex-direction:column;gap:5px;
+}
+.aott-history .stat-label,.aott-history .footnote {
+  color:var(--history-muted);font-size:.86rem;
+}
+.aott-history #history-chart {
+  width:100%;height:auto;max-height:310px;display:block;
+  background:var(--history-alt);border:1px solid var(--history-edge);border-radius:7px;
+}
+.aott-history .history-grid-line {stroke:var(--history-edge);stroke-width:1}
+.aott-history .history-grid-label {fill:var(--history-muted);font-size:13px}
+.aott-history .history-rx-series {fill:none;stroke:var(--history-rx);stroke-width:3}
+.aott-history .history-tx-series {fill:none;stroke:var(--history-tx);stroke-width:3}
+.aott-history .history-rx-point {fill:var(--history-rx)}
+.aott-history .history-tx-point {fill:var(--history-tx)}
+.aott-history .legend {color:var(--history-muted);display:flex;align-items:center;gap:8px}
+.aott-history .rx-line,.aott-history .tx-line {
+  width:22px;border-top:4px solid var(--history-rx);display:inline-block;margin-left:8px;
+}
+.aott-history .tx-line {border-color:var(--history-tx)}
+.aott-history .two-panel {display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.aott-history .table-scroll {overflow-x:auto}
+.aott-history table {width:100%;border-collapse:collapse;min-width:390px}
+.aott-history th,.aott-history td {
+  padding:9px;border-bottom:1px solid var(--history-edge);text-align:left;white-space:nowrap;
+}
+.aott-history th {color:var(--history-muted)}
+.aott-history .download-row,.aott-history .history-actions {display:flex;gap:10px;flex-wrap:wrap}
+.aott-history .coverage {font-weight:600}
+@media (max-width:860px) {
+ .aott-history .aott-history-head{flex-direction:column}
+ .aott-history .aott-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .aott-history .two-panel{grid-template-columns:1fr}
+}
+@media (max-width:520px) {
+ .aott-history .aott-status-grid{grid-template-columns:1fr}
+}

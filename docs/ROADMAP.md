@@ -4,9 +4,9 @@
 
 dev/v3 is now the major-version development line based on the hardware-qualified r9 release-candidate lineage. The first V3 integration cut is AoTT-8311-v3r1 source-only and has not been flashed, trialed or committed on hardware.
 
-V3r1 currently integrates the bounded history model/sampler/export and authenticated handoff primitives into the firmware overlay without enabling a background collector, persistent history writer, anonymous history endpoint, or remote GUI exposure. The next V3 acceptance work remains C-012/C-013/C-014/C-017 plus on-device resource qualification of the history service, followed by TLS/certificate management and the optional remote-management firewall.
+V3r1 now integrates an opt-in RAM-only local-history worker and authenticated History UI/API on top of the bounded history model/sampler/export and dual-lock handoff primitives. The worker is disabled by default, has no procd respawn loop, performs no periodic flash-history write, and exposes no anonymous history endpoint or remote GUI. The next V3 acceptance work remains on-device resource qualification plus C-012/C-013/C-014/C-017, followed by TLS/certificate management and the optional remote-management firewall.
 
-The exact committed r9 image remains the proven live PRX126 baseline until a separately authorized V3 inactive-bank stage and one-shot trial pass all deployment gates.
+The exact committed r9 image remains the proven live PRX126 baseline until a separately authorized V3 inactive-bank stage and one-shot trial pass all deployment gates. Read-only local-history resource evidence is recorded in [V3 history runtime qualification](V3-HISTORY-RUNTIME-QUALIFICATION.md).
 
 ## Current release integration, November 7, 2026
 

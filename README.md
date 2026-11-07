@@ -12,11 +12,11 @@ AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible w
 
 ## AoTT-8311 V3 development line
 
-V3 turns the r9 release-candidate foundation into a deployment-oriented residential firmware line rather than continuing the v2rN revision cadence. The first V3 integration cut adds a major-version identity, a capability-status surface, and moves the already-tested bounded local-history primitives into the firmware overlay while keeping collection inactive by default.
+V3 turns the r9 release-candidate foundation into a deployment-oriented residential firmware line rather than continuing the v2rN revision cadence. The current V3r1 integration adds a major-version identity, a capability-status surface, and an opt-in RAM-only local-history worker with authenticated History UI/API, bounded exports, dual-lock freshness checks, and independent PON/host sampling. Collection remains disabled by default.
 
-The V3 branch deliberately retains r9's proven PON/OMCI runtime, management-routing compatibility, guarded A/B firmware lifecycle, and recovery assumptions. Remote GUI access remains disabled by default. Configuration mutation, durable history, certificate management, remote-access firewalling, and additional hardware support remain qualification-gated until their exact production paths pass the documented acceptance gates.
+The V3 branch deliberately retains r9's proven PON/OMCI runtime, management-routing compatibility, guarded A/B firmware lifecycle, and recovery assumptions. Remote GUI access remains disabled by default. Local history is volatile and performs no periodic flash writes. Configuration mutation, durable history, certificate management, remote-access firewalling, and additional hardware support remain qualification-gated until their exact production paths pass the documented acceptance gates.
 
-See [V3 deployment foundation](docs/V3-DEPLOYMENT-FOUNDATION.md).
+See [V3 deployment foundation](docs/V3-DEPLOYMENT-FOUNDATION.md) and [V3 local history runtime qualification](docs/V3-HISTORY-RUNTIME-QUALIFICATION.md).
 
 ## AoTT-8311 v2 r9
 

@@ -110,7 +110,9 @@ class LifecycleSnapshotSourceTests(unittest.TestCase):
     def test_no_implicit_live_endpoint_or_deployment(self):
         manifest=(ROOT/"MANIFEST.json").read_text()
         deployed=(OVERLAY/"luci/controller/8311.lua").read_text()
-        self.assertNotIn("history_data",deployed)
+        self.assertIn('entry({"admin", "8311", "history_data"}',deployed)
+        self.assertNotIn('entry({"8311", "history_data"}',deployed)
+        self.assertIn("history_snapshot.read_guarded()",deployed)
         for name in ("history_snapshot_ipc.lua","history_process_lock.lua",
                      "history_publication_gate.lua","history_http_readonly.lua"):
             self.assertIn(name,manifest)

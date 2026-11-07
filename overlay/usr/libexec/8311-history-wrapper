@@ -1,0 +1,6 @@
+#!/bin/sh
+set -u
+umask 077
+ulimit -c 0 || exit 70
+ulimit -n 32 || exit 70
+exec /bin/nice -n 10 /usr/bin/lua /usr/libexec/8311-history-worker.lua

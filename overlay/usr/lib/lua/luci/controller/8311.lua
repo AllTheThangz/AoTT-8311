@@ -18,6 +18,8 @@ local json = require "luci.jsonc"
 local web = require "8311.webutil"
 local health = require "8311.health"
 local monitoring = require "8311.monitoring"
+local history_config = require "8311.history_config"
+local history_snapshot = require "8311.history_live_snapshot"
 local effective_probe = require "8311.effective_probe"
 local effective_device_probe = require "8311.effective_device_probe"
 local effective_pon_probe = require "8311.effective_pon_probe"
@@ -75,7 +77,10 @@ function index()
     -- collector route performs its own TLS, IP and bearer checks.
     entry({"admin", "8311", "monitoring"}, call("action_r8_monitoring"),
           translate("Monitoring & telemetry"), 9)
-    entry({"admin", "8311", "v3"}, call("action_v3"), translate("V3 status"), 10)
+    entry({"admin", "8311", "history"}, call("action_history"), translate("Local history"), 10)
+    entry({"admin", "8311", "history_save"}, post("action_history_save")).leaf=true
+    entry({"admin", "8311", "history_data"}, call("action_history_data")).leaf=true
+    entry({"admin", "8311", "v3"}, call("action_v3"), translate("V3 status"), 11)
     entry({"admin", "8311", "v3_status"}, call("action_v3_status")).leaf=true
     entry({"admin", "8311", "monitoring_save"},
           post("action_r8_monitoring_save")).leaf=true
@@ -1218,8 +1223,65 @@ local function operation_form(allowed)
 	return values
 end
 
--- The monitoring page and its APIs are inside the authenticated
+-- The monitoring and local-history pages are inside the authenticated
 -- admin/8311 route tree; writes also require LuCI's CSRF check.
+function action_history()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    local state, err = history_config.snapshot()
+    if not state then
+        return web.reply(http, 503, {success=false,error=err or "History configuration unavailable"})
+    end
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    return ltemplate.render("8311/history", {history=state})
+end
+
+function action_history_save()
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values = operation_form({
+        revision=true,enabled=true,pon_interval_seconds=true,
+        host_interval_seconds=true,ram_sample_limit=true,ram_event_limit=true
+    })
+    if not values then return end
+    local state, err, status = history_config.apply(values)
+    return web.reply(http, status or 503,
+        state and {success=true,revision=state.revision,
+                   enabled=state.enabled,service_running=state.service_running,
+                   pon_interval_seconds=state.pon_interval_seconds,
+                   host_interval_seconds=state.host_interval_seconds,
+                   ram_sample_limit=state.ram_sample_limit,
+                   ram_event_limit=state.ram_event_limit}
+            or {success=false,error=err or "History configuration failed"})
+end
+
+function action_history_data()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    if not dispatcher.context.authsession then
+        return web.reply(http, 403, {success=false,error="Authentication required"})
+    end
+    local query=http.getenv("QUERY_STRING")
+    if query~=nil and query~="" then
+        return web.reply(http, 400, {success=false,error="History query parameters are not supported"})
+    end
+    local body, info = history_snapshot.read_guarded()
+    if not body then
+        return web.reply(http, 503, {success=false,error=info or "History is unavailable"})
+    end
+    http.status(200, "OK")
+    http.header("Cache-Control", "no-store, private, max-age=0")
+    http.header("X-Content-Type-Options", "nosniff")
+    http.header("Content-Security-Policy", "default-src 'none'")
+    http.header("Referrer-Policy", "no-referrer")
+    http.header("Vary", "Cookie")
+    http.prepare_content("application/json; charset=utf-8")
+    http.write(body)
+end
+
 function action_v3()
     if http.getenv("REQUEST_METHOD") ~= "GET" then
         return web.reply(http, 405, {success=false,error="GET required"})

@@ -14,6 +14,13 @@ function M.snapshot()
         exists("/usr/lib/lua/8311/history_model.lua") and
         exists("/usr/lib/lua/8311/history_sampler.lua") and
         exists("/usr/lib/lua/8311/history_export.lua")
+    local history_runtime =
+        history_core and
+        exists("/usr/lib/lua/8311/history_live_snapshot.lua") and
+        exists("/usr/lib/lua/8311/history_config.lua") and
+        exists("/usr/libexec/8311-history-worker.lua") and
+        exists("/usr/libexec/8311-history-wrapper") and
+        exists("/etc/init.d/8311-history")
     local tls_key = exists("/usr/libexec/8311-root-hash-valid")
     local config_readback =
         exists("/usr/lib/lua/8311/effective_probe.lua") and
@@ -31,8 +38,9 @@ function M.snapshot()
                 bank_guard and "qualified" or "unavailable",
                 "Guarded A/B lifecycle retained from the hardware-qualified r9 baseline."),
             feature("history","Local history engine",
-                history_core and "integrated_inactive" or "unavailable",
-                "Bounded RAM/history/export libraries ship in V3; collection remains disabled until runtime qualification."),
+                history_runtime and "integrated_opt_in_unqualified" or
+                    (history_core and "integrated_inactive" or "unavailable"),
+                "Opt-in RAM-only sampling, bounded exports and authenticated local history are integrated. Disabled by default; persistent history and final hardware resource qualification remain gated."),
             feature("tls","TLS/key health",
                 tls_key and "integrated" or "unavailable",
                 "Existing key-health checks retained; certificate generation/import activation remains gated."),
