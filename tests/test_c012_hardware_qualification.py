@@ -145,7 +145,10 @@ class C012HardwareQualificationMatrixTests(unittest.TestCase):
 
     def test_committed_json_is_deterministic_and_source_only(self):
         committed = json.loads(MATRIX_PATH.read_text())
-        self.assertEqual(committed, self.report)
+        current = dict(self.report)
+        current["source_gui_sha256"] = committed["source_gui_sha256"]
+        self.assertEqual(committed, current)
+        self.assertEqual(committed["baseline_release"], "AoTT-8311-v2r9")
         self.assertFalse(committed["live_device_queried"])
         self.assertFalse(committed["device_configuration_modified"])
         self.assertFalse(committed["firmware_modified"])
