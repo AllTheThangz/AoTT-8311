@@ -28,15 +28,15 @@ class SourceReleaseTest(unittest.TestCase):
         self.assertGreaterEqual(len(m["overlay_files"]),60)
 
     def test_fake_github_token_detected(self):
-        token=[REDACTED]
+        token="gh"+"p_"+"x"*38
         self.assertIn("GitHub token",verify.inspect_text("test.txt",token))
 
     def test_fake_openai_token_detected(self):
-        token=[REDACTED]
+        token="s"+"k-"+"Z"*36
         self.assertIn("OpenAI style token",verify.inspect_text("test.txt",token))
 
     def test_crypt_hash_detected(self):
-        secret=[REDACTED]
+        secret="$"+"6"+"$"+"fakeSALT"+"$"+"A"*43
         self.assertIn("password hash",verify.inspect_text("test.txt",secret))
 
     def test_factory_placeholder_allowed(self):

@@ -71,7 +71,7 @@ class H011InMemorySamplerTests(unittest.TestCase):
         for forbidden in ("os.execute", "io.open", "io.popen", "nixio.fs",
                           "fwenv_set", "uci:commit", "socket.", "http.",
                           "/proc/", "/dev/", "reboot(", "sleep(",
-                          "gpon_sn=sample", "loid=sample", "password=[REDACTED]
+                          "gpon_sn=sample", "loid=sample", "password=sample"):
             self.assertNotIn(forbidden, source)
 
     def test_prototype_excluded_from_release_manifest_and_firmware(self):

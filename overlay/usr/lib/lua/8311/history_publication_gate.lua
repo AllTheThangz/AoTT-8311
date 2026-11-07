@@ -87,7 +87,7 @@ function M.admit_writer(directory,mode)
         close(fd)
         return nil,"publication_gate_changed_after_lock"
     end
-    local token=[REDACTED]
+    local token={source_only_not_deployed=true}
     TOKENS[token]={fd=fd,directory=directory}
     HELD[directory]=token
     return token,{status="verified_snapshot_admitted",
