@@ -54,9 +54,9 @@ class HistoryPreferencesTests(unittest.TestCase):
                          "no_real_setting_save=true"):
             with self.subTest(required=required):
                 self.assertIn(required,model)
-        self.assertFalse((ROOT/"overlay/usr/lib/lua/8311/history_preferences.lua").exists())
-        self.assertNotIn("history_preferences.lua",
-                         (ROOT/"MANIFEST.json").read_text())
+        self.assertTrue((ROOT/"overlay/usr/lib/lua/8311/history_preferences.lua").is_file())
+        self.assertIn("history_preferences.lua",
+                      (ROOT/"MANIFEST.json").read_text())
 
     def test_all_features_and_rejections_covered(self):
         source=FIXTURE.read_text()
