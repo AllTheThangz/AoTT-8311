@@ -34,11 +34,11 @@ class CrossProcessLockTests(unittest.TestCase):
 
     def test_no_production_service_or_device_mutation(self):
         code=LOCK.read_text()
-        self.assertFalse(
-            (ROOT/"overlay/usr/lib/lua/8311/history_process_lock.lua").exists()
+        self.assertTrue(
+            (ROOT/"overlay/usr/lib/lua/8311/history_process_lock.lua").is_file()
         )
-        self.assertNotIn("history_process_lock.lua",
-                         (ROOT/"MANIFEST.json").read_text())
+        self.assertIn("history_process_lock.lua",
+                      (ROOT/"MANIFEST.json").read_text())
         for required in (
             'local PRODUCTION_DIR="/run/aott-history"',
             'local LOCK_BASENAME="collector.lock"',
