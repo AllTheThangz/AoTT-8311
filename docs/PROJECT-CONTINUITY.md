@@ -1,12 +1,14 @@
 # AoTT-8311: project continuity and verified state
 
-## Current release candidate, November 6, 2026
+## Current verified release state, November 7, 2026
 
-[AoTT-8311 v2 r9](V2R9-INTEGRATED-RELEASE.md) combines the enhanced-r8 runtime and current 54-field readback work in one 89-file overlay. Two independent private firmware builds produced identical images and archives. The rootfs is 5,734,400 bytes with 487,424 bytes of bank reserve. The sanitized source is published on `release/v2r9-integrated-20261106` through [draft PR #52](https://github.com/AllTheThangz/AoTT-8311/pull/52); its body and checks identify the latest source/browser qualification. The PR is not a public binary release or a hardware acceptance claim.
+[AoTT-8311 v2 r9](V2R9-INTEGRATED-RELEASE.md) is now privately hardware-qualified and permanently committed on one LL-XS1010 / PRX126-SFP-PON device. The exact firmware was built from Git tree `6e7723194bc22ef1c414114080aeab7968259e75`; two independent private builds were byte-identical and the final combined source regression passed 1,304/1,304 tests with zero failures, errors or skips.
 
-Fresh native read-only checks on November 6 found enhanced r8 running as a trial in bank B, original r8 committed in bank A, no pending activation, PON O5.1 and a 10 Gbps host link. Full bank A and B integrity reads passed. R9 has not been installed. The next device transition must preserve enhanced r8 B as the committed fallback before staging r9 into A, with fresh private recovery evidence and the existing distinct operational approvals.
+The guarded transition preserved recovery at every step: enhanced r8 was committed in bank B, exact r9 was staged into A, A was one-shot trial booted and independently verified, then A was separately permanently committed without another reboot. Final verified state is **r9 active in A and committed in A**, no pending activation, not running a trial, PON O5.1, 10 Gbps host link, recovery SSH present, and both complete bank images valid. Enhanced r8 remains intact in bank B. See [r9 hardware acceptance](V2R9-HARDWARE-ACCEPTANCE.md).
 
-History, certificate management, firewall and native configuration-transaction prototypes remain development source outside the r9 firmware. The older checkpoints below are retained as history, not current release or bank evidence.
+The public repository remains a sanitized source distribution, not a binary release. The `release.json` `offline-candidate` value records the immutable build/source stage and is intentionally not rewritten to imply that later hardware acceptance was known at build time.
+
+History, certificate management, remote-firewall, native configuration-transaction and cross-stick work remain development source outside the committed r9 runtime. The older checkpoints below are retained as history, not current release or bank evidence.
 
 ## Historical local integration checkpoint, November 5, 2026
 
