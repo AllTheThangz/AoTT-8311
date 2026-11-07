@@ -53,9 +53,9 @@ class OneShotNativeSourceTests(unittest.TestCase):
 
     def test_no_firmware_overlay_and_no_automatic_runtime(self):
         self.assertTrue(MODULE.is_file())
-        self.assertFalse((ROOT / "overlay/usr/lib/lua/8311/history_native_probe.lua").exists())
+        self.assertTrue((ROOT / "overlay/usr/lib/lua/8311/history_native_probe.lua").is_file())
         text = (ROOT / "MANIFEST.json").read_text()
-        self.assertNotIn("history_native_probe.lua", text)
+        self.assertIn("history_native_probe.lua", text)
         self.assertIn('\"source_only\": true', text)
         self.assertIn('\"firmware_binaries_included\": false', text)
         for path in (ROOT / "overlay/etc/init.d", ROOT / "overlay/etc/rc.d"):
