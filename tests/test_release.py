@@ -22,21 +22,21 @@ class SourceReleaseTest(unittest.TestCase):
 
     def test_full_manifest_matches(self):
         m=json.loads((ROOT/"MANIFEST.json").read_text())
-        self.assertEqual(m["release"],"AoTT-8311-v2r9")
+        self.assertEqual(m["release"],"AoTT-8311-v3r1")
         self.assertTrue(m["source_only"])
         self.assertFalse(m["firmware_binaries_included"])
         self.assertGreaterEqual(len(m["overlay_files"]),60)
 
     def test_fake_github_token_detected(self):
-        token="gh"+"p_"+"x"*38
+        token=[REDACTED]
         self.assertIn("GitHub token",verify.inspect_text("test.txt",token))
 
     def test_fake_openai_token_detected(self):
-        token="s"+"k-"+"Z"*36
+        token=[REDACTED]
         self.assertIn("OpenAI style token",verify.inspect_text("test.txt",token))
 
     def test_crypt_hash_detected(self):
-        secret="$"+"6"+"$"+"fakeSALT"+"$"+"A"*43
+        secret=[REDACTED]
         self.assertIn("password hash",verify.inspect_text("test.txt",secret))
 
     def test_factory_placeholder_allowed(self):
