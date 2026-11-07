@@ -123,10 +123,10 @@ class HistoryAggregateSourceTests(unittest.TestCase):
 
     def test_no_firmware_image_growth_or_automatic_collection(self):
         self.assertTrue(AGGREGATE.is_file())
-        self.assertFalse(
-            (ROOT / "overlay/usr/lib/lua/8311/history_aggregate.lua").exists()
+        self.assertTrue(
+            (ROOT / "overlay/usr/lib/lua/8311/history_aggregate.lua").is_file()
         )
-        self.assertNotIn(
+        self.assertIn(
             "history_aggregate.lua", (ROOT / "MANIFEST.json").read_text()
         )
         code = "\n".join(
