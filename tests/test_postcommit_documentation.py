@@ -17,6 +17,7 @@ class CurrentReleaseDocumentationTests(unittest.TestCase):
         cls.r6accept = (ROOT / "docs/V2R6-HARDWARE-ACCEPTANCE.md").read_text()
         cls.r7accept = (ROOT / "docs/V2R7-HARDWARE-ACCEPTANCE.md").read_text()
         cls.r7build = (ROOT / "docs/V2R7-RELEASE.md").read_text()
+        cls.r9accept = (ROOT / "docs/V2R9-HARDWARE-ACCEPTANCE.md").read_text()
         cls.roadmap = (ROOT / "docs/ROADMAP.md").read_text()
         cls.plan = (ROOT / "docs/V2R8-PLAN.md").read_text()
         cls.meta = json.loads((ROOT / "release.json").read_text())
@@ -68,7 +69,7 @@ class CurrentReleaseDocumentationTests(unittest.TestCase):
         self.assertEqual(self.meta["revision"], "r9")
 
     def test_public_source_preserves_privacy_and_manifest(self):
-        data = self.readme + self.changelog + self.r7accept + self.roadmap + self.plan
+        data = self.readme + self.changelog + self.r7accept + self.r9accept + self.roadmap + self.plan
         self.assertNotIn(chr(0x2014), data)
         for forbidden in (r"\b192\.168\.", r"\b10\.10\.10\.",
                           r"\b66\.119\.99\.", r"/var/tmp/aott-v2r7-offline-"):
