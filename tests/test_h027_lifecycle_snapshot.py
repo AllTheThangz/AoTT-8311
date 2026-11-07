@@ -111,10 +111,11 @@ class LifecycleSnapshotSourceTests(unittest.TestCase):
         manifest=(ROOT/"MANIFEST.json").read_text()
         deployed=(OVERLAY/"luci/controller/8311.lua").read_text()
         self.assertNotIn("history_data",deployed)
-        for name in ("history_lifecycle.lua","history_snapshot_ipc.lua",
-                     "history_process_lock.lua","history_publication_gate.lua",
-                     "history_http_readonly.lua",
-                     "history_luci_route_candidate.lua"):
+        for name in ("history_snapshot_ipc.lua","history_process_lock.lua",
+                     "history_publication_gate.lua","history_http_readonly.lua"):
+            self.assertIn(name,manifest)
+            self.assertTrue((OVERLAY/"8311"/name).is_file())
+        for name in ("history_lifecycle.lua","history_luci_route_candidate.lua"):
             self.assertNotIn(name,manifest)
             self.assertFalse((OVERLAY/"8311"/name).exists())
         for path in (
