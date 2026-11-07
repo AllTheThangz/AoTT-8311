@@ -1,7 +1,7 @@
 # AoTT-8311 v2 r9: integrated firmware candidate
 
 **Checkpoint:** November 6, 2026. **Identity:** `AoTT-8311-v2r9`, displayed as `AoTT-8311-v2 r9`.
-**State:** integrated offline candidate. No r9 hardware trial or permanent commit is claimed.
+**State:** integrated source candidate with a separately verified private hardware trial and permanent commit on one LL-XS1010 / PRX126-SFP-PON device. The public repository remains source-only; immutable build-time `offline-candidate` metadata is preserved. See [r9 hardware acceptance](V2R9-HARDWARE-ACCEPTANCE.md).
 
 ## Purpose and shipped source
 
@@ -43,8 +43,12 @@ Two independent private firmware builds completed on November 6 with byte-identi
 
 Source, native-MIPS and browser regression receipts identify their exact source commit and are tracked with [draft PR #52](https://github.com/AllTheThangz/AoTT-8311/pull/52). Preserved, hash-pinned vendor CSS and pre-monitoring boot/logger fixtures make the source checks independent of optional files omitted from a sanitized test runtime. These fixtures are test inputs and are not installed in firmware. The actual private image/archive receipts remain with the maintainer. Offline build verification does not establish r9 hardware boot or forwarding acceptance.
 
-## Hardware transition
+## Hardware acceptance and committed state
 
-A fresh independent read-only check on November 6 confirmed enhanced r8 active in bank B, original r8 committed in A, no pending activation and a running uncommitted trial. PON association, 10 Gbps host link and recovery credentials matched the private baseline. Exact hashes and receipts remain private. This observation is not r9 trial acceptance.
+The exact qualified r9 archive was subsequently taken through the guarded hardware lifecycle on November 7, 2026. Fresh private recovery backups were verified first. Enhanced r8 in bank B was committed as the recovery point, r9 was staged into inactive bank A, and both banks passed native integrity readback.
 
-The latest private operator receipt determines the actual bank state before any later operation. Source integration does not change the ONU, provisioning, boot selection or firmware banks. A subsequent stage/trial uses the exact qualified r9 archive, fresh bank evidence and the existing distinct operational approvals.
+A separately authorized one-shot trial selected bank A and requested exactly one reboot. Postboot verification confirmed the new boot ID, `AoTT-8311-v2r9`, active A / committed B / no pending activation / running trial, PON O5.1, 10 Gbps host Ethernet, recovery access, both complete bank images, and 41 immutable r9 files plus three symlinks. No retry or second reboot was submitted during the temporary management interruption.
+
+After independent posttrial acceptance, a separately authorized guarded commit made the running r9 bank A the committed/default bank **without rebooting or rewriting either firmware image**. Final state is active A / committed A / no pending activation / not running a trial. Enhanced r8 remains complete and valid in bank B.
+
+See [AoTT-8311 v2r9 hardware acceptance](V2R9-HARDWARE-ACCEPTANCE.md) for exact public-safe evidence, scope, and limitations. The original `release.json` `offline-candidate` value remains a build-time marker rather than being rewritten after deployment.
