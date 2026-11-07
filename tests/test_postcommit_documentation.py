@@ -58,13 +58,15 @@ class CurrentReleaseDocumentationTests(unittest.TestCase):
         self.assertIn("V2R6-HARDWARE-ACCEPTANCE.md", self.readme)
         self.assertIn("V2R7-HARDWARE-ACCEPTANCE.md", self.readme)
 
-    def test_r8_trial_is_distinct_from_public_source_and_future_work(self):
-        self.assertIn("r9 integrates its source", self.readme)
-        self.assertIn("private r8 hardware-trial build", self.readme)
+    def test_r9_acceptance_is_distinct_from_public_binary_and_future_work(self):
+        self.assertIn("r9 includes the GUI-controlled optional remote syslog", self.readme)
+        self.assertIn("privately hardware-qualified and committed", self.readme)
         self.assertIn("source-only", self.readme)
         self.assertIn("scope defined, implementation not started", self.plan)
-        self.assertIn("Security-enhanced v2r8", self.roadmap)
-        self.assertIn("not permanently committed", self.roadmap)
+        self.assertIn("v2r9", self.roadmap)
+        self.assertIn("permanently committed in A", self.roadmap)
+        self.assertIn("enhanced r8", self.roadmap.lower())
+        self.assertIn("bank-B recovery image", self.roadmap)
         self.assertIn("MONITORING-AND-TELEMETRY.md", self.readme)
         self.assertEqual(self.meta["revision"], "r9")
 
