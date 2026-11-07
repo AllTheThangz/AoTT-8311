@@ -73,9 +73,9 @@ class IndependentChannelHistoryTests(unittest.TestCase):
 
     def test_no_background_process_or_live_device_mutation(self):
         source = SAMPLER.read_text()
-        self.assertFalse((ROOT / "overlay/usr/lib/lua/8311/history_sampler.lua").exists())
-        self.assertNotIn("history_sampler.lua",
-                         (ROOT / "MANIFEST.json").read_text())
+        self.assertTrue((ROOT / "overlay/usr/lib/lua/8311/history_sampler.lua").is_file())
+        self.assertIn("history_sampler.lua",
+                      (ROOT / "MANIFEST.json").read_text())
         executable = "\n".join(line for line in source.splitlines()
                                if not line.lstrip().startswith("--"))
         for forbidden in ("os.execute(", "io.open(", "io.popen(", "uci:commit",
