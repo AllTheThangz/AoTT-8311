@@ -24,28 +24,28 @@ class V2R7CandidateBoundaries(unittest.TestCase):
         cls.firmware=(ROOT/"overlay/usr/lib/lua/luci/view/8311/firmware.htm").read_text()
 
     def test_original_offline_candidate_metadata_is_historical(self):
-        self.assertEqual(self.meta["version"],"v2")
-        self.assertEqual(self.meta["revision"],"r9")
+        self.assertEqual(self.meta["version"],"v3")
+        self.assertEqual(self.meta["revision"],"r1")
         self.assertEqual(self.meta["status"],"offline-candidate")
-        self.assertEqual(self.manifest["release"],"AoTT-8311-v2r9")
-        self.assertEqual(self.manifest["revision"],"r9")
+        self.assertEqual(self.manifest["release"],"AoTT-8311-v3r1")
+        self.assertEqual(self.manifest["revision"],"r1")
         self.assertIn("NOT installed, trialed or committed",self.notes)
         self.assertIn("UNTRIALED_OFFLINE_ONLY",self.notes)
         self.assertIn("safe_for_live_install=false",self.notes)
 
     def test_source_identity_and_cache_tags_are_current(self):
         expected={
-            "etc/8311_version":"FW_VERSION=AoTT-8311-v2r9",
-            "etc/aott_release":"AOTT_REVISION=r9",
-            "etc/banner":"AoTT-8311-v2 r9",
-            "usr/lib/lua/8311/version.lua":'revision = "r9"'
+            "etc/8311_version":"FW_VERSION=AoTT-8311-v3r1",
+            "etc/aott_release":"AOTT_REVISION=r1",
+            "etc/banner":"AoTT-8311-v3 r1",
+            "usr/lib/lua/8311/version.lua":'revision = "r1"'
         }
         for path,label in expected.items():
             with self.subTest(file=path):
                 self.assertIn(label,(ROOT/"overlay"/path).read_text())
-        self.assertIn("aott-theme.css?v=aott-8311-v2r9",self.header)
-        self.assertIn("8311.js?v=aott-8311-v2-r9",self.firmware)
-        self.assertIn("8311.css?v=aott-8311-v2-r9",self.firmware)
+        self.assertIn("aott-theme.css?v=aott-8311-v3r1",self.header)
+        self.assertIn("8311.js?v=aott-8311-v3-r1",self.firmware)
+        self.assertIn("8311.css?v=aott-8311-v3-r1",self.firmware)
 
     def test_theme_change_remains_scoped_to_overview_graphs(self):
         selector='#view.aott-overview-live div:is([style*="height:300px"],[style*="height: 300px"])[style*="background"]'
