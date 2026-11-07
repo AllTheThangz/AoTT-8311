@@ -9,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class V2R7ReleaseSafety(unittest.TestCase):
     def test_release_identifies_untried_revision(self):
         release = json.loads((ROOT / "release.json").read_text())
-        self.assertEqual(release["revision"], "r9")
+        self.assertEqual(release["revision"], "r1")
+        self.assertEqual(release["version"], "v3")
         self.assertEqual(release["status"], "offline-candidate")
         self.assertEqual(release["hardware_profile"], "potron-prx126-aott-v1")
 
@@ -34,7 +35,7 @@ class V2R7ReleaseSafety(unittest.TestCase):
         manifest = json.loads((ROOT / "MANIFEST.json").read_text())
         self.assertFalse(manifest["firmware_binaries_included"])
         self.assertTrue(manifest["source_only"])
-        self.assertEqual(manifest["release"], "AoTT-8311-v2r9")
+        self.assertEqual(manifest["release"], "AoTT-8311-v3r1")
         paths = {entry["path"] for entry in manifest["overlay_files"]}
         self.assertNotIn("usr/libexec/cgi-io", paths)
         self.assertNotIn("sbin/rpcd", paths)
