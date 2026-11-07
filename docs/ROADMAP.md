@@ -1,24 +1,26 @@
 # AoTT-8311 roadmap and current development stages
 
-## Current release integration, November 6, 2026
+## Current release integration, November 7, 2026
 
-The [v2r9 candidate](V2R9-INTEGRATED-RELEASE.md) combines the enhanced-r8 runtime and 54-field readback implementation in one 89-file overlay. Complete its exact-source regression and private image pair qualification, then use the latest operator state for any separately approved hardware transition. Native VLAN writes, history activation and certificate/firewall controls remain separate development work outside this runtime.
+[AoTT-8311 v2r9](V2R9-INTEGRATED-RELEASE.md) has completed its integrated source regression, reproducible private build, guarded hardware stage, one-shot trial, independent postboot acceptance and permanent commit on one LL-XS1010 / PRX126-SFP-PON device. Final verified state is r9 active and committed in bank A, with enhanced r8 preserved as the complete valid bank-B recovery image. See [r9 hardware acceptance](V2R9-HARDWARE-ACCEPTANCE.md).
 
-The November 2 state below remains a dated historical checkpoint.
+The public repository remains source-only. The immutable `release.json` `offline-candidate` value records build-time state; later hardware qualification is documented separately. The next P0 work is not another firmware-version bump. It is C-012/C-013/C-014/C-017: make supported configuration controls work end to end, prove persistence/recovery, repair management VLAN safely, and audit every GUI path.
 
-**Verified project checkpoint:** November 2, 2026. This roadmap describes historical work, private hardware milestones and desired future work separately. For all work IDs, dependencies and completion gates, see [the delivery plan](DELIVERY-PLAN-AND-ACCEPTANCE.md).
+History activation, certificate/firewall controls, performance qualification and cross-stick support remain separate follow-on work.
+
+**Verified project checkpoint:** November 7, 2026. For all work IDs, dependencies and completion gates, see [the delivery plan](DELIVERY-PLAN-AND-ACCEPTANCE.md).
 
 ## Public source versus private hardware
 
-| Stage | Status at the checkpoint |
+| Stage | Current status |
 | --- | --- |
-| Public `main` | Source-only `AoTT-8311-v2r7`; no public ready-to-flash firmware image |
-| Existing draft PR #11 | Earlier v2r8 syslog and metrics source work; not a verified complete image |
-| Private original r8 | Verified and committed in bank A on one qualified PRX126 device |
-| Private security-enhanced r8 | Built, staged, successfully trial-booted and independently accepted in bank B; **not permanently committed** |
-| vNext | Source-only configuration coverage and portable history-math prototype; not deployed |
+| Public source | `AoTT-8311-v2r9` sanitized source; no public ready-to-flash firmware image |
+| Private r9 | Built reproducibly, staged in A, trial-booted, independently accepted and permanently committed in A |
+| Private security-enhanced r8 | Complete and valid in bank B as the on-device recovery image |
+| Older releases | r7/r6 and earlier recovery material retained privately as historical evidence |
+| vNext | Configuration transaction, history, certificate, firewall, performance and compatibility work continues source-first |
 
-Both private r8 variants share a human-readable version label. Exact image hashes and live bank inspection, retained in the private operational record, are required before any device operation. A dated checkpoint does not automatically remain current after a reboot or commit.
+Exact image hashes and live bank inspection remain required before any future device operation. A dated acceptance does not authorize a later flash, trial, rollback or commit.
 
 ## Completed historical firmware milestones
 
@@ -27,14 +29,15 @@ Both private r8 variants share a human-readable version label. Exact image hashe
 - **v2r6:** Boot/reboot consequences, native guarded action fingerprints, A/B recovery and reproducibility checks.
 - **v2r7:** Successful private firmware commit, improved light/dark Overview graph contrast, and comprehensive source/browser and independent hardware acceptance.
 - **Original v2r8:** Private stage to A, successful one-shot trial and then committed A without rebooting into r7.
-- **Security-enhanced v2r8:** New private source, manifest/privacy tests, 385 regression tests, independent matching offline image pair, stage in B and one-shot trial. The original r8 in A remains committed. A postreboot helper stopped on transient SSH while a separate independent read-only hardware acceptance succeeded. Historical failure receipts remain preserved.
-- **vNext foundation:** Separate source-only workspace with 391 passing regressions and 53 host/vendor-MIPS history-math fixture checks; static audit identifies 54 currently exposed environment controls, 13 vendor UCI config domains and three candidate gaps. This is not an installed firmware build or completed on-device history service.
+- **Security-enhanced v2r8:** New private source, manifest/privacy tests, independent matching image pair, stage and one-shot trial in B, then later committed as the verified recovery image before r9 staging. Historical transient-SSH and acceptance receipts remain preserved.
+- **v2r9:** Integrated 89-file runtime, 1,304/1,304 combined regression, reproducible private build pair, guarded A-bank stage, one-shot hardware trial, independent runtime/bank/network verification and permanent A-bank commit. Enhanced r8 remains the bank-B recovery image.
+- **vNext foundation:** Configuration-transaction, history, certificate, firewall, performance and compatibility prototypes continue source-first beyond the committed r9 runtime.
 
 The earlier release documentation retains the history appropriate to each revision, but it must not be read as an up-to-date report of the currently active firmware. See [project continuity](PROJECT-CONTINUITY.md).
 
 ## P0: finish what exists and make controls real
 
-- Complete the practical residential acceptance of the active private r8 trial. Never permanently commit on the basis of a routine development instruction.
+- Treat committed r9 as the current PRX126 baseline. Do not change banks or create a new firmware revision merely to continue source development.
 - Build a unified capability registry for every actually supported setting, not merely those currently rendered in the GUI. Track backend owner, applicability, constraints and saved versus effective values.
 - Validate each settable item **A to Z**: read, validate, preview, apply, durable readback, runtime readback, restart/bank persistence and recovery. Mark unsupported, read-only and experimental items clearly.
 - Repair the hidden management VLAN control and investigate upstream-documented device serial/factory-mode fields, where hardware behavior is proven and a recovery route is available.
