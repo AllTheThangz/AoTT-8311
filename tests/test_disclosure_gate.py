@@ -56,6 +56,32 @@ class DisclosureGateTests(unittest.TestCase):
         )
         self.assertIn("embedded_personal_email", self.problems(notice))
 
+    def test_exact_vendor_css_attributions_allowed_only_at_pinned_paths(self):
+        for name in ("cascade.css", "mobile.css"):
+            relative = "tests/fixtures/vendor_css/" + name
+            text = (ROOT / relative).read_text()
+            with self.subTest(name=name):
+                self.assertEqual(self.problems(text, relative), set())
+        copied = (ROOT / "tests/fixtures/vendor_css/cascade.css").read_text()
+        rejected = self.problems(copied, "docs/copied-theme.css")
+        self.assertIn("embedded_personal_email", rejected)
+        self.assertIn("unreviewed_hostname_or_domain", rejected)
+
+    def test_tampered_vendor_css_rejects_digest_and_private_email(self):
+        email = "person" + "@" + "private" + "." + "invalid"
+        for name in ("cascade.css", "mobile.css"):
+            relative = "tests/fixtures/vendor_css/" + name
+            text = (ROOT / relative).read_text()
+            with self.subTest(name=name):
+                rejected = self.problems(
+                    text + "\n/* Contact: " + email + " */\n", relative)
+                self.assertIn("vendor_css_fixture_digest_mismatch", rejected)
+                self.assertIn("embedded_personal_email", rejected)
+                self.assertIn(
+                    "vendor_css_fixture_digest_mismatch",
+                    self.problems(text + "\n", relative),
+                )
+
     def test_screenshots_and_metadata_carriers_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)

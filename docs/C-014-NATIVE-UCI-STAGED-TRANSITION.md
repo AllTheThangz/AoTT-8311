@@ -45,6 +45,10 @@ AOTT_VENDOR_ROOTFS=/path/to/private/extracted/vendor/rootfs \
 
 Native tests skip when the private vendor executable and QEMU are unavailable; pure source tests still run. Firmware binaries, actual subscriber configuration and production keys are not included in the repository.
 
+## Native-language follow-up
+
+The [Lua-native transition core](C-014-NATIVE-LUA-TRANSITION.md) now implements bounded export parsing, private reviewed plans and checked execution in the vendor's Lua 5.1 runtime. Its test fixture calls the real vendor UCI executable and independently checks persisted candidate files. This removes Python from the candidate planning/execution path, but does not install a production staging adapter, enable the hidden control or supply live rollback.
+
 ## Still needed before a usable VLAN control
 
 Verify the physical device's actual persistence mode, LCT parent, host-side VLAN path, zone mapping and native startup ordering. Resolve any legacy/unmarked management configuration through an explicit migration, not automatic deletion. Build and qualify a native on-device adapter, independent rollback, alternate management access and safe activation/confirmation sequence. Only after physical SSH/HTTPS and subscriber-forwarding acceptance should the GUI control be enabled.

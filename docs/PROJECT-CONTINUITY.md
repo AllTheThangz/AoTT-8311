@@ -1,8 +1,24 @@
 # AoTT-8311: project continuity and verified state
 
-**Status date:** 2026-11-02. **Document type:** Maintainer handoff and public-safe snapshot, not an official binary release. This snapshot becomes historical as development progresses.
+## Current verified release state, November 7, 2026
 
-**Purpose:** Prevent future engineering sessions from rediscovering settled decisions, confusing an in-progress firmware trial with a committed release, overlooking missing features, or treating untested configuration controls as functional.
+[AoTT-8311 v2 r9](V2R9-INTEGRATED-RELEASE.md) is now privately hardware-qualified and permanently committed on one LL-XS1010 / PRX126-SFP-PON device. The exact firmware was built from Git tree `6e7723194bc22ef1c414114080aeab7968259e75`; two independent private builds were byte-identical and the final combined source regression passed 1,304/1,304 tests with zero failures, errors or skips.
+
+The guarded transition preserved recovery at every step: enhanced r8 was committed in bank B, exact r9 was staged into A, A was one-shot trial booted and independently verified, then A was separately permanently committed without another reboot. Final verified state is **r9 active in A and committed in A**, no pending activation, not running a trial, PON O5.1, 10 Gbps host link, recovery SSH present, and both complete bank images valid. Enhanced r8 remains intact in bank B. See [r9 hardware acceptance](V2R9-HARDWARE-ACCEPTANCE.md).
+
+The public repository remains a sanitized source distribution, not a binary release. The `release.json` `offline-candidate` value records the immutable build/source stage and is intentionally not rewritten to imply that later hardware acceptance was known at build time.
+
+History, certificate management, remote-firewall, native configuration-transaction and cross-stick work remain development source outside the committed r9 runtime. The older checkpoints below are retained as history, not current release or bank evidence.
+
+## Historical local integration checkpoint, November 5, 2026
+
+The last full approved runtime result is `d0d4a799ee660f2ddcebbf2ad444dba052995e0e`: **1,131 distinct tests passed**, zero failures/errors/skips. The current [native-reader resolution](C-014-NATIVE-READER-RESOLUTION.md) has **35 focused tests passing** and requires its own combined regression.
+
+Actual read-only ONU access is available through the existing Hermes-user SSH profile with strict pinned-host verification. The earlier statement that no direct MCP target meant no usable access was incorrect. The baseline showed matching reader/wrapper/library hashes and a working native reader. The new six-key reader also succeeded on-device from standard input: two matching snapshots, three present keys, three unset, none present-empty, without exporting values or installing code.
+
+The emulated reader failure is resolved for the tested configurations. A long custom `-l` argument triggered behavior consistent with the U-Boot 2018.03 lock-path allocation defect. The unpatched reader passes all four private-image cases with a short relative lock path. The original failed evidence is preserved, not relabeled.
+
+The scoped read path now distinguishes unset and present-empty values. Actual setter tests on disposable images confirm ordinary apply/restore and the inability to restore present-empty via an empty setter argument. No live setters were invoked. Production write/restore, cache coordination, durable storage and physical interruption/reboot acceptance remain open. Source publication remains unresolved and the deployable overlay stays unchanged.
 
 ## Start here every session
 

@@ -1,0 +1,7 @@
+#!/usr/bin/lua
+-- Boot-only, bounded and fail-closed. No operator-specific values embedded.
+local ok, result = pcall(function()
+    return require("8311.monitor_restore").run()
+end)
+if not ok or result ~= true then os.exit(1) end
+os.exit(0)

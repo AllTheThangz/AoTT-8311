@@ -8,6 +8,7 @@ Third-party LuCI copyright notices are preserved for license compliance.
 This is a defense-in-depth static check, not a substitute for reviewing every
 proposed change, release artifact, Git history, or redacted screenshot.
 """
+import hashlib
 import ipaddress
 import json
 import pathlib
@@ -76,6 +77,27 @@ THIRD_PARTY_NOTICE_FILES = {
 }
 THIRD_PARTY_NOTICE_DOMAINS = {"midlink.org", "mein.io", "openwrt.org", "nut-bolt.nl"}
 
+# These two unchanged public theme assets have exact image provenance. Only
+# the two original attribution lines below receive an exception, and only
+# while the entire fixture matches its reviewed SHA-256. No global email or
+# hostname allowance is added; any edited fixture fails the digest gate.
+PINNED_VENDOR_CSS = {
+    "tests/fixtures/vendor_css/cascade.css": (
+        "572ed17738111787b043ca8b16588bc0f0a24838c8855ce6e47315e6a6cbe77f",
+        (
+            " * By David Menting <" + "david" + "@" + "nut-bolt.nl" + ">",
+            " * Props to Eric Meyer (" + "meyerweb" + ".com" +
+            ") for his CSS reset file. We're using an adapted version here\t"
+            "that cuts out some of the reset HTML elements we will never need "
+            "here (i.e., dfn, samp, etc).",
+        ),
+    ),
+    "tests/fixtures/vendor_css/mobile.css": (
+        "dfbd518eeec68a4ca0c278913bde7b64dbdb6f0cbd9cee6fe9762b9958fabed1",
+        (),
+    ),
+}
+
 def upstream_notice(path, line, mail):
     if path not in THIRD_PARTY_NOTICE_FILES:
         return False
@@ -88,6 +110,18 @@ def check_text(relative, text):
     errors = set()
     def flag(category, offset):
         errors.add((category, text.count("\n", 0, offset) + 1))
+    def line_at(offset):
+        start = text.rfind("\n", 0, offset) + 1
+        end = text.find("\n", offset)
+        return text[start:end if end != -1 else len(text)]
+
+    approved_fixture_notices = ()
+    fixture = PINNED_VENDOR_CSS.get(relative)
+    if fixture is not None:
+        if hashlib.sha256(text.encode("utf-8")).hexdigest() != fixture[0]:
+            flag("vendor_css_fixture_digest_mismatch", 0)
+        else:
+            approved_fixture_notices = fixture[1]
     for match in IPV4.finditer(text):
         try: addr = ipaddress.IPv4Address(match.group())
         except ValueError: continue
@@ -106,9 +140,8 @@ def check_text(relative, text):
             flag("credential_or_key_material", match.start())
     copyright_email_spans = set()
     for match in EMAIL.finditer(text):
-        start = text.rfind("\n", 0, match.start()) + 1
-        line = text[start:text.find("\n", match.start()) if "\n" in text[match.start():] else len(text)]
-        if upstream_notice(relative, line, match.group()):
+        line = line_at(match.start())
+        if line in approved_fixture_notices or upstream_notice(relative, line, match.group()):
             copyright_email_spans.add(match.start())
         else:
             flag("embedded_personal_email", match.start())
@@ -117,6 +150,8 @@ def check_text(relative, text):
         if host.rsplit(".", 1)[-1] not in DOMAIN_TLDS:
             continue
         if host in REFERENCE_HOSTS or host.endswith(REFERENCE_SUFFIXES):
+            continue
+        if line_at(match.start()) in approved_fixture_notices:
             continue
         # A LuCI dotted property can have .info without being a hostname.
         if host.startswith("luci.") and host.endswith(".info"):

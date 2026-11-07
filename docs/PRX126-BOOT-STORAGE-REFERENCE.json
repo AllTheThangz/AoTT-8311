@@ -1,0 +1,242 @@
+{
+  "bank_selector_read": false,
+  "basis": "EXTRACTED_REFERENCE_AND_SOURCE_ONLY",
+  "blockers": [
+    {
+      "blocking": true,
+      "code": "VAR_TMP_NOT_DURABLE_BY_REFERENCE_LAYOUT",
+      "evidence": {
+        "path": "var",
+        "relationship": "symlink_to_tmp"
+      }
+    },
+    {
+      "blocking": true,
+      "code": "ROOT_OVERLAY_MAY_BE_DISCARDED_AT_BOOT",
+      "evidence": {
+        "lines": [
+          60
+        ],
+        "source": "base_library"
+      }
+    },
+    {
+      "blocking": true,
+      "code": "DEFAULTS_MUTATE_BEFORE_CURRENT_CONFIG_SNAPSHOT",
+      "evidence": {
+        "boot_start": 10,
+        "snapshot_start": 17
+      }
+    },
+    {
+      "blocking": true,
+      "code": "BOOT_CACHES_CAN_MASK_SAVED_ENVIRONMENT_CHANGES",
+      "evidence": {
+        "lines": [
+          326
+        ],
+        "source": "base_library"
+      }
+    },
+    {
+      "blocking": true,
+      "code": "LATE_INTERFACE_ACTIVATION_REQUIRES_REVALIDATION",
+      "evidence": {
+        "backend_management_uci_writes": "none_in_qualified_functions",
+        "lines": [
+          37
+        ],
+        "source": "netinit"
+      }
+    },
+    {
+      "blocking": true,
+      "code": "EMPTY_DNS_SOURCE_DOES_NOT_DELETE_EXISTING_UCI_DNS",
+      "evidence": {
+        "lines": [
+          36,
+          51
+        ],
+        "source": "uci_defaults"
+      }
+    }
+  ],
+  "config_inventory": [
+    {
+      "mode": "0o600",
+      "name": "dropbear",
+      "regular_file": true
+    },
+    {
+      "mode": "0o600",
+      "name": "firewall",
+      "regular_file": true
+    },
+    {
+      "mode": "0o644",
+      "name": "gpon",
+      "regular_file": true
+    },
+    {
+      "mode": "0o644",
+      "name": "ieee_1588",
+      "regular_file": true
+    },
+    {
+      "mode": "0o664",
+      "name": "luci",
+      "regular_file": true
+    },
+    {
+      "mode": "0o644",
+      "name": "omci",
+      "regular_file": true
+    },
+    {
+      "mode": "0o644",
+      "name": "optic",
+      "regular_file": true
+    },
+    {
+      "mode": "0o600",
+      "name": "rpcd",
+      "regular_file": true
+    },
+    {
+      "mode": "0o644",
+      "name": "serdes",
+      "regular_file": true
+    },
+    {
+      "mode": "0o644",
+      "name": "sfp_eeprom",
+      "regular_file": true
+    },
+    {
+      "mode": "0o644",
+      "name": "tod",
+      "regular_file": true
+    },
+    {
+      "mode": "0o664",
+      "name": "ucitrack",
+      "regular_file": true
+    },
+    {
+      "mode": "0o600",
+      "name": "uhttpd",
+      "regular_file": true
+    }
+  ],
+  "config_values_read": false,
+  "init_scripts_executed": false,
+  "live_device_examined": false,
+  "production_activation_allowed": false,
+  "reference_facts": {
+    "backend_management_setters_are_noops": true,
+    "boot_executes_uci_defaults": true,
+    "defaults_configure_management": true,
+    "empty_dns_defaults_only_skip_assignment": true,
+    "management_value_getters_are_cached": true,
+    "management_vlan_getter_is_uncached": true,
+    "netinit_calls_management_setters_and_ifup": true,
+    "persistence_flag_controls_rootfs_data": true,
+    "procd_supports_command_respawn_limits": true,
+    "var_is_tmp_symlink": true
+  },
+  "required_live_evidence": [
+    "active_committed_bank_and_exact_build_hashes",
+    "actual_mounts_readonly_flags_free_space_and_mount_order",
+    "persistent_root_mode_and_environment_consumer_precedence",
+    "management_interface_host_vlan_recovery_access",
+    "pon_host_link_and_router_side_connectivity_baseline"
+  ],
+  "schema": 2,
+  "source_files": {
+    "backend": {
+      "available": true,
+      "bytes": 1087,
+      "path": "overlay/lib/8311_backend.sh",
+      "sha256": "1848a705746075602ee74901ad5bff4b184984a86af5bb5f8ce5da754ac54744",
+      "source_kind": "repository_source"
+    },
+    "base_library": {
+      "available": true,
+      "bytes": 15909,
+      "path": "overlay/lib/8311.sh",
+      "sha256": "be56a30ed250135e0aa9264090301a60158f4fdcefed826653907ae4a975d2fa",
+      "source_kind": "repository_source"
+    },
+    "boot": {
+      "available": true,
+      "bytes": 1148,
+      "path": "etc/init.d/boot",
+      "sha256": "3786426a9af7d73f10f61c3f11d56cef9128323af0508dae47dce1e55a9b208e",
+      "source_kind": "private_extracted_reference"
+    },
+    "capture": {
+      "available": true,
+      "bytes": 164,
+      "path": "overlay/etc/init.d/8311-config-state",
+      "sha256": "161a2636aa1a984b1a00abc01e7ee0da341cfaba4f156d22d134b442c8eaefd2",
+      "source_kind": "repository_source"
+    },
+    "netinit": {
+      "available": true,
+      "bytes": 940,
+      "path": "overlay/etc/init.d/_8311-netinit.sh",
+      "sha256": "87c2ee6cf7075e8be17b379be308db97cee921215f9f78a0232b4e8891c5af2c",
+      "source_kind": "repository_source"
+    },
+    "network": {
+      "available": true,
+      "bytes": 2794,
+      "path": "etc/init.d/network",
+      "sha256": "3940b1f4bd035050717a3568e4d3baceddc191239af9a3fa3f04549b6ba092f0",
+      "source_kind": "private_extracted_reference"
+    },
+    "procd": {
+      "available": true,
+      "bytes": 11491,
+      "path": "lib/functions/procd.sh",
+      "sha256": "ed6667c012cc9a6db88e639cd13f96db966a3fcacf1226a6aafb047a996cfcb3",
+      "source_kind": "private_extracted_reference"
+    },
+    "rc_common": {
+      "available": true,
+      "bytes": 2504,
+      "path": "etc/rc.common",
+      "sha256": "79450c277f25b5369a60622662b55ccd44f53440734090cd25365e222b8b8780",
+      "source_kind": "private_extracted_reference"
+    },
+    "sysinit": {
+      "available": true,
+      "bytes": 3901,
+      "path": "overlay/etc/init.d/_8311-sysinit.sh",
+      "sha256": "baeec7644dc4e0791ff4ebc9c1adf1208069a278fced0c921add0d929b486fdc",
+      "source_kind": "repository_source"
+    },
+    "uci_defaults": {
+      "available": true,
+      "bytes": 4916,
+      "path": "overlay/etc/uci-defaults/zzz-8311",
+      "sha256": "055245294884eaa89763746147db024db3f3061cec94be4693ddbea72fc2c935",
+      "source_kind": "repository_source"
+    },
+    "uhttpd": {
+      "available": true,
+      "bytes": 5414,
+      "path": "etc/init.d/uhttpd",
+      "sha256": "d5d84be00d97cadcb43134fe536efa40d629aa86277d8cfdce8e9e87c7d05fe6",
+      "source_kind": "private_extracted_reference"
+    }
+  },
+  "startup_priorities": {
+    "boot": 10,
+    "capture": 17,
+    "netinit": 26,
+    "network": 20,
+    "sysinit": 18,
+    "uhttpd": 50
+  }
+}

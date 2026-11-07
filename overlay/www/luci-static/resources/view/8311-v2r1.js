@@ -237,6 +237,9 @@
             locked:"Locked",
             enabled:"Enabled",
             disabled:"Disabled",
+            restricted:"Restricted to root",
+            overexposed:"Too permissive",
+            unsafe:"Unsafe file or ownership",
             unknown:"Unknown"
         };
         return Object.prototype.hasOwnProperty.call(names,value) ?
@@ -250,6 +253,7 @@
         put("aott-r5-ssh-keys",data.ssh_authorized_keys_present ? "Key file present" : "No key file detected");
         put("aott-r5-ssh-interface",field(data.ssh_direct_interface));
         put("aott-r5-https-redirect",human(data.http_redirect));
+        put("aott-r5-https-key-permissions",human(data.tls_private_key_permissions));
         put("aott-r5-management-ip",field(data.management_address));
         put("aott-r5-management-gateway",field(data.management_gateway));
         put("aott-r5-http-listeners",Array.isArray(data.http_listeners) ?

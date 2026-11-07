@@ -1,5 +1,29 @@
 # AoTT-8311 Changelog
 
+
+## v2r9 (privately hardware-qualified and committed on one PRX126)
+
+### Integrated runtime and configuration readback
+- Combined the security-enhanced r8 monitoring/runtime source with seven Configuration readback groups covering all 54 existing GUI fields.
+- Preserved protected collector credentials, durable monitoring restore, remote syslog, TLS-key permission visibility and guarded A/B controls.
+- Added explicit runtime integrity requirements for 15 readback files while preserving inherited monitoring and S11/S12 boot-link requirements.
+- Assigned unique r9 machine/display identity and refreshed relevant browser cache labels without changing the compatible monitoring-token digest domain.
+- Retained unfinished history, certificate, firewall and native VLAN transaction prototypes outside the 89-file firmware overlay.
+
+### Build and hardware acceptance
+- Final combined regression passed **1,304/1,304** tests with zero failures, errors or skips, including 131 real Chromium cases.
+- Two independent private builds produced identical rootfs images and upgrade archives; the final rootfs retained 476 KiB of bank headroom.
+- Fresh full-volume recovery backups were verified before changing banks.
+- Enhanced r8 was committed in bank B as recovery, then exact r9 was staged into A, one-shot trial booted, independently verified, and separately permanently committed.
+- Final verified state is **A active / A committed / no pending activation / not running a trial**, with PON O5.1, 10 Gbps host Ethernet, recovery access and both complete bank images valid.
+- The permanent commit performed no reboot and no firmware-image write; enhanced r8 remains intact in bank B.
+- Hardware qualification is limited to the tested LL-XS1010 / PRX126 device and does not complete per-field setter/persistence qualification, long-duration soak, or other-board support.
+
+See [r9 hardware acceptance](docs/V2R9-HARDWARE-ACCEPTANCE.md) and [r9 release scope](docs/V2R9-INTEGRATED-RELEASE.md).
+The immutable `offline-candidate` value in `release.json` remains the historical build-stage marker and is not rewritten by later hardware qualification.
+
+The older release entries below retain their historical acceptance state.
+
 ## v2r7 (privately hardware-qualified and committed on one PRX126)
 
 ### Graph contrast and web UI

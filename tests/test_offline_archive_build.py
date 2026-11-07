@@ -3,6 +3,8 @@ from pathlib import Path
 import hashlib
 import importlib.util
 import json
+import os
+import stat
 import shutil
 import tarfile
 import tempfile
@@ -113,9 +115,26 @@ class OfflineArchiveBuildTests(unittest.TestCase):
         path = self.source / "overlay/usr/sbin/8311-firmware-upgrade.sh"
         for mode in (0o4755, 0o777):
             with self.subTest(mode=oct(mode)):
-                path.chmod(mode)
-                with self.assertRaisesRegex(ValueError, "Extracted overlay differs"):
-                    builder.verify_overlay(self.source / "overlay", self.manifest)
+                if mode == 0o4755 and os.environ.get("AOTT_IMMUTABLE_METADATA_FIXTURES") == "v1":
+                    # RestrictSUIDSGID remains enabled. Verify a real prebuilt
+                    # inode on an immutable nosuid/noexec mount rather than
+                    # granting the tests permission to create privileged modes.
+                    fixture=Path("/opt/aott/test-fixtures/setuid-overlay")
+                    relative="usr/sbin/8311-firmware-upgrade.sh"
+                    item=fixture/relative;st=item.lstat()
+                    self.assertTrue(stat.S_ISREG(st.st_mode))
+                    self.assertEqual((st.st_uid,st.st_gid,stat.S_IMODE(st.st_mode),st.st_nlink),(0,0,mode,1))
+                    self.assertTrue(os.statvfs(fixture).f_flag & os.ST_RDONLY)
+                    self.assertEqual(item.read_bytes(),b"synthetic-mode-rejection-fixture\n")
+                    invalid={"overlay_files":[{"path":relative,"bytes":st.st_size,
+                             "sha256":builder.digest(item),"executable":True}]}
+                    with self.assertRaisesRegex(ValueError, "Extracted overlay differs"):
+                        builder.verify_overlay(fixture,invalid)
+                    self.assertEqual(item.lstat().st_mode,st.st_mode)
+                else:
+                    path.chmod(mode)
+                    with self.assertRaisesRegex(ValueError, "Extracted overlay differs"):
+                        builder.verify_overlay(self.source / "overlay", self.manifest)
 
     def test_overlay_rejects_symlink_parent(self):
         root = self.base / "extracted"

@@ -1,0 +1,15 @@
+# Cooperative environment operation lease
+
+This revision adds a real BSD-flock operation lease around native environment participation in the existing configuration transaction. The prior transaction lock is lockf-based; it does not serialize an unrelated flock-based shell wrapper. Reusing its pathname alone would not close that gap.
+
+The new lease uses a checked, stable root-only regular inode under the disposable native-image fixture. A bounded helper locks the already-open descriptor. A second independently opened descriptor must then report contention, proving the caller retained the lock after the helper exited. The caller verifies process, directory and inode identity at operation boundaries. The inode is never removed on release. Recursive acquire, an inherited child's close, forged handles and unsafe path/inode types are rejected.
+
+Lock order is transaction lock, then environment lease, then the native utility's own image lock. Lease lifetime covers one complete preview, begin/apply, explicit confirmation or rollback call, including startup-record and UCI replacements. Native read/write guards require the private lease. Cooperative wrapper readers/writers cannot interleave between the two native updates or during the remainder of that operation. On a crash, kernel descriptor lifetime releases the lease; a still-running synchronous native child may retain it until its bounded command exits. Recovery never steals or unlinks an occupied lease.
+
+Recovery-worker and supervisor loops treat verified environment contention as a bounded retry condition, while unsafe/inconsistent ownership remains a refusal. Actual vendor shell-lock functions are exercised with only the lock path relocated inside private fixture directories. Native environment reads/writes still use generated regular-file images. No physical-device path, production writer or cache deletion is exposed.
+
+Eighteen new tests cover kernel/wrapper interoperability, busy-before-staging refusal, stable inode release, native and UCI critical sections, confirmation/rollback boundaries, recursive/fork ownership, owner death, replaced/unsafe lock inodes, bounded supervisor waiting and separate-process recovery. The exact full suite must be run before a pass is claimed.
+
+Important limits: the lease is released while waiting for human confirmation. A cooperating writer may run between API calls; the next call rejects a changed native snapshot instead of overwriting it. The current test scope has one transaction namespace per image pair; a production implementation must bind all consumers of one physical environment to one global lock and coordinate firmware operations. Real getter cache-path invalidation/repopulation, noncooperating writers, physical durability, reboot and forwarding qualification remain open. No continuously held confirmation-window lease or malicious-root protection is claimed.
+
+All 1,190 existing tests are retained. The 18 added tests are assigned to the configuration worker without changing fixed service limits. The production firmware overlay remains unchanged and this source is not deployed.

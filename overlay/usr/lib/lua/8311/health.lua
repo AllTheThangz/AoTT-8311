@@ -160,6 +160,23 @@ local function safe_list(item, name)
     return output
 end
 
+-- Only inspect metadata for the fixed vendor HTTPS key location. Never
+-- read, hash, echo or serialize private key bytes or its filesystem path.
+local function tls_private_key_permissions(webserver)
+    local path = webserver and webserver.key
+    if type(path) ~= "string" or
+       not path:match("^/ptconf/8311/uhttpd/[A-Za-z0-9_.%-]+$") then
+        return "unknown"
+    end
+    local info = fs.lstat(path)
+    if not info or info.type ~= "reg" or info.uid ~= 0 then
+        return "unsafe"
+    end
+    if type(info.modedec) ~= "number" then return "unknown" end
+    if info.modedec == 600 or info.modedec == 400 then return "restricted" end
+    return "overexposed"
+end
+
 local function root_password_status()
     local shadow = fs.readfile("/etc/shadow", 32768)
     if not shadow then return "unknown" end
@@ -201,6 +218,7 @@ function M.security()
               or fs.stat("/root/.ssh/authorized_keys")
     local authenticated_keys = keys and keys.type == "reg" and keys.size and keys.size > 0 or false
     local https_redirect = switch(webserver and webserver.redirect_https)
+    local tls_key_permissions = tls_private_key_permissions(webserver)
     local listeners_http = safe_list(webserver, "listen_http")
     local listeners_https = safe_list(webserver, "listen_https")
 
@@ -233,6 +251,15 @@ function M.security()
         warn("warning","http_redirect",
              "HTTP-to-HTTPS redirect is not verified as enabled.")
     end
+    if tls_key_permissions == "overexposed" then
+        warn("warning","tls_key_file_permissions",
+             "HTTPS private key is readable beyond the root account. " ..
+             "Verify recovery and web service ownership before restricting file permissions.")
+    elseif tls_key_permissions == "unsafe" then
+        warn("critical","tls_key_file_integrity",
+             "HTTPS private key is missing, symlinked or not root-owned. " ..
+             "Use a recovery-verified correction; never disclose key material.")
+    end
 
     return {
         schema=1, sampled_at=os.time(),
@@ -244,6 +271,7 @@ function M.security()
         ssh_authorized_keys_present=not not authenticated_keys,
         ssh_direct_interface=dropbear and dropbear.DirectInterface or "unknown",
         http_redirect=https_redirect,
+        tls_private_key_permissions=tls_key_permissions,
         http_listeners=listeners_http,
         https_listeners=listeners_https,
         management_address=management_ip,

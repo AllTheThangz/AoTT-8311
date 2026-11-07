@@ -1,0 +1,43 @@
+{
+  "captured_at": "2026-11-06",
+  "files": {
+    "etc/init.d/log": {
+      "bytes": 2479,
+      "fixture": "log",
+      "sha256": "b4af1d77d5676eaec6fd4143556893cc75b45b29119f5c4f678de4060b36dc9f",
+      "type": "regular"
+    },
+    "etc/init.d/sysctl": {
+      "bytes": 1212,
+      "fixture": "sysctl",
+      "sha256": "4cf88ade47f2fb71c8ad5db9f605e20a8d1cf64d28e1934da75c8b19a17d7584",
+      "type": "regular"
+    },
+    "etc/uci-defaults/zzz-8311": {
+      "bytes": 4916,
+      "fixture": "zzz-8311",
+      "sha256": "055245294884eaa89763746147db024db3f3061cec94be4693ddbea72fc2c935",
+      "type": "regular"
+    }
+  },
+  "links": {
+    "etc/rc.d/S10boot": {
+      "target": "../init.d/boot",
+      "type": "symlink"
+    },
+    "etc/rc.d/S11sysctl": {
+      "target": "../init.d/sysctl",
+      "type": "symlink"
+    },
+    "etc/rc.d/S12log": {
+      "target": "../init.d/log",
+      "type": "symlink"
+    }
+  },
+  "reference_release": "AoTT-8311-v2r7",
+  "reference_scope": "Pre-monitoring r7 baseline. sysctl and log are unchanged vendor text; zzz-8311 is the inherited AoTT r7 initializer, not raw vendor defaults.",
+  "schema": 1,
+  "source_rootfs_bytes": 5689344,
+  "source_rootfs_sha256": "b369dc39d5a594fbf3f693f457f607b6b80e2a4c3c70e155a030271d781be39f",
+  "verification": "File bytes independently read with unsquashfs -cat; symlink types and targets independently checked with unsquashfs -ll."
+}

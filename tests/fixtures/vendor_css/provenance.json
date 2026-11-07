@@ -1,0 +1,28 @@
+{
+  "attribution": "Original bytes and notices are preserved. cascade.css includes its LuCI Bootstrap and Apache-2.0 notices; mobile.css has no inline license header.",
+  "files": [
+    {
+      "bytes": 43314,
+      "path": "cascade.css",
+      "sha256": "572ed17738111787b043ca8b16588bc0f0a24838c8855ce6e47315e6a6cbe77f",
+      "vendor_path": "www/luci-static/bootstrap/cascade.css"
+    },
+    {
+      "bytes": 8005,
+      "path": "mobile.css",
+      "sha256": "dfbd518eeec68a4ca0c278913bde7b64dbdb6f0cbd9cee6fe9762b9958fabed1",
+      "vendor_path": "www/luci-static/bootstrap/mobile.css"
+    }
+  ],
+  "purpose": "Unmodified vendor stylesheets for offline responsive browser tests.",
+  "schema": 1,
+  "selection": "Use supplied vendor CSS when present. Otherwise require these exact fixture SHA-256 values before using the fallback.",
+  "source": {
+    "firmware": "WAS-110_8311_firmware_mod_v2.8.3_basic",
+    "identical_in_release": "AoTT-8311-v2r8",
+    "identical_in_rootfs_sha256": "9c2cdaf786ff23c62d8264b7fd16ac9f04115fff866d6aadf57500fea19fd6d3",
+    "rootfs_sha256": "756da584829d8ef144bdd8e400fb763ff31711e2b84e430912118fb6093b7e33",
+    "verified_from_original_image": true,
+    "verified_from_release_image": true
+  }
+}

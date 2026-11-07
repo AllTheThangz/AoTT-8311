@@ -116,7 +116,7 @@
 		<link rel="stylesheet" href="<%=media%>/cascade.css?v=git-22.045.73925-36e5c1c">
 		<link rel="stylesheet" media="only screen and (max-device-width: 854px)" href="<%=media%>/mobile.css?v=aott-8311-v1-r2" type="text/css" />
 		<link rel="shortcut icon" href="<%=media%>/favicon.png">
-		<link rel="stylesheet" href="<%=media%>/aott-theme.css?v=aott-8311-v2r7">
+		<link rel="stylesheet" href="<%=media%>/aott-theme.css?v=aott-8311-v2r9">
         <link rel="stylesheet" href="<%=media%>/aott-v2r1.css?v=aott-8311-v2r2">
 		<% if node and node.css then %>
 			<link rel="stylesheet" href="<%=resource%>/<%=node.css%>">
@@ -188,10 +188,11 @@
                         </div>
                     </details>
 
-                    <details class="aott-nav-group <%=nav_group({'admin/status/syslog','admin/status/dmesg','admin/8311/support'})%>">
+                    <details class="aott-nav-group <%=nav_group({'admin/status/syslog','admin/status/dmesg','admin/8311/support','admin/8311/monitoring'})%>">
                         <summary>Logs &amp; diagnostics</summary>
                         <div class="aott-nav-submenu">
                             <a href="<%=url('admin/status/syslog')%>"<%=nav_aria('admin/status/syslog')%>><strong>System log</strong><small>Services and events</small></a>
+                            <a href="<%=url('admin/8311/monitoring')%>"<%=nav_aria('admin/8311/monitoring')%>><strong>Monitoring &amp; telemetry</strong><small>Remote syslog and authenticated metrics</small></a>
                             <a href="<%=url('admin/status/dmesg')%>"<%=nav_aria('admin/status/dmesg')%>><strong>Kernel log</strong><small>Drivers and boot messages</small></a>
                             <a href="<%=url('admin/8311/support')%>"<%=nav_aria('admin/8311/support')%>><strong>Export diagnostics</strong><small>Generate a support archive</small></a>
                         </div>
