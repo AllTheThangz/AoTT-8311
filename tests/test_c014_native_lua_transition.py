@@ -182,8 +182,13 @@ r,e=m.verify_staged(h,adapter,"production");assert(r==nil and e=="invalid_plan_h
         text=MODULE.read_text()
         for item in ("io.open", "io.popen", "os.execute", "nixio", "luci.model.uci", "subprocess", "socket"):
             self.assertNotIn(item,text)
-        self.assertNotIn("vlan_transition.lua",(ROOT/"MANIFEST.json").read_text())
-        self.assertFalse((ROOT/"overlay/usr/lib/lua/8311/vlan_transition.lua").exists())
+        self.assertIn("vlan_transition.lua",(ROOT/"MANIFEST.json").read_text())
+        deployed=ROOT/"overlay/usr/lib/lua/8311/vlan_transition.lua"
+        self.assertTrue(deployed.is_file())
+        runtime=deployed.read_text()
+        self.assertIn('function M.redacted_summary(handle,mode)',runtime)
+        self.assertIn('production_write_allowed=false',runtime)
+        self.assertIn('if mode~="offline_synthetic" or not plan then deny("invalid_plan_handle") end',runtime)
 
 
 class NativeLuaExecutionTests(unittest.TestCase):

@@ -21,6 +21,11 @@ function M.snapshot()
         exists("/usr/libexec/8311-history-worker.lua") and
         exists("/usr/libexec/8311-history-wrapper") and
         exists("/etc/init.d/8311-history")
+    local management_preview =
+        exists("/usr/lib/lua/8311/management_preflight.lua") and
+        exists("/usr/lib/lua/8311/native_management_reader.lua") and
+        exists("/usr/lib/lua/8311/recovery_storage.lua") and
+        exists("/usr/lib/lua/8311/vlan_transition.lua")
     local tls_key = exists("/usr/libexec/8311-root-hash-valid")
     local config_readback =
         exists("/usr/lib/lua/8311/effective_probe.lua") and
@@ -37,6 +42,9 @@ function M.snapshot()
             feature("recovery","A/B firmware recovery",
                 bank_guard and "qualified" or "unavailable",
                 "Guarded A/B lifecycle retained from the hardware-qualified r9 baseline."),
+            feature("management_vlan","Management VLAN transaction",
+                management_preview and "preview_integrated_write_gated" or "unavailable",
+                "Live source/storage preflight and redacted VLAN planning are integrated. No production apply route or native writer is enabled."),
             feature("history","Local history engine",
                 history_runtime and "integrated_opt_in_unqualified" or
                     (history_core and "integrated_inactive" or "unavailable"),

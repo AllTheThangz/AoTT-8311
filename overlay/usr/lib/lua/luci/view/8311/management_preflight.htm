@@ -1,0 +1,94 @@
+<%-
+local tools=require "8311.tools"
+local esc=tools.html_escape
+local s=management or {}
+local storage=s.storage or {}
+local native=s.native or {}
+local topology=s.topology or {}
+-%>
+<%+header%>
+<h2>Management VLAN & recovery preflight</h2>
+<p class="aott-section-intro">V3 read-only validation for the management network transition and its recovery prerequisites. This page can inspect and preview, but it cannot apply a VLAN change in the current qualification stage.</p>
+
+<section class="aott-fw-panel">
+  <h3>Recovery storage</h3>
+  <table class="table">
+    <tr class="tr"><td class="td left">Filesystem</td><td class="td left"><%=esc(storage.fs_type or "unavailable")%></td></tr>
+    <tr class="tr"><td class="td left">Writable mount</td><td class="td left"><%=storage.mount_read_write==true and "qualified" or "unavailable"%></td></tr>
+    <tr class="tr"><td class="td left">Capacity reserve</td><td class="td left"><%=storage.capacity_qualified==true and "qualified" or "unavailable"%></td></tr>
+    <tr class="tr"><td class="td left">Recovery store</td><td class="td left"><%=storage.store_ready==true and "ready" or storage.provisioning_required==true and "not provisioned" or "unavailable"%></td></tr>
+    <tr class="tr"><td class="td left">Power-loss qualification</td><td class="td left">Not yet qualified</td></tr>
+  </table>
+</section>
+
+<section class="aott-fw-panel">
+  <h3>Management source readback</h3>
+  <p>Native environment fields checked: <strong><%=esc(native.fields or 0)%></strong>. Present: <strong><%=esc(native.present or 0)%></strong>. Unset: <strong><%=esc(native.unset or 0)%></strong>. Present-empty: <strong><%=esc(native.present_empty or 0)%></strong>.</p>
+  <p>Current management VLAN: <strong><%=topology.current_vlan~=nil and esc(topology.current_vlan) or "unavailable"%></strong>. No IP address, DNS value, MAC address, environment value, or recovery file content is exposed by this page.</p>
+  <% if native.wrapper_cannot_restore_present_empty==true then %>
+  <p class="alert-message warning">At least one saved management value is explicitly present-empty. The current native wrapper cannot safely reconstruct that state, so production apply remains blocked.</p>
+  <% end %>
+</section>
+
+<section class="aott-fw-panel">
+  <h3>Preview management VLAN change</h3>
+  <form id="aott-management-preview" action="<%=url('admin/8311/management_vlan_preview')%>" method="post">
+    <input type="hidden" name="token" value="<%=esc(token)%>">
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="management-vlan">Requested VLAN</label>
+      <div class="cbi-value-field">
+        <input id="management-vlan" name="vlan" type="number" min="0" max="4094" step="1" value="<%=topology.current_vlan~=nil and esc(topology.current_vlan) or "0"%>" required>
+        <p class="aott-hint">0 means untagged management. This action generates a redacted plan only.</p>
+      </div>
+    </div>
+    <button class="cbi-button" id="management-preview-submit" type="submit" <% if s.preview_available~=true then %>disabled<% end %>>Preview only</button>
+  </form>
+  <div id="management-preview-result" class="aott-fw-status" role="status" aria-live="polite">No change has been previewed.</div>
+  <pre id="management-preview-details" class="aott-fw-report" aria-label="Redacted management VLAN preview"></pre>
+</section>
+
+<section class="aott-fw-panel">
+  <h3>Production gate</h3>
+  <p><strong>Apply is intentionally unavailable.</strong> V3 must first provision and power-loss-qualify the recovery store, prove restore behavior during a V3 one-shot hardware trial, and separately authorize the native environment writer.</p>
+</section>
+
+<script>
+(function(){
+  "use strict";
+  var form=document.getElementById("aott-management-preview");
+  var output=document.getElementById("management-preview-result");
+  var details=document.getElementById("management-preview-details");
+  var button=document.getElementById("management-preview-submit");
+  if(!form||!output||!details||!button)return;
+  form.addEventListener("submit",async function(event){
+    event.preventDefault();
+    button.disabled=true;
+    output.textContent="Building a fresh redacted preview...";
+    details.textContent="";
+    try{
+      var response=await fetch(form.action,{
+        method:"POST",credentials:"same-origin",cache:"no-store",
+        headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8","Accept":"application/json"},
+        body:new URLSearchParams(new FormData(form)).toString()
+      });
+      var data=await response.json();
+      if(!response.ok||!data||data.success!==true)throw new Error(data&&data.error?data.error:"Preview unavailable");
+      output.textContent=data.changes_required?"A change is required; no change was applied.":"Requested VLAN already matches the validated topology.";
+      details.textContent=[
+        "Current VLAN: "+data.current_vlan,
+        "Requested VLAN: "+data.requested_vlan,
+        "Redacted UCI operations: "+data.operations,
+        "Network operations: "+data.network_operations,
+        "Firewall operations: "+data.firewall_operations,
+        "Recovery store ready: "+(data.recovery_store_ready?"yes":"no"),
+        "Recovery provisioning required: "+(data.recovery_provisioning_required?"yes":"no"),
+        "Production write allowed: no"
+      ].join("\n");
+    }catch(error){
+      output.textContent="Preview refused: "+error.message;
+      details.textContent="";
+    }finally{button.disabled=false;}
+  });
+}());
+</script>
+<%+footer%>

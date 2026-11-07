@@ -326,6 +326,12 @@
       "sha256": "0a48626907448eef0c8f45802ad635cd42e661a297b555640c41646920ee1fda"
     },
     {
+      "bytes": 7881,
+      "executable": false,
+      "path": "usr/lib/lua/8311/management_preflight.lua",
+      "sha256": "5c27b65468a6f59c45eabaaf388ba25d301b2bac22ffc59c30477fa46e89eefc"
+    },
+    {
       "bytes": 3118,
       "executable": false,
       "path": "usr/lib/lua/8311/monitor_restore.lua",
@@ -344,6 +350,18 @@
       "sha256": "69d585ba81d15547f735f98ff8820048d172522e21d26e02f7f51261385a70e0"
     },
     {
+      "bytes": 4315,
+      "executable": false,
+      "path": "usr/lib/lua/8311/native_management_reader.lua",
+      "sha256": "6d28938a1ff9a02041d1f3a7755bc35045fa00b78099597345248971cbdb5b04"
+    },
+    {
+      "bytes": 6624,
+      "executable": false,
+      "path": "usr/lib/lua/8311/recovery_storage.lua",
+      "sha256": "96fbf6d67e4dcd5ca3cd25602c127f21dfee1747cdd16d9d7a4a36befe0cade9"
+    },
+    {
       "bytes": 6039,
       "executable": false,
       "path": "usr/lib/lua/8311/tools.lua",
@@ -356,10 +374,10 @@
       "sha256": "4f1534db7215b38451dfbde68fd021604fbc87260c0e1482d1597b2ce8b33b89"
     },
     {
-      "bytes": 2710,
+      "bytes": 3299,
       "executable": false,
       "path": "usr/lib/lua/8311/v3_capabilities.lua",
-      "sha256": "a10d0ad5b5edbc9c3176ae8453ffd345f76ae339520dc448f7322b541a35cca1"
+      "sha256": "0c4842b74db89d72feb6670e12fb5327d4bb9954b79465aef6079bbf08354626"
     },
     {
       "bytes": 112,
@@ -368,16 +386,22 @@
       "sha256": "1b3cb35fda86c1e4b242d66cf4920ad6ede6641a6f5b85e06b75dc648b0a23af"
     },
     {
+      "bytes": 17056,
+      "executable": false,
+      "path": "usr/lib/lua/8311/vlan_transition.lua",
+      "sha256": "b4bec4ca142b8bc03895e3f3d64d9e73cfc084518cb3f81f40808fe56b98ee04"
+    },
+    {
       "bytes": 3440,
       "executable": false,
       "path": "usr/lib/lua/8311/webutil.lua",
       "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
     },
     {
-      "bytes": 62687,
+      "bytes": 64473,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "8f754aedebbde0180944d2a75feefd7713b0c5346111da1e7df43d65b7b8f0a6"
+      "sha256": "47eb0f8091a928bebd699144678bbd5f963535fd126ca8ecc0f553a4b8f0bcd1"
     },
     {
       "bytes": 19502,
@@ -402,6 +426,12 @@
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/history.htm",
       "sha256": "368118421dc1a0a235a26e95fa99a65e5ff6e11352b8dd77077f19737ee78974"
+    },
+    {
+      "bytes": 5524,
+      "executable": false,
+      "path": "usr/lib/lua/luci/view/8311/management_preflight.htm",
+      "sha256": "3a3c7e386fa0b0d82e55a2978bbad417c5d2e53247a93d0ae0932159068cae2d"
     },
     {
       "bytes": 15444,

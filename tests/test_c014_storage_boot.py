@@ -36,8 +36,11 @@ class StorageContractTests(unittest.TestCase):
         for path in (STORAGE,BOOT):
             result=subprocess.run(['luac5.1','-p',str(path)],capture_output=True,text=True,timeout=8)
             self.assertEqual(result.returncode,0,result.stderr)
-            self.assertNotIn(path.name,(ROOT/'MANIFEST.json').read_text())
-            self.assertFalse((ROOT/'overlay/usr/lib/lua/8311'/path.name).exists())
+        manifest=(ROOT/'MANIFEST.json').read_text()
+        self.assertIn(STORAGE.name,manifest)
+        self.assertTrue((ROOT/'overlay/usr/lib/lua/8311'/STORAGE.name).is_file())
+        self.assertNotIn(BOOT.name,manifest)
+        self.assertFalse((ROOT/'overlay/usr/lib/lua/8311'/BOOT.name).exists())
 
     def test_capacity_exact_threshold_and_inode_accounting(self):
         self.run_lua('''local s={frsize=4096,bavail=256,flag=0,files=1000,favail=24}

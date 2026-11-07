@@ -51,9 +51,11 @@ class ScopedParserTests(unittest.TestCase):
     def test_syntax_and_not_deployed(self):
         r=subprocess.run(['luac5.1','-p',str(MODULE)],capture_output=True,text=True,timeout=8)
         self.assertEqual(r.returncode,0,r.stderr)
-        self.assertNotIn(MODULE.name,(ROOT/'MANIFEST.json').read_text())
-        self.assertFalse((ROOT/'overlay/usr/lib/lua/8311'/MODULE.name).exists())
-        self.assertNotIn('fw_setenv',MODULE.read_text())
+        self.assertIn(MODULE.name,(ROOT/'MANIFEST.json').read_text())
+        deployed=ROOT/'overlay/usr/lib/lua/8311'/MODULE.name
+        self.assertTrue(deployed.is_file())
+        self.assertNotIn('fw_setenv',deployed.read_text())
+        self.assertIn('write_authorized=false',deployed.read_text())
 
     def test_empty_and_missing_have_distinct_states_without_defaulting(self):
         values=VALUES.copy();del values['8311_lct_vlan']

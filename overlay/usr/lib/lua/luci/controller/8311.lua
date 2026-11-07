@@ -20,6 +20,7 @@ local health = require "8311.health"
 local monitoring = require "8311.monitoring"
 local history_config = require "8311.history_config"
 local history_snapshot = require "8311.history_live_snapshot"
+local management_preflight = require "8311.management_preflight"
 local effective_probe = require "8311.effective_probe"
 local effective_device_probe = require "8311.effective_device_probe"
 local effective_pon_probe = require "8311.effective_pon_probe"
@@ -80,7 +81,11 @@ function index()
     entry({"admin", "8311", "history"}, call("action_history"), translate("Local history"), 10)
     entry({"admin", "8311", "history_save"}, post("action_history_save")).leaf=true
     entry({"admin", "8311", "history_data"}, call("action_history_data")).leaf=true
-    entry({"admin", "8311", "v3"}, call("action_v3"), translate("V3 status"), 11)
+    entry({"admin", "8311", "management_preflight"}, call("action_management_preflight"),
+          translate("Management preflight"), 11)
+    entry({"admin", "8311", "management_vlan_preview"},
+          post("action_management_vlan_preview")).leaf=true
+    entry({"admin", "8311", "v3"}, call("action_v3"), translate("V3 status"), 12)
     entry({"admin", "8311", "v3_status"}, call("action_v3_status")).leaf=true
     entry({"admin", "8311", "monitoring_save"},
           post("action_r8_monitoring_save")).leaf=true
@@ -1280,6 +1285,38 @@ function action_history_data()
     http.header("Vary", "Cookie")
     http.prepare_content("application/json; charset=utf-8")
     http.write(body)
+end
+
+function action_management_preflight()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    local state=management_preflight.status()
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    return ltemplate.render("8311/management_preflight", {management=state})
+end
+
+function action_management_vlan_preview()
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values=operation_form({vlan=true})
+    if not values then return end
+    local plan,why=management_preflight.preview(values.vlan)
+    return web.reply(http, plan and 200 or 422,
+        plan and {
+            success=true,current_vlan=plan.current_vlan,
+            requested_vlan=plan.requested_vlan,
+            operations=plan.operations,
+            network_operations=plan.network_operations,
+            firewall_operations=plan.firewall_operations,
+            changes_required=plan.changes_required,
+            recovery_store_ready=plan.recovery_store_ready,
+            recovery_provisioning_required=plan.recovery_provisioning_required,
+            native_fields_checked=plan.native_fields_checked,
+            native_present_empty=plan.native_present_empty,
+            production_write_allowed=false
+        } or {success=false,error=why or "Management VLAN preview unavailable"})
 end
 
 function action_v3()

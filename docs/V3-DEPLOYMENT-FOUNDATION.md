@@ -26,4 +26,4 @@ hardware preflight, configuration persistence/recovery checks, authenticated GUI
 audit, bounded history resource testing, TLS/security checks, a one-shot
 inactive-bank trial, and independent postboot PON/10G/management/bank verification.
 
-Committed r9 remains the recovery reference during initial V3 qualification. See [V3 local history runtime qualification](V3-HISTORY-RUNTIME-QUALIFICATION.md) for the opt-in worker design, vendor-runtime tests, and read-only PRX126 resource reference.
+Committed r9 remains the recovery reference during initial V3 qualification. See [V3 local history runtime qualification](V3-HISTORY-RUNTIME-QUALIFICATION.md) for the opt-in worker design and resource reference, and [V3 management preflight qualification](V3-MANAGEMENT-PREFLIGHT-QUALIFICATION.md) for read-only /ptconf, native-source, and live UCI topology evidence.

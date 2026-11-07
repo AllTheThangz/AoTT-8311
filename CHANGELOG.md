@@ -7,10 +7,11 @@
 - Added an authenticated V3 status page and JSON capability summary that distinguishes integrated, inactive, qualified and disabled features.
 - Moved eleven already-tested bounded history/read-only handoff primitives into the firmware overlay for production integration.
 - Added an opt-in local-history init service and authenticated administrator History UI/API. The service is disabled by default, has no procd respawn loop, samples into bounded RAM only, publishes through dual kernel-lock freshness gates, and enables no persistent history writer or anonymous endpoint.
+- Added an authenticated Management preflight page/API that reads six native management source states without values, verifies /ptconf recovery-storage prerequisites, validates the actual UCI topology, and produces redacted VLAN transition counts. No management apply route or production native writer is enabled.
 - Kept remote GUI management disabled by default and preserved the r9 guarded A/B recovery lifecycle.
 - Updated V3 cache identities and retained the existing metrics credential digest domain for upgrade compatibility.
 - Expanded release tests so shipped history primitives remain bounded and non-autostarting instead of relying on their absence from the firmware overlay.
-- Full host/source regression after local-history integration: 1,189 tests passed with environment-dependent browser/proprietary-runtime tests skipped; no failures or errors. The history-specific contract also passes under the extracted PRX126 vendor MIPS Lua/nixio runtime.
+- Full host/source regression after local-history and management-preflight integration: 1,194 tests passed with environment-dependent browser/proprietary-runtime tests skipped; no failures or errors. The history and management-preflight contracts also pass under the extracted PRX126 vendor MIPS Lua/nixio runtime.
 
 See [V3 deployment foundation](docs/V3-DEPLOYMENT-FOUNDATION.md).
 
