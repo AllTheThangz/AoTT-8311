@@ -1,0 +1,598 @@
+{
+  "baseline_release": "AoTT-8311-v2r9",
+  "date": "2026-11-07",
+  "device_state": {
+    "active_bank": "A",
+    "committed_bank": "A",
+    "host_ethernet_mbps": 10000,
+    "pending_activation": false,
+    "pon_state": "O5.1",
+    "running_trial": false
+  },
+  "fields": [
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "bootdelay",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "advanced_hardware",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "console_en",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "advanced_hardware",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "cp_hw_ver_sync",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "omci_reporting",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "dns_server",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "management",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "dying_gasp_en",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "advanced_hardware",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "equipment_id",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "omci_reporting",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "ethtool_speed",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "advanced_hardware",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "failsafe_delay",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "advanced_hardware",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "fix_vlans",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "isp_vlan",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "fw_match_b64",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "omci_reporting",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "fw_match_num",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "omci_reporting",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "gateway",
+      "observed_source_available": true,
+      "read_only_baseline_observed": true,
+      "readback_group": "management",
+      "runtime_effect_proven": true
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "gpon_sn",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "sensitive_identity",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "hostname",
+      "observed_source_available": true,
+      "read_only_baseline_observed": true,
+      "readback_group": "device_and_virtual_sfp",
+      "runtime_effect_proven": true
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "https_redirect",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "management",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "hw_ver",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "omci_reporting",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "internet_vlan",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "isp_vlan",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "iop_mask",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "pon_omci_noncredential",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "ipaddr",
+      "observed_source_available": true,
+      "read_only_baseline_observed": true,
+      "readback_group": "management",
+      "runtime_effect_proven": true
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "iphost_domain",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "sensitive_identity",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "iphost_hostname",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "sensitive_identity",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "iphost_mac",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "sensitive_identity",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "lang",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "device_and_virtual_sfp",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "lct_mac",
+      "observed_source_available": true,
+      "read_only_baseline_observed": true,
+      "readback_group": "management",
+      "runtime_effect_proven": true
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "loid",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "sensitive_identity",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "lpwd",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "sensitive_identity",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "mib_file",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "pon_omci_noncredential",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "netmask",
+      "observed_source_available": true,
+      "read_only_baseline_observed": true,
+      "readback_group": "management",
+      "runtime_effect_proven": true
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "ntp_servers",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "device_and_virtual_sfp",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "omcc_version",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "pon_omci_noncredential",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "override_active",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "omci_reporting",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "override_commit",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "omci_reporting",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "persist_root",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "advanced_hardware",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "ping_ip",
+      "observed_source_available": true,
+      "read_only_baseline_observed": true,
+      "readback_group": "management",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "pingd",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "management",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "pon_mode",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "pon_omci_noncredential",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "pon_slot",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "omci_reporting",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "reg_id_hex",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "sensitive_identity",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "reverse_arp",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "management",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "root_pwhash",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "sensitive_identity",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "rx_los",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "advanced_hardware",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "services_vlan",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "isp_vlan",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "sfp_date",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "device_and_virtual_sfp",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "sfp_oui",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "device_and_virtual_sfp",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "sfp_partno",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "device_and_virtual_sfp",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "sfp_rev",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "device_and_virtual_sfp",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "sfp_serial",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "device_and_virtual_sfp",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "sfp_vendor",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "device_and_virtual_sfp",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "sfp_vendordata",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "device_and_virtual_sfp",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "sw_verA",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "omci_reporting",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "sw_verB",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "omci_reporting",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": true,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "timezone",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "device_and_virtual_sfp",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "uart_select",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "advanced_hardware",
+      "runtime_effect_proven": false
+    },
+    {
+      "configured_source_available": false,
+      "field_record_returned": true,
+      "hardware_qualified": false,
+      "id": "vendor_id",
+      "observed_source_available": false,
+      "read_only_baseline_observed": true,
+      "readback_group": "sensitive_identity",
+      "runtime_effect_proven": false
+    }
+  ],
+  "group_field_counts": {
+    "advanced_hardware": 8,
+    "device_and_virtual_sfp": 11,
+    "isp_vlan": 3,
+    "management": 9,
+    "omci_reporting": 10,
+    "pon_omci_noncredential": 4,
+    "sensitive_identity": 9
+  },
+  "hardware_profile": "potron-prx126-aott-v1",
+  "interpretation": {
+    "field_record_returned": "The installed r9 readback group returned a bounded record for the field.",
+    "hardware_qualified": "Always false here because no mutation, persistence, negative-path, or recovery test was performed.",
+    "read_only_baseline_observed": "The readback path executed on the named hardware without changing device state.",
+    "runtime_effect_proven": "The readback model independently observed the running subsystem effect for this field on this baseline."
+  },
+  "safety": {
+    "bank_state_changed": false,
+    "before_after_device_state_identical": true,
+    "boot_id_included": false,
+    "credential_values_or_hashes_included": false,
+    "device_writes": false,
+    "firmware_writes": false,
+    "mac_addresses_included": false,
+    "private_network_addresses_included": false,
+    "raw_setting_values_included": false,
+    "reboot": false,
+    "subscriber_identity_values_included": false
+  },
+  "schema": 1,
+  "status": "C012_PRX126_READONLY_BASELINE_PUBLIC_SAFE",
+  "summary": {
+    "fields_accounted": 54,
+    "fully_hardware_qualified_fields": 0,
+    "read_only_baselines_observed": 54,
+    "runtime_effect_proven_fields": 5,
+    "runtime_effect_proven_ids": [
+      "gateway",
+      "hostname",
+      "ipaddr",
+      "lct_mac",
+      "netmask"
+    ]
+  }
+}
