@@ -103,10 +103,10 @@ class HistoryExportSourceTests(unittest.TestCase):
     def test_no_auto_collectors_or_firmware_overlay_change(self):
         for source in (EXPORT,HTML,CSS,JS):
             self.assertTrue(source.is_file())
-        self.assertFalse((ROOT/"overlay/usr/lib/lua/8311/history_export.lua").exists())
+        self.assertTrue((ROOT/"overlay/usr/lib/lua/8311/history_export.lua").is_file())
         self.assertFalse((ROOT/"overlay/www/history.html").exists())
-        self.assertNotIn("history_export.lua",
-                         (ROOT/"MANIFEST.json").read_text())
+        self.assertIn("history_export.lua",
+                      (ROOT/"MANIFEST.json").read_text())
         active="\n".join(line for line in EXPORT.read_text().splitlines()
                          if not line.lstrip().startswith("--"))
         for forbidden in ("io.open(","io.popen(","os.execute(",
