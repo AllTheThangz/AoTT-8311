@@ -6,7 +6,7 @@ AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible w
 
 **Firmware source in this checkout:** `AoTT-8311-v2r9`, an integrated offline candidate combining security-enhanced r8 monitoring with all 54 configuration-field readback contracts. See [the r9 release scope and build requirements](docs/V2R9-INTEGRATED-RELEASE.md).
 
-**Private hardware checkpoint, November 6, 2026:** original `AoTT-8311-v2r8` remains committed in bank A and security-enhanced `AoTT-8311-v2r8` is active in bank B, but **bank B is not permanently committed**. Fresh independent read-only checks confirmed PON association, a 10 Gbps host link and recovery consistency. This source integration establishes no r9 hardware trial. See [r9 integration](docs/V2R9-INTEGRATED-RELEASE.md) and [the historical project checkpoint](docs/PROJECT-CONTINUITY.md).
+**Private hardware acceptance, November 7, 2026:** the exact qualified `AoTT-8311-v2r9` image is running and permanently committed in bank A on one LL-XS1010 / PRX126-SFP-PON device. Enhanced r8 remains complete and valid in bank B as the recovery image. Independent trial and post-commit checks confirmed PON O5.1, a 10 Gbps host link, recovery access, both complete bank images, and the pinned r9 runtime set. See [r9 hardware acceptance](docs/V2R9-HARDWARE-ACCEPTANCE.md), [r9 integration](docs/V2R9-INTEGRATED-RELEASE.md), and [project continuity](docs/PROJECT-CONTINUITY.md).
 
 > **Important:** This repository currently provides a **secret-sanitized source overlay, not a ready-to-flash firmware image**. Proprietary vendor components, actual subscriber provisioning, and production credentials are deliberately excluded.
 
@@ -24,7 +24,7 @@ The integrated monitoring runtime retains the [r8 implementation record](docs/V2
 
 ## Current development handoff and future direction
 
-The [dated project continuity checkpoint](docs/PROJECT-CONTINUITY.md) records the difference between public r7, privately trial-booted security-enhanced r8, and source-only vNext work as of November 2, 2026. This private hardware work is not a public ready-to-flash firmware release.
+The [project continuity record](docs/PROJECT-CONTINUITY.md) now records the November 7 r9 hardware trial and permanent commit, while preserving the older r7/r8 checkpoints as history. The public repository remains source-only; hardware acceptance does not publish the private firmware archive or subscriber-specific recovery material.
 
 For continuity, feature planning and acceptance, read the [complete desired product requirements](docs/TARGET-STATE-AND-REQUIREMENTS.md), [configuration coverage baseline](docs/CONFIGURATION-COVERAGE.md), [ID-based delivery plan](docs/DELIVERY-PLAN-AND-ACCEPTANCE.md), [decision register](docs/ENGINEERING-DECISIONS.md), and [resume checklist](docs/RESUME-CHECKLIST.md). The [machine-readable dated checkpoint](docs/PROJECT-STATE-CHECKPOINT-2026-11-02.json) is a historical summary, not a substitute for current live bank readback.
 
