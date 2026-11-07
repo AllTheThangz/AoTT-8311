@@ -1,0 +1,109 @@
+{
+  "baseline_release": "AoTT-8311-v2r9",
+  "candidates": [
+    {
+      "activation": "LIVE_UCI_APPLY_AFTER_SAVE",
+      "blockers": [
+        "independent authenticated active-session language verifier",
+        "bounded automatic revert verification"
+      ],
+      "current_effect_evidence": "CONFIGURED_UCI_ONLY",
+      "full_end_to_end_ready": false,
+      "hardware_qualified": false,
+      "id": "lang",
+      "mutation_permitted_by_this_artifact": false,
+      "partial_no_reboot_apply_test_ready": true,
+      "read_only_baseline_observed": true,
+      "requires_explicit_live_authorization": true,
+      "requires_reboot_for_current_source_path": false,
+      "runtime_effect_proven_on_current_baseline": false,
+      "schema_type": "select_named"
+    },
+    {
+      "activation": "NEXT_STARTUP_REQUIRED",
+      "blockers": [
+        "authorized reboot persistence test",
+        "postboot effective readback and bounded revert"
+      ],
+      "current_effect_evidence": "KERNEL_HOSTNAME_READBACK_AVAILABLE",
+      "full_end_to_end_ready": false,
+      "hardware_qualified": false,
+      "id": "hostname",
+      "mutation_permitted_by_this_artifact": false,
+      "partial_no_reboot_apply_test_ready": true,
+      "read_only_baseline_observed": true,
+      "requires_explicit_live_authorization": true,
+      "requires_reboot_for_current_source_path": true,
+      "runtime_effect_proven_on_current_baseline": true,
+      "schema_type": "text"
+    },
+    {
+      "activation": "NEXT_STARTUP_REQUIRED",
+      "blockers": [
+        "independent active local-time/timezone verifier",
+        "authorized reboot persistence test",
+        "postboot revert verification"
+      ],
+      "current_effect_evidence": "CONFIGURED_UCI_ONLY",
+      "full_end_to_end_ready": false,
+      "hardware_qualified": false,
+      "id": "timezone",
+      "mutation_permitted_by_this_artifact": false,
+      "partial_no_reboot_apply_test_ready": true,
+      "read_only_baseline_observed": true,
+      "requires_explicit_live_authorization": true,
+      "requires_reboot_for_current_source_path": true,
+      "runtime_effect_proven_on_current_baseline": false,
+      "schema_type": "select"
+    },
+    {
+      "activation": "NEXT_STARTUP_REQUIRED",
+      "blockers": [
+        "independent running NTP configuration verifier",
+        "bounded synchronization evidence that does not expose server values",
+        "authorized reboot persistence test",
+        "postboot revert verification"
+      ],
+      "current_effect_evidence": "CONFIGURED_UCI_ONLY",
+      "full_end_to_end_ready": false,
+      "hardware_qualified": false,
+      "id": "ntp_servers",
+      "mutation_permitted_by_this_artifact": false,
+      "partial_no_reboot_apply_test_ready": true,
+      "read_only_baseline_observed": true,
+      "requires_explicit_live_authorization": true,
+      "requires_reboot_for_current_source_path": true,
+      "runtime_effect_proven_on_current_baseline": false,
+      "schema_type": "text"
+    }
+  ],
+  "contains_runtime_values_or_credentials": false,
+  "contract_kind": "C012_SAFE_CANDIDATE_SOURCE_READINESS_ONLY",
+  "device_configuration_modified": false,
+  "firmware_modified": false,
+  "hardware_profile": "potron-prx126-aott-v1",
+  "live_device_queried": false,
+  "policy": {
+    "full_test_requires_effect_persistence_and_recovery_evidence": true,
+    "generic_continue_authorizes_mutation": false,
+    "lower_risk_lane_is_not_live_mutation_approval": true
+  },
+  "schema": 1,
+  "source_facts": {
+    "generic_diff_marks_only_lang_live": true,
+    "hostname_has_kernel_effect_probe": true,
+    "lang_explicitly_not_active_session_proof": true,
+    "lang_has_explicit_live_uci_set": true,
+    "ntp_explicitly_not_sync_proof": true,
+    "timezone_explicitly_not_active_localtime_proof": true
+  },
+  "summary": {
+    "candidate_fields": 4,
+    "current_runtime_effect_proven": 1,
+    "full_end_to_end_ready": 0,
+    "hardware_qualified": 0,
+    "live_apply_paths_present": 1,
+    "next_startup_paths": 3,
+    "partial_no_reboot_apply_test_ready": 4
+  }
+}
