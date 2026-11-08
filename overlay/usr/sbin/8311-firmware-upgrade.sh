@@ -14,7 +14,7 @@ preserve_admin_credential() {
     [ -x "$helper" ] ||
         fail "Administrator credential persistence helper is unavailable; no bank was written."
     "$helper" >/dev/null 2>&1 ||
-        fail "Administrator credential is not deployment-ready. Set a unique root password and verify persistence before upgrading."
+        fail "Administrator credential could not be validated and persisted. No firmware bank was written."
 }
 
 usage() {

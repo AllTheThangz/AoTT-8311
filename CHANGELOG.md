@@ -3,7 +3,7 @@
 ## v3r1 (development, source-only, not yet deployed)
 
 ### V3 foundation
-- Added a credential-preservation deployment gate: V3 refuses future bank writes unless the live root credential is non-default and its hash is persisted and read back successfully.
+- V3 accepts the documented factory `root/root` credential for development and deployment, restores supported saved credentials when present, and defaults fresh boots to `root/root` when no valid persisted root hash exists.
 - Promoted the hardware-qualified v2r9 line to the V3 development identity while retaining r9 as the proven PRX126 release-candidate baseline.
 - Added an authenticated V3 status page and JSON capability summary that distinguishes integrated, inactive, qualified and disabled features.
 - Moved eleven already-tested bounded history/read-only handoff primitives into the firmware overlay for production integration.

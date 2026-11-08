@@ -1,4 +1,4 @@
--- AoTT-8311 V3 root-credential deployment guard.
+-- AoTT-8311 V3 root-credential compatibility classifier.
 -- Pure classification: no file, environment, network or firmware I/O.
 local M={}
 
@@ -15,8 +15,8 @@ function M.classify(hash,crypt)
     if not ok or type(derived)~="string" or derived=="" then
         return nil,"credential_check_unavailable"
     end
-    if derived==hash then return nil,"known_factory_root_password" end
-    return true,"unique_password_configured"
+    if derived==hash then return true,"factory_default_root_password" end
+    return true,"custom_password_configured"
 end
 
 return M

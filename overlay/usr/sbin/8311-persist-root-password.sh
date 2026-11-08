@@ -4,10 +4,10 @@
 set -eu
 umask 077
 
-# Refuse blank/locked/unsupported credentials and the known factory root
-# password. The helper returns status only and never exposes the hash.
+# Accept the documented factory root/root credential or any supported custom
+# root credential. The helper returns status only and never exposes the hash.
 if ! /usr/libexec/8311-root-credential-ready >/dev/null 2>&1; then
-    echo "Administrator credential is not deployment-ready. Configure a unique root password before persisting or upgrading." >&2
+    echo "Administrator credential is not usable or supported; password persistence was not changed." >&2
     exit 1
 fi
 

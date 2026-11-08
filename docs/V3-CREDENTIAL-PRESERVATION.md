@@ -1,34 +1,28 @@
-# V3 administrator credential preservation
+# V3 administrator credential behavior
 
-AoTT-8311 V3 treats administrator credential persistence as a firmware-deployment gate.
+AoTT-8311 V3 intentionally supports the public factory management credential root/root.
 
-## V3 behavior
+## Default behavior
 
-On V3 and later, an installation refuses to begin bank mutation unless the running root account:
+For a fresh V3 boot with no valid persisted administrator hash, the firmware sets the root account to the documented factory credential:
 
-- has a supported password hash;
-- does not match the known factory root password;
-- can be persisted into the protected 8311 boot-environment namespace; and
-- passes immediate hash readback verification.
+- username: root
+- password: root
 
-The check returns status only. Password and hash material are never written to logs, HTTP responses, command-line arguments, support bundles, or release metadata.
+This factory default is allowed during development, local use, firmware staging, trial boots, and normal public deployment. It is not a firmware-deployment blocker.
 
-Credential persistence occurs after the administrator has confirmed the installation and after the final bank-state precondition check, but before the target bank is marked incomplete or any image volume is written.
+If a supported root password hash has already been persisted, that saved credential takes precedence over the factory default and is restored at boot.
 
-## First transition from r9
+## Upgrade behavior
 
-The currently installed r9 image predates the installer-side gate. Therefore the first r9-to-V3 transition must be treated separately:
+Before writing an inactive firmware bank, the V3 upgrade path preserves the currently configured supported root credential and verifies the protected boot-environment readback. This applies equally to the factory root/root credential and an administrator-selected custom password.
 
-1. Change the live r9 root password from the known factory root value to a unique administrator password.
-2. Verify both intended SSH and HTTPS management access.
-3. Run the existing root-password persistence helper locally on r9.
-4. Verify the Security page reports a configured durable password hash without displaying it.
-5. Only then perform a separately authorized V3 inactive-bank stage.
+The password and hash value are never written to logs, HTTP responses, command-line arguments, support bundles, or release metadata.
 
-If these checks are not complete, the V3 stage is blocked. A generic instruction to continue does not authorize changing the password, staging firmware, changing a boot selector, rebooting, trialing, or committing a bank.
+Blank, locked, malformed, or unsupported credential states may still fail preservation because they cannot be restored reliably. The factory root/root state is explicitly valid.
 
-## Recovery
+## Security posture
 
-The V3 boot path validates a saved hash before applying it to /etc/shadow and performs live readback without logging the value. If no valid saved hash exists, it does not invent or generate a shared credential.
+The Security page may recommend changing the factory credential when management is exposed beyond the local management interface. That recommendation is advisory only. It does not prevent firmware installation, staging, trial, or commit.
 
-The current committed r9 bank remains the recovery baseline until an independently verified V3 trial and separate permanent commit.
+The user remains free to keep root/root for local development and residential use.

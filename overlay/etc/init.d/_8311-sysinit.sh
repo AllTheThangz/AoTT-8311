@@ -43,8 +43,9 @@ start() {
 	SYS_LANG=$(get_8311_lang)
 	[ -n "$SYS_LANG" ] && set_8311_lang "$SYS_LANG"
 
-	# Apply an existing, validated saved administrator hash. Never generate a
-	# shared password, log the value, or replace it with an unknown default.
+	# A valid saved administrator hash always wins. If no saved hash exists,
+	# use the documented public factory credential root/root. This residential
+	# default is intentional and never blocks development or deployment.
 	ROOT_PWHASH=$(get_8311_root_pwhash)
 	if [ -n "$ROOT_PWHASH" ]; then
 		if ! set_8311_root_pwhash "$ROOT_PWHASH"; then
@@ -65,11 +66,17 @@ start() {
 		fi
 		unset ROOT_PWHASH
 	else
-		# A blank root field is not a safe deployment default. Report only
-		# the state; credential creation requires local administrative action.
-		if awk -F: '$1 == "root" && $2 == "" { blank=1 } END { exit !blank }' /etc/shadow; then
-			echo "Security warning: no valid saved root credential; configure a unique password and restrict management access" | to_console
+		# Fresh/default V3 behavior is the documented public credential root/root.
+		# BusyBox chpasswd generates the target's native supported shadow hash.
+		if ! printf '%s\n' 'root:root' | /usr/sbin/chpasswd -c sha512 >/dev/null 2>&1; then
+			echo "Security: failed to install documented factory root credential" | to_console
+			return 1
 		fi
+		if ! /usr/libexec/8311-root-credential-ready >/dev/null 2>&1; then
+			echo "Security: factory root credential failed live validation" | to_console
+			return 1
+		fi
+		echo "AoTT: using documented factory root credential (root/root)" | to_console
 	fi
 }
 

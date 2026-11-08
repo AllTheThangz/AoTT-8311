@@ -1,5 +1,7 @@
 # AoTT-8311 V3r1 RC1 offline qualification
 
+> **Historical credential-policy note:** RC1 recorded a unique-password pre-stage restriction. Continued V3 development removed that restriction. Public V3 intentionally allows and defaults to `root/root` when no valid saved credential exists. RC1 remains pinned as historical qualification evidence.
+
 **Candidate source:** `f3e3bbf3029a21ea9c6d8e3ec24cda10e92a1966`  
 **Pinned source branch:** `release/v3r1-rc1`  
 **Release identity:** `AoTT-8311-v3r1`  

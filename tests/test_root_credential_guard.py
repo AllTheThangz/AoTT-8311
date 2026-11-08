@@ -34,15 +34,17 @@ class RootCredentialGuardTests(unittest.TestCase):
         self.assertNotIn("io.write",s)
         self.assertNotIn("os.execute",s)
         self.assertNotIn("arg[",s)
+        self.assertNotIn("known_factory_root_password",s)
 
-    def test_persistence_refuses_unready_credential_before_hash_write(self):
+    def test_persistence_accepts_factory_or_custom_supported_credential_before_hash_write(self):
         s=PERSIST.read_text()
         check=s.index("/usr/libexec/8311-root-credential-ready")
         read=s.index("ROOT_PWHASH=$(awk")
         write=s.index("fwenv_set -8 root_pwhash")
         self.assertLess(check,read)
         self.assertLess(read,write)
-        self.assertIn("unique root password",s)
+        self.assertIn("factory root/root",s)
+        self.assertNotIn("unique root password",s)
         self.assertIn(">/dev/null 2>&1",s[check:read])
 
     def test_installer_preserves_credential_after_confirmation_before_bank_mutation(self):
@@ -56,6 +58,7 @@ class RootCredentialGuardTests(unittest.TestCase):
         self.assertLess(call,first_bank_mutation)
         self.assertLess(call,first_image_write)
         self.assertIn('"$helper" >/dev/null 2>&1',s)
+        self.assertNotIn("Set a unique root password",s)
 
     def test_validate_only_exits_before_credential_mutation(self):
         s=UPGRADE.read_text()

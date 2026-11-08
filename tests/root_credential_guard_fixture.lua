@@ -7,13 +7,13 @@ local ok,why=guard.classify(hash,function(pass,current)
     assert(pass=="root")
     return current
 end)
-assert(ok==nil and why=="known_factory_root_password")
+assert(ok==true and why=="factory_default_root_password")
 
 ok,why=guard.classify(hash,function(pass,current)
     assert(pass=="root")
     return current.."x"
 end)
-assert(ok==true and why=="unique_password_configured")
+assert(ok==true and why=="custom_password_configured")
 
 for _,bad in ipairs({"","!","*","x","plaintext","$6$short"}) do
     local a,b=guard.classify(bad,function() return "unused" end)
