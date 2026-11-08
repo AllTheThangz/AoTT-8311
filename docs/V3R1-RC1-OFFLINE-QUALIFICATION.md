@@ -64,15 +64,27 @@ The V3 credential deployment gate also confirmed that the reference r9 unit stil
 
 A generic instruction to continue does not authorize changing the password, writing a firmware bank, changing boot selectors, rebooting, trialing, or committing firmware.
 
+## Pre-stage recovery backup status
+
+Fresh read-only recovery capture is complete for the unchanged reference unit:
+
+- all six full UBI bank volumes were captured;
+- each volume was independently reread from the device;
+- all firmware-image prefixes matched the current bank receipts;
+- native integrity checks passed for both banks;
+- A remained active/committed r9 and B remained the valid enhanced-r8 recovery bank throughout;
+- no firmware bank, boot selector, trial state or committed selector changed.
+
+The backup acceptance covers **27,934,720 bytes** across six full volumes. Raw recovery material remains private and is not published.
+
 ## Remaining hardware gate
 
-After credential readiness is separately established, V3r1 RC1 still requires independent authorization for each stage:
+The only current pre-stage blocker is administrator credential readiness. After a unique root password is explicitly configured, SSH/HTTPS are verified, and the existing r9 persistence helper confirms durable storage, V3r1 RC1 still requires separate authorization for each mutating stage:
 
-1. refresh and verify off-device full-bank recovery backups;
-2. perform stage-only installation into the inactive bank;
-3. verify target-bank image hashes and receipts without reboot;
-4. separately authorize a one-shot trial;
-5. verify PON O5.1, 10 Gbps host link, HTTPS/SSH, local History behavior, management preflight and TLS recovery behavior;
-6. separately authorize permanent commit only after post-trial acceptance.
+1. perform stage-only installation into the inactive bank;
+2. verify target-bank image hashes and receipts without reboot;
+3. separately authorize a one-shot trial;
+4. verify PON O5.1, 10 Gbps host link, HTTPS/SSH, local History behavior, management preflight and TLS recovery behavior;
+5. separately authorize permanent commit only after post-trial acceptance.
 
 The current committed r9 bank remains the recovery baseline until those gates are complete.
