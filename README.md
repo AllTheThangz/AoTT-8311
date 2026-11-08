@@ -4,7 +4,7 @@
 
 AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible web interface, deeper optical and network diagnostics, security visibility, and guarded A/B firmware management.
 
-**Firmware source in this checkout:** AoTT-8311-v3r1, the V3 development line promoted from the privately hardware-qualified AoTT-8311-v2r9 release-candidate baseline. V3r1 is source-only and is **not yet hardware-qualified or deployed**. The exact r9 image remains the currently proven PRX126 runtime and recovery reference.
+**Firmware source in this checkout:** AoTT-8311-v3r1, the V3 development line promoted from the privately hardware-qualified AoTT-8311-v2r9 release-candidate baseline. The current hardware-stage candidate is **V3r1 RC3**, pinned at `release/v3r1-rc3` / `00c6d096a4051a20de80e0fcfe7dc39f257f56ef`. RC3 is privately built and fully offline-qualified but **has not been staged, trial-booted, or hardware-qualified**. The exact r9 image remains the currently proven PRX126 runtime and recovery reference. See [V3r1 RC3 qualification](docs/V3R1-RC3-QUALIFICATION.md).
 
 **Private hardware acceptance, November 7, 2026:** the exact qualified `AoTT-8311-v2r9` image is running and permanently committed in bank A on one LL-XS1010 / PRX126-SFP-PON device. Enhanced r8 remains complete and valid in bank B as the recovery image. Independent trial and post-commit checks confirmed PON O5.1, a 10 Gbps host link, recovery access, both complete bank images, and the pinned r9 runtime set. See [r9 hardware acceptance](docs/V2R9-HARDWARE-ACCEPTANCE.md), [r9 integration](docs/V2R9-INTEGRATED-RELEASE.md), and [project continuity](docs/PROJECT-CONTINUITY.md).
 
@@ -16,7 +16,7 @@ V3 turns the r9 release-candidate foundation into a deployment-oriented resident
 
 The V3 branch deliberately retains r9's proven PON/OMCI runtime, management-routing compatibility, guarded A/B firmware lifecycle, and recovery assumptions. Remote GUI access remains disabled by default. Local history is volatile and performs no periodic flash writes. Management VLAN read/preview is integrated with recovery-storage admission and native-source classification, but production apply remains gated. V3 also hardens the qualified persistent HTTPS key to root-only mode and supports guarded activation of locally generated self-signed TLS candidates with persistent backup, browser confirmation, and timed automatic rollback; operator-owned certificate import remains gated. Other configuration mutation, durable history, remote-access firewalling, and additional hardware support remain qualification-gated until their exact production paths pass the documented acceptance gates.
 
-See [V3 deployment foundation](docs/V3-DEPLOYMENT-FOUNDATION.md), [V3 local history runtime qualification](docs/V3-HISTORY-RUNTIME-QUALIFICATION.md), [V3 management VLAN preflight qualification](docs/V3-MANAGEMENT-PREFLIGHT-QUALIFICATION.md), and [V3 TLS candidate qualification](docs/V3-TLS-CANDIDATE-QUALIFICATION.md).
+See [V3r1 RC3 qualification](docs/V3R1-RC3-QUALIFICATION.md), [V3 deployment foundation](docs/V3-DEPLOYMENT-FOUNDATION.md), [V3 local history runtime qualification](docs/V3-HISTORY-RUNTIME-QUALIFICATION.md), [V3 management VLAN preflight qualification](docs/V3-MANAGEMENT-PREFLIGHT-QUALIFICATION.md), and [V3 TLS candidate qualification](docs/V3-TLS-CANDIDATE-QUALIFICATION.md).
 
 ## AoTT-8311 v2 r9
 
