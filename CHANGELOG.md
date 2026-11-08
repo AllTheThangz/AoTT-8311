@@ -1,10 +1,26 @@
 # AoTT-8311 Changelog
 
-## v3r1 (development, source-only, not yet deployed)
+## v3r1 (development, RC3 hardware-stage candidate, not yet trialed)
+
+### RC3 first-login and hardware-stage readiness
+- Current candidate: `release/v3r1-rc3` at `00c6d096a4051a20de80e0fcfe7dc39f257f56ef`.
+- Added a first-authenticated-GUI-login password prompt when factory `root/root` is active, with explicit **Change password now** and **Keep root/root** choices. The acknowledgement is device-persistent, CSRF-protected, root-session-only, and does not turn the credential recommendation into a deployment restriction.
+- Verified the exact first-login implementation in host Lua, extracted vendor-MIPS Lua/nixio, and real Chromium at desktop/mobile sizes in both light and dark themes.
+- RC3 complete source regression: **1,224 tests**, zero failures or errors.
+- RC3 deployment-sensitive vendor-MIPS regression: **41 tests**, zero failures.
+- RC3 real Chromium/Playwright regression: **134/134 tests**, zero failures.
+- Two independent private RC3 firmware builds are byte-identical. Rootfs SHA-256: `42825f13e32fb38d24c668befced9ef87823af1c156fcb46698a9fdd9a200bde`; upgrade archive SHA-256: `dcc2378edc21408517fd17302135e00716c89468cf40a29d05f1c40b808f31a8`.
+- RC3 rootfs uses **5,779,456 bytes** of the fixed bank and retains **442,368 bytes** of flash headroom.
+- Read-only hardware preflight passes on the unchanged r9 reference unit: A active/committed, B valid as inactive recovery, PON O5.1, 10 Gbps host Ethernet, HTTPS and pinned-key SSH healthy, fresh full-bank backups still matching live receipts, and factory `root/root` accepted.
+- RC3 is technically stage-ready, but **no stage, trial, reboot, or commit authorization has been issued** and the live ONU remains unchanged.
+
+### RC2 credential-policy correction
+- Restored the public residential-device policy that `root/root` is the documented factory default and is allowed during development and deployment.
+- Fresh V3 boots use `root/root` when no valid saved administrator credential exists; supported custom credentials still override the default and are preserved across upgrades.
+- Removed RC1's unique-password staging restriction while retaining validation against blank, locked, malformed, or unsupported credential states.
 
 ### V3 foundation
 - V3 accepts the documented factory `root/root` credential for development and deployment, restores supported saved credentials when present, and defaults fresh boots to `root/root` when no valid persisted root hash exists.
-- Added a first-authenticated-GUI-login password prompt when factory `root/root` is active, with explicit **Change password now** and **Keep root/root** choices; acknowledgement is device-persistent and does not turn the credential recommendation into a deployment restriction.
 - Promoted the hardware-qualified v2r9 line to the V3 development identity while retaining r9 as the proven PRX126 release-candidate baseline.
 - Added an authenticated V3 status page and JSON capability summary that distinguishes integrated, inactive, qualified and disabled features.
 - Moved eleven already-tested bounded history/read-only handoff primitives into the firmware overlay for production integration.
@@ -14,7 +30,7 @@
 - Kept remote GUI management disabled by default and preserved the r9 guarded A/B recovery lifecycle.
 - Updated V3 cache identities and retained the existing metrics credential digest domain for upgrade compatibility.
 - Expanded release tests so shipped history primitives remain bounded and non-autostarting instead of relying on their absence from the firmware overlay.
-- Full host/source regression after local-history, management-preflight, credential-preservation, and guarded TLS-activation integration: 1,217 tests passed with environment-dependent browser/proprietary-runtime tests skipped; no failures or errors. The history, management-preflight, credential, and TLS contracts also pass under the extracted PRX126 vendor MIPS Lua/nixio runtime.
+- Earlier V3 integration checkpoint: 1,217 source tests passed before RC2/RC3 credential and first-login work. The current RC3 qualification counts are recorded above.
 
 See [V3 deployment foundation](docs/V3-DEPLOYMENT-FOUNDATION.md).
 
