@@ -11,6 +11,8 @@ For a fresh V3 boot with no valid persisted administrator hash, the firmware set
 
 This factory default is allowed during development, local use, firmware staging, trial boots, and normal public deployment. It is not a firmware-deployment blocker.
 
+On the first authenticated GUI session while the factory root/root credential is still active, V3 presents a password-change prompt. The user may either open LuCI's Root password page or explicitly choose **Keep root/root**. That acknowledgement is stored on the device and prevents repeated prompting. If the password is changed instead, the prompt disappears automatically.
+
 If a supported root password hash has already been persisted, that saved credential takes precedence over the factory default and is restored at boot.
 
 ## Upgrade behavior

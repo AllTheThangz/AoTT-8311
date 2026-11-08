@@ -4,6 +4,7 @@
 
 ### V3 foundation
 - V3 accepts the documented factory `root/root` credential for development and deployment, restores supported saved credentials when present, and defaults fresh boots to `root/root` when no valid persisted root hash exists.
+- Added a first-authenticated-GUI-login password prompt when factory `root/root` is active, with explicit **Change password now** and **Keep root/root** choices; acknowledgement is device-persistent and does not turn the credential recommendation into a deployment restriction.
 - Promoted the hardware-qualified v2r9 line to the V3 development identity while retaining r9 as the proven PRX126 release-candidate baseline.
 - Added an authenticated V3 status page and JSON capability summary that distinguishes integrated, inactive, qualified and disabled features.
 - Moved eleven already-tested bounded history/read-only handoff primitives into the firmware overlay for production integration.
