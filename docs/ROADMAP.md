@@ -1,5 +1,11 @@
 # AoTT-8311 roadmap and current development stages
 
+## V3r1 RC1 offline-qualified candidate
+
+The exact integrated candidate at `f3e3bbf3029a21ea9c6d8e3ec24cda10e92a1966` is pinned as `release/v3r1-rc1`. It passed the complete source suite, the recovered real Chromium suite, targeted vendor-MIPS qualification for history, management preflight, TLS activation, and credential preservation, and a byte-identical two-build private firmware audit. See [V3r1 RC1 offline qualification](V3R1-RC1-OFFLINE-QUALIFICATION.md).
+
+The reference r9 unit remains unchanged. Live staging is currently blocked by the V3 administrator-credential gate because the known factory root credential is still configured. A unique administrator credential and verified persistence are required before any inactive-bank write.
+
 ## V3 development branch, November 7, 2026
 
 dev/v3 is now the major-version development line based on the hardware-qualified r9 release-candidate lineage. The first V3 integration cut is AoTT-8311-v3r1 source-only and has not been flashed, trialed or committed on hardware.
