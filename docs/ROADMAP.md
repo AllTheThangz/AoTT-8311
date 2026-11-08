@@ -1,5 +1,11 @@
 # AoTT-8311 roadmap and current development stages
 
+## V3r1 RC3 hardware-stage candidate
+
+The exact RC3 source is pinned at `release/v3r1-rc3` / `00c6d096a4051a20de80e0fcfe7dc39f257f56ef`. RC3 adds the first-authenticated-GUI-login password advisory while retaining `root/root` as an allowed public default. It passed 1,224 source tests, 41 deployment-sensitive vendor-MIPS tests, 134 real Chromium tests, and a byte-identical two-build private firmware audit. See [V3r1 RC3 qualification](V3R1-RC3-QUALIFICATION.md).
+
+The unchanged r9 reference unit passes the RC3 read-only pre-stage gate with A active/committed, B as the valid inactive recovery bank, PON O5.1, 10 Gbps host Ethernet, HTTPS and pinned-key SSH healthy, fresh full-bank backups matching current live receipts, and the factory `root/root` state accepted. RC3 is technically stage-ready but no stage, trial or commit authorization has been issued.
+
 ## V3r1 RC1 offline-qualified candidate
 
 The exact integrated candidate at `f3e3bbf3029a21ea9c6d8e3ec24cda10e92a1966` is pinned as `release/v3r1-rc1`. It passed the complete source suite, the recovered real Chromium suite, targeted vendor-MIPS qualification for history, management preflight, TLS activation, and credential preservation, and a byte-identical two-build private firmware audit. See [V3r1 RC1 offline qualification](V3R1-RC1-OFFLINE-QUALIFICATION.md).
