@@ -1199,4 +1199,466 @@ end
 local function bank_status()
     local nixio = require "nixio"
     for attempt = 1, 3 do
-        local code, output, overflow = web.capture({"/usr/sbin/8311-bankc
+        local code, output, overflow = web.capture({"/usr/sbin/8311-bankctl.sh","status"},16384)
+        if code == 0 and not overflow then
+            local valid, state = pcall(json.parse, output or "")
+            if valid and type(state) == "table" and state.schema == 1
+                and (state.active == "A" or state.active == "B")
+                and (state.committed == "A" or state.committed == "B")
+                and state.boot_contract == true
+                and type(state.banks) == "table"
+                and type(state.state_guard) == "string"
+                and #state.state_guard == 64
+                and not state.state_guard:find("[^0-9a-f]")
+            then
+                return state
+            end
+            -- An apparently successful but malformed answer is not a lock race.
+            return nil, "The firmware-bank response was incomplete. Actions are unavailable."
+        end
+        if attempt < 3 then
+            -- Back off before rereading; 0.2 s then 0.4 s, bounded by CGI timeout.
+            nixio.nanosleep(0, attempt * 200000000)
+        end
+    end
+    return nil, "The firmware bank is busy or unavailable. No change was made; refresh shortly."
+end
+
+local function operation_form(allowed)
+	local values = http.formvalue()
+	local err, code = http.inputerror()
+	if err then web.reply(http,code,{success=false,error=err}); return nil end
+	for name,value in pairs(values) do
+		if (name ~= "token" and not allowed[name]) or type(value) ~= "string" then
+			web.reply(http,400,{success=false,error="Unknown, missing or duplicate operation field"}); return nil
+		end
+	end
+	return values
+end
+
+-- The monitoring and local-history pages are inside the authenticated
+-- admin/8311 route tree; writes also require LuCI's CSRF check.
+function action_history()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    local state, err = history_config.snapshot()
+    if not state then
+        return web.reply(http, 503, {success=false,error=err or "History configuration unavailable"})
+    end
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    return ltemplate.render("8311/history", {history=state})
+end
+
+function action_history_save()
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values = operation_form({
+        revision=true,enabled=true,pon_interval_seconds=true,
+        host_interval_seconds=true,ram_sample_limit=true,ram_event_limit=true
+    })
+    if not values then return end
+    local state, err, status = history_config.apply(values)
+    return web.reply(http, status or 503,
+        state and {success=true,revision=state.revision,
+                   enabled=state.enabled,service_running=state.service_running,
+                   pon_interval_seconds=state.pon_interval_seconds,
+                   host_interval_seconds=state.host_interval_seconds,
+                   ram_sample_limit=state.ram_sample_limit,
+                   ram_event_limit=state.ram_event_limit}
+            or {success=false,error=err or "History configuration failed"})
+end
+
+function action_history_data()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    if not dispatcher.context.authsession then
+        return web.reply(http, 403, {success=false,error="Authentication required"})
+    end
+    local query=http.getenv("QUERY_STRING")
+    if query~=nil and query~="" then
+        return web.reply(http, 400, {success=false,error="History query parameters are not supported"})
+    end
+    local body, info = history_snapshot.read_guarded()
+    if not body then
+        return web.reply(http, 503, {success=false,error=info or "History is unavailable"})
+    end
+    http.status(200, "OK")
+    http.header("Cache-Control", "no-store, private, max-age=0")
+    http.header("X-Content-Type-Options", "nosniff")
+    http.header("Content-Security-Policy", "default-src 'none'")
+    http.header("Referrer-Policy", "no-referrer")
+    http.header("Vary", "Cookie")
+    http.prepare_content("application/json; charset=utf-8")
+    http.write(body)
+end
+
+function action_management_preflight()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    local state=management_preflight.status()
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    return ltemplate.render("8311/management_preflight", {management=state})
+end
+
+function action_management_vlan_preview()
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values=operation_form({vlan=true})
+    if not values then return end
+    local plan,why=management_preflight.preview(values.vlan)
+    return web.reply(http, plan and 200 or 422,
+        plan and {
+            success=true,current_vlan=plan.current_vlan,
+            requested_vlan=plan.requested_vlan,
+            operations=plan.operations,
+            network_operations=plan.network_operations,
+            firewall_operations=plan.firewall_operations,
+            changes_required=plan.changes_required,
+            recovery_store_ready=plan.recovery_store_ready,
+            recovery_provisioning_required=plan.recovery_provisioning_required,
+            native_fields_checked=plan.native_fields_checked,
+            native_present_empty=plan.native_present_empty,
+            production_write_allowed=false
+        } or {success=false,error=why or "Management VLAN preview unavailable"})
+end
+
+function action_tls()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    local candidate,why=tls_candidate.status()
+    if not candidate then
+        candidate={status="unavailable",candidate_ready=false}
+    end
+    local ok,security=pcall(health.security)
+    if not ok or type(security)~="table" then security={} end
+    local pending,pending_why=tls_activation.pending()
+    if not pending then pending={pending=false,error=pending_why} end
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    http.header("Referrer-Policy", "no-referrer")
+    return ltemplate.render("8311/tls", {candidate=candidate,security=security,pending=pending})
+end
+
+local function tls_https_required()
+    local value=http.getenv("HTTPS")
+    return value=="on" or value=="1"
+end
+
+function action_tls_generate()
+    if not tls_https_required() then
+        return web.reply(http,403,{success=false,error="HTTPS is required for TLS candidate operations"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values=operation_form({
+        dns_sans=true,ip_sans=true,days=true,key_type=true
+    })
+    if not values then return end
+    local state,why,status=tls_candidate.generate(values)
+    return web.reply(http,status or 503,
+        state and {
+            success=true,candidate_ready=state.candidate_ready,
+            certificate_sha256=state.certificate_sha256,
+            certificate_bytes=state.certificate_bytes,
+            private_key_bytes=state.private_key_bytes,
+            private_key_mode=state.private_key_mode,
+            dns_san_count=state.dns_san_count,
+            ipv4_san_count=state.ipv4_san_count,
+            validity_days=state.validity_days,
+            key_type=state.key_type,
+            active_https_changed=false,
+            install_available=false
+        } or {success=false,error=why or "TLS candidate generation failed"})
+end
+
+function action_tls_discard()
+    if not tls_https_required() then
+        return web.reply(http,403,{success=false,error="HTTPS is required for TLS candidate operations"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values=operation_form({})
+    if not values then return end
+    local state,why,status=tls_candidate.discard()
+    return web.reply(http,status or 503,
+        state and {success=true,candidate_ready=false,active_https_changed=false}
+            or {success=false,error=why or "TLS candidate discard failed"})
+end
+
+function action_tls_activate()
+    if not tls_https_required() then
+        return web.reply(http,403,{success=false,error="HTTPS is required for TLS activation"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=operation_form({certificate_sha256=true})
+    if not values then return end
+    if type(values.certificate_sha256)~="string" or
+       #values.certificate_sha256~=64 or
+       values.certificate_sha256:find("[^0-9a-f]") then
+        return web.reply(http,422,{success=false,error="Refresh the TLS candidate before activation"})
+    end
+    local state,why=tls_candidate.status()
+    if not state or state.candidate_ready~=true or
+       state.certificate_sha256~=values.certificate_sha256 then
+        return web.reply(http,409,{success=false,error=why or "TLS candidate changed; refresh before activation"})
+    end
+    local pending,pending_why=tls_activation.pending()
+    if not pending then
+        return web.reply(http,503,{success=false,error=pending_why or "TLS activation state unavailable"})
+    end
+    if pending.pending then
+        return web.reply(http,409,{success=false,error="A TLS activation is already awaiting confirmation"})
+    end
+    local record,error_code=jobs.start("tls_activate",
+        {certificate_sha256=values.certificate_sha256},
+        dispatcher.context.authsession)
+    return web.reply(http,record and 202 or 409,
+        record and {success=true,job=record,rollback_seconds=tls_activation.WAIT_SECONDS}
+            or {success=false,error=error_code or "TLS activation could not start"})
+end
+
+function action_tls_confirm()
+    if not tls_https_required() then
+        return web.reply(http,403,{success=false,error="HTTPS is required to confirm TLS activation"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=operation_form({job_id=true})
+    if not values then return end
+    local record,why=jobs.confirm_tls(values.job_id)
+    return web.reply(http,record and 200 or 409,
+        record and {success=true,job=record}
+            or {success=false,error=why or "TLS activation confirmation was refused"})
+end
+
+function action_v3()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    return ltemplate.render("8311/v3", {})
+end
+
+function action_v3_status()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    local cap = require "8311.v3_capabilities"
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    return web.reply(http, 200, cap.snapshot())
+end
+
+function action_factory_password_ack()
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security() then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local loaded,first_login=pcall(require,"8311.first_login")
+    if not loaded or type(first_login)~="table" or type(first_login.acknowledge)~="function" then
+        return web.reply(http,503,{success=false,error="Factory password prompt state unavailable"})
+    end
+    local result,why=first_login.acknowledge()
+    if not result then
+        return web.reply(http,503,{success=false,error=why or "Factory password prompt acknowledgement failed"})
+    end
+    return http.redirect(dispatcher.build_url("admin","status","overview"))
+end
+
+function action_r8_monitoring()
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="GET required"})
+    end
+    local state, err = monitoring.snapshot()
+    if not state then
+        return web.reply(http, 503, {success=false,error=err})
+    end
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    -- The private saved digest and UCI section must never enter the view scope.
+    state.original = nil
+    state.section = nil
+    return ltemplate.render("8311/monitoring", {monitor=state})
+end
+
+function action_r8_monitoring_save()
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values = operation_form({
+        revision=true,log_remote=true,log_ip=true,log_port=true,
+        log_proto=true,aott_metrics=true,aott_metrics_client=true
+    })
+    if not values then return end
+    local state, err, status = monitoring.apply(values)
+    return web.reply(http, status or 503,
+        state and {success=true,revision=state.revision,
+                   configured=state.configured,
+                   log_remote=state.log_remote,log_ip=state.log_ip,
+                   log_port=state.log_port,log_proto=state.log_proto,
+                   aott_metrics=state.aott_metrics,
+                   aott_metrics_client=state.aott_metrics_client,
+                   credential_configured=state.credential_configured,
+                   receiver_confirmed=false}
+            or {success=false,error=err or "Monitoring configuration failed"})
+end
+
+function action_r8_monitoring_test()
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values = operation_form({})
+    if not values then return end
+    local result, err = monitoring.send_test()
+    return web.reply(http, result and 200 or 503,
+        result and {success=true,event_id=result.event_id,
+                    receiver_confirmed=false,note=result.note}
+            or {success=false,error=err})
+end
+
+function action_r8_monitoring_credential()
+    http.header("Cache-Control", "no-store, private")
+    http.header("X-Content-Type-Options", "nosniff")
+    http.header("Referrer-Policy", "no-referrer")
+    if http.getenv("HTTPS") ~= "on" and http.getenv("HTTPS") ~= "1" then
+        return web.reply(http, 403, {success=false,
+            error="HTTPS is required for collector credential management"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    local values = operation_form({revision=true,credential_action=true})
+    if not values then return end
+    local result, why, status = monitoring.change_credential(
+        values.revision, values.credential_action)
+    return web.reply(http, status or 503,
+        result and {success=true,revision=result.revision,
+                    credential_configured=result.credential_configured,
+                    aott_metrics=result.aott_metrics,
+                    collector_token=result.collector_token}
+            or {success=false,error=why or "Credential change failed"})
+end
+
+function action_bank_status()
+    -- An administrator's boot-state fingerprint is a transient concurrency
+    -- precondition. Never cache it in a proxy or intermediary.
+    http.header("Cache-Control","no-store, private")
+    http.header("X-Content-Type-Options","nosniff")
+	local state, err = bank_status()
+	web.reply(http,state and 200 or 503,state or {success=false,error=err})
+end
+
+function action_firmware_upload()
+	if not dispatcher.context.authsession or not dispatcher.test_post_security(true) then return end
+	local record, err, code = uploads.receive(http, dispatcher.context.authsession)
+	web.reply(http,record and 201 or (code or 400), record and {success=true,upload=record} or {success=false,error=err})
+end
+
+function action_job_status()
+	local id = http.formvalue("id")
+	if type(id) ~= "string" then return web.reply(http,400,{success=false,error="Job ID required"}) end
+	local record, err = jobs.get(id, dispatcher.context.authsession)
+	web.reply(http,record and 200 or 404,record or {success=false,error=err})
+end
+
+function action_job_cancel()
+	local values = operation_form({id=true}); if not values then return end
+	local record, err = jobs.cancel(values.id, dispatcher.context.authsession)
+	web.reply(http,record and 200 or 409,record or {success=false,error=err})
+end
+
+function action_firmware()
+	if http.getenv("REQUEST_METHOD") == "GET" then
+		local state, err = bank_status()
+		local version = require "8311.version"
+		return ltemplate.render("8311/firmware", {version=version,bank_state=state,bank_error=err,
+			uploads=uploads.list(dispatcher.context.authsession),upload_maximum=uploads.maximum})
+	end
+	if not dispatcher.test_post_security() then return end
+	local values = operation_form({action=true,upload_id=true,sha256=true,bank=true,state_guard=true,expected_active=true,expected_target=true})
+	if not values then return end
+	local action = values.action
+	if action == "discard_upload" then
+        if values.state_guard or values.expected_active or values.expected_target then
+            return web.reply(http,400,{success=false,error="Unexpected bank expectation for upload discard"})
+        end
+		local ok, err = uploads.discard(values.upload_id, dispatcher.context.authsession)
+		return web.reply(http,ok and 200 or 409,{success=not not ok,error=err})
+	elseif action == "validate" or action == "install" then
+        if values.bank then
+            return web.reply(http,400,{success=false,error="Unexpected bank operation field for an archive"})
+        end
+        if action == "install" then
+            if not ((values.expected_active == "A" and values.expected_target == "B") or
+                    (values.expected_active == "B" and values.expected_target == "A")) then
+                return web.reply(http,409,{success=false,
+                    error="Refresh live bank state and review the exact overwrite target."})
+            end
+            if type(values.state_guard) ~= "string" or #values.state_guard ~= 64 or
+                values.state_guard:find("[^0-9a-f]") then
+                return web.reply(http,409,{success=false,
+                    error="A fresh bank-state confirmation is required for installation."})
+            end
+        elseif values.state_guard or values.expected_active or values.expected_target then
+            return web.reply(http,400,{success=false,error="Validation does not change any bank"})
+        end
+		local artifact, err = uploads.get(values.upload_id, dispatcher.context.authsession)
+		if not artifact then return web.reply(http,404,{success=false,error=err}) end
+		if type(values.sha256) ~= "string" or values.sha256 ~= artifact.sha256 then
+			return web.reply(http,409,{success=false,error="Upload digest changed; select and review this upload again"})
+		end
+		local args = {upload_id=artifact.upload_id,path=artifact.path,sha256=artifact.sha256,size=artifact.size}
+        if action == "install" then
+            args.expected_active=values.expected_active
+            args.expected_target=values.expected_target
+            args.state_guard=values.state_guard
+        end
+		local record, why = jobs.start(action == "validate" and "firmware_validate" or "firmware_install",args,dispatcher.context.authsession)
+		return web.reply(http,record and 202 or 409,record or {success=false,error=why})
+	end
+	local args = {}
+	local commands = {commit="commit",cancel_trial="cancel_trial",return_saved="return_saved",reboot="reboot"}
+	if commands[action] then args.action=commands[action]
+	elseif action == "trial" or action == "verify_bank" then
+		if values.bank ~= "A" and values.bank ~= "B" then return web.reply(http,400,{success=false,error="Select bank A or B"}) end
+		args.action=action == "trial" and "trial" or "verify"; args.bank=values.bank
+	else return web.reply(http,400,{success=false,error="Unsupported firmware operation"}) end
+	if values.upload_id or values.sha256 or values.expected_active or
+        values.expected_target or (values.bank and not args.bank) then
+		return web.reply(http,400,{success=false,error="Unexpected argument for this bank operation"})
+	end
+    -- The guard comes from a live authenticated bank-status read. It is
+    -- a concurrency precondition, not a credential or CSRF substitute.
+    -- The bank-control utility verifies it under the actual firmware lock.
+    if type(values.state_guard) ~= "string" or #values.state_guard ~= 64 or
+        values.state_guard:find("[^0-9a-f]") then
+        return web.reply(http,409,{success=false,
+            error="Live firmware state confirmation required. Refresh and review before retrying."})
+    end
+    args.state_guard=values.state_guard
+	local record, why = jobs.start("bank_operation", args, dispatcher.context.authsession)
+	return web.reply(http,record and 202 or 409,record or {success=false,error=why})
+end
+
+function action_support()
+	if http.getenv("REQUEST_METHOD") == "GET" then return ltemplate.render("8311/support", {}) end
+	if not dispatcher.test_post_security() then return end
+	local values = operation_form({action=true,full=true}); if not values then return end
+	if values.action ~= "generate" or (values.full ~= "0" and values.full ~= "1") then
+		return web.reply(http,400,{success=false,error="Choose a diagnostic export mode"})
+	end
+	local record, err = jobs.start("support",{full=values.full == "1"},dispatcher.context.authsession)
+	web.reply(http,record and 202 or 409,record or {success=false,error=err})
+end
