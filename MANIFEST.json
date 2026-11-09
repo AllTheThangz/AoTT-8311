@@ -326,10 +326,10 @@
       "sha256": "dc48e00c26ee6b4f11a7f2eddef2b9f48473bf113b8dcd33e5172a11543d6ee9"
     },
     {
-      "bytes": 11471,
+      "bytes": 12026,
       "executable": false,
       "path": "usr/lib/lua/8311/health.lua",
-      "sha256": "b53bb1ccdc38f9cadf9dc357341beb239c6d99dfdc199e59124845dfa23914c6"
+      "sha256": "c1dbd4222ea6ef931319d9a25b6944d8807ec232bcff964240c81c8175c00c13"
     },
     {
       "bytes": 10682,
@@ -626,10 +626,10 @@
       "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
     },
     {
-      "bytes": 94297,
+      "bytes": 94655,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "d100501bd231c734e3fde76a75f1a33b12227421c9c76d07149d4263ecc3925b"
+      "sha256": "b41bd6d21af9a0f7458cde515cd63debcaf3517fd1feb823c5799afdabcb3123"
     },
     {
       "bytes": 6721,
@@ -650,10 +650,10 @@
       "sha256": "dcf4a547401b0c20ed68b9260a04f3feed89b848a8b7a3c81dbec03e10687152"
     },
     {
-      "bytes": 5776,
+      "bytes": 6041,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/health.htm",
-      "sha256": "a18b982a2693eb35c00b17570e406c1648981e64b2656f9050a512a2d9f95c74"
+      "sha256": "2798097d5f63da79b4699d004987c7f505f6867ac8cbcb38467fe903146ed213"
     },
     {
       "bytes": 9226,
@@ -1034,10 +1034,10 @@
       "sha256": "70897b5458e2715a4863dbde6444a48b2f84677f687d8bf9b9120638e3a81421"
     },
     {
-      "bytes": 13749,
+      "bytes": 14685,
       "executable": false,
       "path": "www/luci-static/resources/view/8311-v2r1.js",
-      "sha256": "1ad7dd0fea1c170fd70f9c5998d1298efd3fe8035f9dca811665a755951a6018"
+      "sha256": "932a9ea78854385187af3f18b6b5d146a8940123e75ab8278b56c30908198a87"
     },
     {
       "bytes": 104283,
