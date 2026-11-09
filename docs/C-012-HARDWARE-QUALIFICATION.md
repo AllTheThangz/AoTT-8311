@@ -4,7 +4,7 @@
 **Baseline:** committed `AoTT-8311-v2r9` on
 `potron-prx126-aott-v1`.
 
-This milestone converts the existing 54-field capability registry into a
+This milestone converts the current 55-field capability registry into a
 hardware-test plan. It does **not** change the ONU, approve a live mutation, or
 claim that source validation proves a setting works on hardware.
 
@@ -18,7 +18,7 @@ from the canonical capability registry.
 
 The r9 configuration backend already provides a real schema, validation,
 revision-aware preview, sequential environment writes, and durable readback.
-The seven C-011 readback groups provide source contracts for all 54 fields.
+The seven C-011 readback groups provide source contracts for all 55 current V3 fields.
 Neither fact proves the complete hardware contract:
 
 `read -> validate -> preview -> apply -> durable readback -> effective readback -> persistence -> recovery`
@@ -31,7 +31,7 @@ test with a read-only baseline.
 | Mutation lane | Fields | Meaning |
 | --- | ---: | --- |
 | `SAFE_LIVE_APPLY_CANDIDATE` | 4 | Preferred first mutation candidates after a fresh baseline, explicit authorization, known original value, and bounded revert |
-| `RECOVERY_PATH_REQUIRED` | 25 | Do not mutate until an independent alternate management/recovery path is proven |
+| `RECOVERY_PATH_REQUIRED` | 26 | Lockout-sensitive management, boot, host, SFP, and credential controls require guarded recovery before hardware qualification |
 | `TEST_OLT_OR_SPARE_REQUIRED` | 25 | Do not use the production fiber connection as the first mutation target; use a spare/recoverable ONU and controlled OLT/service environment where applicable |
 
 The four lower-risk candidates are `lang`, `hostname`, `timezone`, and
@@ -54,7 +54,7 @@ its saved/configured/effective evidence:
 
 | Group | Fields | Module |
 | --- | ---: | --- |
-| management | 9 | `effective_state.lua` |
+| management | 10 | `effective_state.lua` |
 | device and virtual SFP | 11 | `effective_device_state.lua` |
 | advanced hardware | 8 | `effective_hardware_state.lua` |
 | sensitive identity | 9 | `effective_identity_state.lua` |
@@ -62,7 +62,7 @@ its saved/configured/effective evidence:
 | OMCI reporting | 10 | `effective_reporting_state.lua` |
 | ISP/VLAN | 3 | `effective_vlan_state.lua` |
 
-The union is exactly the canonical 54 GUI fields with no overlap.
+The union is exactly the canonical 55 V3 GUI fields with no overlap.
 
 ## Proof stages
 
@@ -90,8 +90,7 @@ The first bounded read-only baseline is now complete on the committed r9
 PRX126 reference unit. The public-safe evidence is
 [`C-012-PRX126-READONLY-BASELINE.json`](C-012-PRX126-READONLY-BASELINE.json).
 
-All seven installed readback groups returned their complete field sets, so all
-54 fields have a hardware-executed read-only baseline record. Device state was
+The immutable committed-r9 baseline covers its historical 54-field schema. The newly exposed `lct_vlan` field has a separate public-safe read-only extension in [C-014-MANAGEMENT-VLAN-READONLY-BASELINE.json](C-014-MANAGEMENT-VLAN-READONLY-BASELINE.json), producing a 55-field current-source baseline union without rewriting historical evidence. Device state was
 identical before and after the observation. No setting, bank, firmware image,
 service, or boot state was changed, and no raw setting value, address, MAC,
 subscriber identity, credential, password hash, or boot ID is published.
@@ -109,13 +108,12 @@ This is **not** full qualification of those five fields. It establishes only
 their read-only effective baseline. No native mutation, persistence, negative
 path, restart/reboot, or recovery test has been run.
 
-The other 49 fields remain configured/source/readback evidence without an
-independently proven runtime effect in this baseline. Their matrix gates do
+The historical r9 receipt leaves 49 of its 54 fields without independent runtime-effect proof. The new `lct_vlan` extension independently observes the current untagged topology, but that still does not qualify tagged mutation, persistence, confirmation, or recovery. Their matrix gates do
 not change.
 
 The next mutation work, when separately authorized, should start with the four
 lower-risk candidates `lang`, `hostname`, `timezone`, and `ntp_servers`
-and must preserve the stronger recovery/test-OLT gates for the other 50 fields.
+and must preserve the stronger recovery/test-OLT gates for the other 51 fields. The four lower-risk source paths are now ready for bounded live qualification, but remain hardware-unqualified until separately authorized apply/effect/restore/reboot evidence exists.
 
 ## Safety and publication boundary
 

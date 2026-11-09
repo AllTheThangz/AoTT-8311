@@ -5,10 +5,11 @@ local s=management or {}
 local storage=s.storage or {}
 local native=s.native or {}
 local topology=s.topology or {}
+local pending=s.pending_transaction or {}
 -%>
 <%+header%>
-<h2>Management VLAN & recovery preflight</h2>
-<p class="aott-section-intro">V3 read-only validation for the management network transition and its recovery prerequisites. This page can inspect and preview, but it cannot apply a VLAN change in the current qualification stage.</p>
+<h2>Management network & recovery</h2>
+<p class="aott-section-intro">Inspect the active management topology, preview VLAN transitions, and confirm a guarded management change after reconnecting through the proposed address. Management mutations are initiated from the normal Configuration page and automatically roll back unless the new path is verified and confirmed.</p>
 
 <section class="aott-fw-panel">
   <h3>Recovery storage</h3>
@@ -31,7 +32,25 @@ local topology=s.topology or {}
 </section>
 
 <section class="aott-fw-panel">
-  <h3>Preview management VLAN change</h3>
+  <h3>Pending guarded transaction</h3>
+  <% if pending.pending==true and pending.job_id then %>
+  <p class="alert-message warning"><strong>A management change is awaiting confirmation.</strong> Reaching this authenticated page through the intended management path proves browser access, but the backend still requires explicit confirmation before the rollback marker is cleared.</p>
+  <p>Rollback window: up to <strong><%=esc(s.timed_confirmation_seconds or 300)%> seconds</strong> from activation. If confirmation is not recorded, the previous management configuration is restored automatically.</p>
+  <form id="aott-management-confirm" action="<%=url('admin/8311/management_confirm')%>" method="post">
+    <input type="hidden" name="token" value="<%=esc(token)%>">
+    <input type="hidden" name="job_id" value="<%=esc(pending.job_id)%>">
+    <button class="cbi-button cbi-button-save" type="submit">Confirm this management path</button>
+  </form>
+  <div id="management-confirm-result" class="aott-fw-status" role="status" aria-live="polite"></div>
+  <% elseif pending.status=="unavailable" then %>
+  <p class="alert-message warning">Pending-transaction state is unavailable. Do not start another management change until recovery state can be verified.</p>
+  <% else %>
+  <p>No management transaction is awaiting confirmation.</p>
+  <% end %>
+</section>
+
+<section class="aott-fw-panel">
+  <h3>Preview management VLAN topology</h3>
   <form id="aott-management-preview" action="<%=url('admin/8311/management_vlan_preview')%>" method="post">
     <input type="hidden" name="token" value="<%=esc(token)%>">
     <div class="cbi-value">
@@ -48,8 +67,9 @@ local topology=s.topology or {}
 </section>
 
 <section class="aott-fw-panel">
-  <h3>Production gate</h3>
-  <p><strong>Apply is intentionally unavailable.</strong> V3 must first provision and power-loss-qualify the recovery store, prove restore behavior during a V3 one-shot hardware trial, and separately authorize the native environment writer.</p>
+  <h3>A-to-Z status</h3>
+  <p>The V3 source now contains the guarded apply, runtime verification, timed confirmation, reboot recovery, and automatic rollback path for the complete management tuple. This source path is <strong>not yet hardware-qualified</strong> on the production PRX126. A successful source test does not replace the required live apply, reconnect, confirmation, reboot-persistence, and restore evidence.</p>
+  <p>Use <a href="<%=url('admin/8311/config')%>#8311-tab-manage">Configuration → Management network</a> to review and initiate a complete management change.</p>
 </section>
 
 <script>
@@ -59,36 +79,61 @@ local topology=s.topology or {}
   var output=document.getElementById("management-preview-result");
   var details=document.getElementById("management-preview-details");
   var button=document.getElementById("management-preview-submit");
-  if(!form||!output||!details||!button)return;
-  form.addEventListener("submit",async function(event){
-    event.preventDefault();
-    button.disabled=true;
-    output.textContent="Building a fresh redacted preview...";
-    details.textContent="";
-    try{
-      var response=await fetch(form.action,{
-        method:"POST",credentials:"same-origin",cache:"no-store",
-        headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8","Accept":"application/json"},
-        body:new URLSearchParams(new FormData(form)).toString()
-      });
-      var data=await response.json();
-      if(!response.ok||!data||data.success!==true)throw new Error(data&&data.error?data.error:"Preview unavailable");
-      output.textContent=data.changes_required?"A change is required; no change was applied.":"Requested VLAN already matches the validated topology.";
-      details.textContent=[
-        "Current VLAN: "+data.current_vlan,
-        "Requested VLAN: "+data.requested_vlan,
-        "Redacted UCI operations: "+data.operations,
-        "Network operations: "+data.network_operations,
-        "Firewall operations: "+data.firewall_operations,
-        "Recovery store ready: "+(data.recovery_store_ready?"yes":"no"),
-        "Recovery provisioning required: "+(data.recovery_provisioning_required?"yes":"no"),
-        "Production write allowed: no"
-      ].join("\n");
-    }catch(error){
-      output.textContent="Preview refused: "+error.message;
+  if(form&&output&&details&&button){
+    form.addEventListener("submit",async function(event){
+      event.preventDefault();
+      button.disabled=true;
+      output.textContent="Building a fresh redacted preview...";
       details.textContent="";
-    }finally{button.disabled=false;}
-  });
+      try{
+        var response=await fetch(form.action,{
+          method:"POST",credentials:"same-origin",cache:"no-store",
+          headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8","Accept":"application/json"},
+          body:new URLSearchParams(new FormData(form)).toString()
+        });
+        var data=await response.json();
+        if(!response.ok||!data||data.success!==true)throw new Error(data&&data.error?data.error:"Preview unavailable");
+        output.textContent=data.changes_required?"A change is required; no change was applied.":"Requested VLAN already matches the validated topology.";
+        details.textContent=[
+          "Current VLAN: "+data.current_vlan,
+          "Requested VLAN: "+data.requested_vlan,
+          "Redacted UCI operations: "+data.operations,
+          "Network operations: "+data.network_operations,
+          "Firewall operations: "+data.firewall_operations,
+          "Recovery store ready: "+(data.recovery_store_ready?"yes":"no"),
+          "Recovery provisioning required: "+(data.recovery_provisioning_required?"yes":"no"),
+          "This preview performs no write."
+        ].join("\n");
+      }catch(error){
+        output.textContent="Preview refused: "+error.message;
+        details.textContent="";
+      }finally{button.disabled=false;}
+    });
+  }
+  var confirmForm=document.getElementById("aott-management-confirm");
+  var confirmResult=document.getElementById("management-confirm-result");
+  if(confirmForm&&confirmResult){
+    confirmForm.addEventListener("submit",async function(event){
+      event.preventDefault();
+      var confirmButton=confirmForm.querySelector("button[type=submit]");
+      if(confirmButton)confirmButton.disabled=true;
+      confirmResult.textContent="Confirming this authenticated management path...";
+      try{
+        var response=await fetch(confirmForm.action,{
+          method:"POST",credentials:"same-origin",cache:"no-store",
+          headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8","Accept":"application/json"},
+          body:new URLSearchParams(new FormData(confirmForm)).toString()
+        });
+        var data=await response.json();
+        if(!response.ok||!data||data.success!==true)throw new Error(data&&data.error?data.error:"Confirmation refused");
+        confirmResult.textContent="Management path confirmed. The rollback marker has been recorded; refresh after the worker completes cleanup.";
+        if(confirmButton)confirmButton.disabled=true;
+      }catch(error){
+        confirmResult.textContent="Confirmation failed: "+error.message+". Do not start another change; allow the existing rollback window to resolve.";
+        if(confirmButton)confirmButton.disabled=false;
+      }
+    });
+  }
 }());
 </script>
 <%+footer%>

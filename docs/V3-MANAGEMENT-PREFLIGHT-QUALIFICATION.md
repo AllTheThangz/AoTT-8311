@@ -2,7 +2,7 @@
 
 **Status:** read/preview integrated, production write gated. No management setting, recovery file, firmware bank, boot selector, or service was changed on the production reference unit.
 
-AoTT-8311 V3r1 now includes a read-only management VLAN preflight path. It combines the existing C-014 native management reader, recovery-storage admission contract, and validated UCI VLAN transition planner behind an authenticated administrator page. The page can show whether the recovery prerequisites are present and can generate a redacted change count for VLAN 0 through 4094. It contains no production apply route.
+This document records the earlier **read-only preflight milestone**. Post-RC3 `dev/v3` has since added the guarded production management transaction described in [C-014 V3 guarded management transaction](C-014-V3-GUARDED-MANAGEMENT-TRANSACTION.md). The preflight described below remains a prerequisite and historical qualification record; its statement that no production apply route existed applies to that earlier checkpoint, not current `dev/v3`.
 
 ## Runtime boundary
 

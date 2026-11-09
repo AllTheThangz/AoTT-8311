@@ -4,6 +4,7 @@ local web = require "8311.webutil"
 local fs = require "nixio.fs"
 local base64 = require "base64"
 local json = require "luci.jsonc"
+local config_route = require "8311.config_route"
 local M = {}
 local secret = { gpon_sn=true, reg_id_hex=true, loid=true, lpwd=true, root_pwhash=true }
 local boot_path = "/tmp/8311-config-at-boot.json"
@@ -16,7 +17,8 @@ local function flat(schema)
 	return all
 end
 
-local function key(item) return (item.base and "" or "8311_") .. item.id end
+local function storage_id(item) return item.id end
+local function key(item) return (item.base and "" or "8311_") .. storage_id(item) end
 local function canonical(items, values)
 	local parts = {}
 	for _, item in ipairs(items) do
@@ -50,6 +52,44 @@ local function display(item, value)
 	if value == "" then return "(default / unset)" end
 	return value
 end
+
+local pon_activation_note="Guarded PON/OMCI transaction with persistent environment/UCI/MIB rollback, local consumer verification, O5.1 recovery, and explicit confirmation; per-field OLT acceptance requires separate qualification"
+
+local live_activation_notes = {
+	lct_vlan="Guarded live management transaction; reconnect and confirm within the automatic rollback window",
+	ipaddr="Guarded live management transaction; reconnect and confirm within the automatic rollback window",
+	netmask="Guarded live management transaction; reconnect and confirm within the automatic rollback window",
+	gateway="Guarded live management transaction; reconnect and confirm within the automatic rollback window",
+	dns_server="Guarded live management transaction; reconnect and confirm within the automatic rollback window",
+	lct_mac="Guarded live management transaction; reconnect and confirm within the automatic rollback window",
+	lang="Immediately for new authenticated GUI requests; current page may need reload",
+	hostname="Immediately after save; UCI and running kernel hostname are verified",
+	timezone="Immediately after save; UCI and active /tmp/localtime target are verified",
+	ntp_servers="Immediately after save; UCI and active ntpd peer arguments are verified",
+	https_redirect="Immediately after save; uhttpd is reloaded and the local HTTP response is verified",
+	pingd="Immediately after save; the keepalive daemon is restarted and its runtime receipt is verified",
+	ping_ip="Immediately after save; the keepalive target is replaced, pingd is restarted, and the consumed target is verified",
+	reverse_arp="Immediately after save; the reverse-ARP daemon is restarted and its runtime receipt is verified",
+	console_en="Immediately after save; the shared GPIO output is written and read back",
+	dying_gasp_en="Immediately after save; optic configuration and the shared GPIO output are verified",
+	rx_los="Immediately after save; the RX_LOS daemon is restarted and its process-bound state receipt is verified",
+	ethtool_speed="Immediately when explicitly set; ethtool status is read back. Clearing the override takes effect after restart",
+	sfp_vendor="Immediately after virtual SFP EEPROM reinitialization and host-visible byte readback",
+	sfp_oui="Immediately after virtual SFP EEPROM reinitialization and host-visible byte readback",
+	sfp_partno="Immediately after virtual SFP EEPROM reinitialization and host-visible byte readback",
+	sfp_rev="Immediately after virtual SFP EEPROM reinitialization and host-visible byte readback",
+	sfp_serial="Immediately after virtual SFP EEPROM reinitialization and host-visible byte readback",
+	sfp_date="Immediately after virtual SFP EEPROM reinitialization and host-visible byte readback",
+	sfp_vendordata="Immediately after virtual SFP EEPROM reinitialization and host-visible byte readback",
+	fix_vlans="Immediately through the guarded VLAN reconciler; built-in owned rules are verified or removed",
+	internet_vlan="Immediately through the guarded VLAN reconciler and private reconciliation receipt",
+	services_vlan="Immediately through the guarded VLAN reconciler and private reconciliation receipt",
+	bootdelay="Guarded one-boot trial required; U-Boot effect is verified only across a reboot/recovery cycle",
+	uart_select="Guarded one-boot trial required; early UART effect is verified only across a reboot/recovery cycle",
+	failsafe_delay="Guarded reboot trial required; OMCI startup timing is verified after reboot",
+	persist_root="Guarded reboot/recovery transaction required; debug persistent-root mode is never changed by the generic saver",
+	root_pwhash="Dedicated secret-safe root credential transaction; never handled as an ordinary configuration value",
+}
 
 -- Keep the saved gateway intact. Historical builds can rely on a
 -- self-address default route for remote management; it must not disappear
@@ -235,14 +275,36 @@ function M.prepare(snapshot, form)
 			elseif item.id ~= "gateway" and item.value == "" and item.default ~= nil and value == tostring(item.default) then value = "" end
 			-- Never rewrite the gateway unless it was actually edited.
 			if value ~= item.value then
-				changes[#changes+1] = {item=item, value=value, raw=item.base64 and value ~= "" and base64.enc(value) or value}
-				diff[#diff+1] = {id=item.id,name=item.name,before=display(item,item.value),after=display(item,value),applies=item.id == "lang" and "Web interface after save" or "Next startup; live consumers may also re-read it"}
+				changes[#changes+1] = {
+					item=item, value=value,
+					raw=item.base64 and value ~= "" and base64.enc(value) or value,
+					effective=proposed[item.id],
+					previous_effective=effective(item,item.value)
+				}
+				local field_route=config_route.route(item.id)
+				local applies=live_activation_notes[item.id]
+				if not applies and field_route=="pon" then applies=pon_activation_note end
+				if not applies then
+					applies="Dedicated guarded transaction required; no generic configuration writer is permitted for this field"
+				end
+				diff[#diff+1] = {
+					id=item.id,name=item.name,before=display(item,item.value),
+					after=display(item,value),applies=applies
+				}
 			end
 		end
 	end
 	for name, value in pairs(form) do
 		if not known[name] then errors.request = "Unknown form field" end
 		if type(value) ~= "string" then errors[name] = "Duplicate or invalid field" end
+	end
+	local changed_ids={}
+	for _,change in ipairs(changes) do changed_ids[#changed_ids+1]=change.item.id end
+	local route,route_why=config_route.classify(changed_ids)
+	if not route then
+		errors.request="Configuration routing failed; no settings were written ("..tostring(route_why)..")"
+	elseif route.route=="mixed" then
+		errors.request="These changes use different guarded apply paths. Review and apply one configuration group at a time."
 	end
 	local v = proposed
 	-- Blank means no gateway for a fresh configuration. Saved legacy
@@ -286,39 +348,197 @@ function M.prepare(snapshot, form)
 		end
 	end
 	if next(errors) then return nil, errors, 422 end
-	return {changes=changes,diff=diff,revision=snapshot.revision}
+	return {
+		changes=changes,diff=diff,revision=snapshot.revision,
+		route=route and route.route or "none",
+		routes=route and route.routes or {},
+	}
+end
+
+local function restore_environment(snapshot,changes)
+	local receipt={attempted=true,succeeded=true,restored={},failed={}}
+	for index=#changes,1,-1 do
+		local change=changes[index]
+		local item=change.item
+		local old=snapshot.values[key(item)] or ""
+		local setter=item.base and tools.fw_setenv or tools.fw_setenv_8311
+		local ok=setter{storage_id(item),old}
+		local readback=tools.fwenv_read_all()
+		if ok and readback and (readback[key(item)] or "")==old then
+			receipt.restored[#receipt.restored+1]=item.id
+		else
+			receipt.succeeded=false
+			receipt.failed[#receipt.failed+1]=item.id
+		end
+	end
+	return receipt
 end
 
 -- The fixed shell entry point holds the shared environment lock before calling
--- this function. This is checked sequential persistence, not an atomic flash transaction.
+-- this function. Durable environment writes are verified first. Any failed
+-- multi-field persistence attempt is restored in reverse order and read back
+-- before the lock is released. Lower-risk fields with traced live consumers
+-- then enter the separate activation layer.
 function M.apply(snapshot, prepared)
-	local result = {success=true,revision=snapshot.revision,diff=prepared.diff,verified={},errors={}}
+	local result = {
+		success=true,revision=snapshot.revision,diff=prepared.diff,
+		verified={},errors={},activation=nil
+	}
+	if prepared.route~="live" and prepared.route~="none" and prepared.route~="credential" then
+		result.success=false
+		result.rejected_before_write=true
+		result.durability_unknown=false
+		result.required_route=prepared.route
+		result.management_transaction_required=prepared.route=="management"
+		result.boot_transaction_required=prepared.route=="boot"
+		result.credential_transaction_required=prepared.route=="credential"
+		result.pon_transaction_required=prepared.route=="pon"
+		local messages={
+			management="Management changes require the guarded timed-confirmation transaction",
+			boot="Boot-time settings require the guarded reboot trial and recovery transaction",
+			credential="Administrator credential changes require the dedicated secret-safe credential transaction",
+			pon="PON/OMCI changes require the guarded optical transaction and appropriate OLT verification",
+		}
+		result.errors.request=messages[prepared.route] or "This configuration group requires a dedicated guarded transaction"
+		return result
+	end
+	local loaded, activation = pcall(require,"8311.config_activation")
+	if not loaded or type(activation)~="table" or type(activation.apply)~="function" then
+		result.success=false
+		result.errors.request="Live activation module is unavailable; no settings were written"
+		result.rejected_before_write=true
+		result.durability_unknown=false
+		return result
+	end
+
+	local attempted={}
 	for _, change in ipairs(prepared.changes) do
+		attempted[#attempted+1]=change
 		local item = change.item
 		local setter = item.base and tools.fw_setenv or tools.fw_setenv_8311
-		local ok = setter{item.id, change.raw}
+		local ok = setter{storage_id(item), change.raw}
 		local readback = tools.fwenv_read_all()
 		if not ok or not readback or (readback[key(item)] or "") ~= change.raw then
+			local rollback=restore_environment(snapshot,attempted)
 			result.success=false
-			result.partial = #result.verified > 0 or (readback ~= nil and
-				(readback[key(item)] or "") ~= (snapshot.values[key(item)] or ""))
-			-- A setter can fail after its first redundant-environment write. A
-			-- missing readback also cannot establish that nothing was changed.
-			result.durability_unknown = true
-			result.errors[item.id]="Persistence or readback failed; reload to see the durable state"
-			break
+			result.persistence_rollback=rollback
+			result.rollback_attempted=true
+			result.rollback_succeeded=rollback.succeeded
+			result.errors[item.id]=rollback.succeeded and
+				"Persistence failed; all attempted saved values were restored and verified" or
+				"Persistence failed and rollback could not be fully verified; reload before another save"
+			if rollback.succeeded then
+				result.verified={}
+				result.partial=false
+				result.durability_unknown=false
+			else
+				result.partial=#result.verified>0 or (readback~=nil and
+					(readback[key(item)] or "")~=(snapshot.values[key(item)] or ""))
+				result.durability_unknown=true
+			end
+			return result
 		end
 		result.verified[#result.verified+1]=item.id
 	end
-	if result.success then
-		for _, change in ipairs(prepared.changes) do
-			if change.item.id == "lang" then
-				local code = web.capture({"/sbin/uci", "set", "luci.main.lang=" .. effective(change.item, change.value)}, 1024)
-				if code == 0 then code = web.capture({"/sbin/uci", "commit", "luci"}, 1024) end
-				if code ~= 0 then result.warning="Settings were saved; language activation failed and will be retried at startup" end
+
+	if prepared.route=="credential" then
+		if #prepared.changes~=1 or prepared.changes[1].item.id~="root_pwhash" then
+			local rollback=restore_environment(snapshot,prepared.changes)
+			result.success=false
+			result.verified={}
+			result.persistence_rollback=rollback
+			result.rollback_attempted=true
+			result.rollback_succeeded=rollback.succeeded
+			result.errors.request="Credential transaction scope changed unexpectedly; saved values were rolled back"
+			return result
+		end
+		local loaded_credential,credential=pcall(require,"8311.credential_activation")
+		if not loaded_credential or type(credential)~="table" or type(credential.apply)~="function" then
+			local rollback=restore_environment(snapshot,prepared.changes)
+			result.success=false
+			result.verified={}
+			result.persistence_rollback=rollback
+			result.rollback_attempted=true
+			result.rollback_succeeded=rollback.succeeded
+			result.errors.request="Credential activation module unavailable; saved value was rolled back"
+			return result
+		end
+		local receipt,credential_why=credential.apply(prepared.changes[1].effective)
+		if not receipt then
+			local rollback=restore_environment(snapshot,prepared.changes)
+			result.success=false
+			result.verified={}
+			result.persistence_rollback=rollback
+			result.rollback_attempted=true
+			result.rollback_succeeded=rollback.succeeded
+			result.errors.root_pwhash=rollback.succeeded and
+				"Credential activation failed; saved credential was restored" or
+				"Credential activation failed and saved rollback could not be verified"
+			result.activation_error=credential_why or "credential_activation_failed"
+			return result
+		end
+		result.activation={
+			schema=1,success=true,order={"root_pwhash"},
+			fields={root_pwhash={
+				configured_verified=true,runtime_effect_proven=true,
+				observed_source=receipt.observed_source,
+			}},
+			contains_credential_material=false,
+		}
+		return result
+	end
+
+	local activated, why = activation.apply(prepared.changes)
+	if not activated then
+		result.success=false
+		result.activation_error=why or "Live activation could not start"
+		result.durability_unknown=false
+		return result
+	end
+	result.activation=activated
+	if activated.success==true then
+		result.requires_new_authenticated_request=
+			activated.requires_new_authenticated_request==true
+		return result
+	end
+
+	-- The activation layer has already attempted to restore its native
+	-- UCI/runtime state. Reject the entire reviewed transaction by restoring
+	-- every boot-environment value, including next-startup-only fields.
+	local live={}
+	for _,id in ipairs(activated.order or {}) do live[id]=true end
+	local saved=restore_environment(snapshot,prepared.changes)
+	local runtime_recovery=true
+	local recovery=nil
+	if saved.succeeded and next(live) then
+		local recovery_changes={}
+		for _,change in ipairs(prepared.changes) do
+			if live[change.item.id] then
+				recovery_changes[#recovery_changes+1]={
+					item=change.item,
+					effective=effective(change.item,change.item.value),
+					previous_effective=effective(change.item,change.item.value)
+				}
 			end
 		end
+		recovery=activation.apply(recovery_changes)
+		runtime_recovery=type(recovery)=="table" and recovery.success==true
 	end
+	result.success=false
+	result.verified={}
+	result.activation_failed=true
+	result.saved_rollback_attempted=true
+	result.saved_rollback_succeeded=saved.succeeded
+	result.persistence_rollback=saved
+	result.runtime_recovery=recovery
+	result.runtime_rollback_succeeded=runtime_recovery
+	result.partial=not saved.succeeded or not runtime_recovery
+	result.durability_unknown=not saved.succeeded
+	result.runtime_state_unknown=not runtime_recovery
+	local failed=activated.failed_field or "request"
+	result.errors[failed]=(saved.succeeded and runtime_recovery) and
+		"Live activation failed; the complete reviewed save was rolled back and verified" or
+		"Live activation failed; rollback could not be fully verified"
 	return result
 end
 

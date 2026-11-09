@@ -27,7 +27,7 @@ class EffectiveManagementSourceTests(unittest.TestCase):
             str(ROOT/"overlay/usr/lib/lua")],
             capture_output=True,text=True,timeout=25)
         self.assertEqual(p.returncode,0,p.stderr)
-        self.assertIn("AOTT_C011_EFFECTIVE_STATE_FIXTURE_PASS checks=97",p.stdout)
+        self.assertIn("AOTT_C011_EFFECTIVE_STATE_FIXTURE_PASS checks=118",p.stdout)
 
     def test_real_vendor_mips_lua_fixture(self):
         if not os.getenv("AOTT_VENDOR_ROOTFS"):
@@ -38,7 +38,7 @@ class EffectiveManagementSourceTests(unittest.TestCase):
             str(binary),str(FIXTURE),str(ROOT/"overlay/usr/lib/lua")],
             capture_output=True,text=True,timeout=35)
         self.assertEqual(p.returncode,0,p.stderr)
-        self.assertIn("AOTT_C011_EFFECTIVE_STATE_FIXTURE_PASS checks=97",p.stdout)
+        self.assertIn("AOTT_C011_EFFECTIVE_STATE_FIXTURE_PASS checks=118",p.stdout)
 
     def test_lua_syntax_on_both_modules(self):
         for p in (MODEL,PROBE):
@@ -49,8 +49,10 @@ class EffectiveManagementSourceTests(unittest.TestCase):
 
     def test_fixed_source_names_no_secret_probes_or_unauthorized_mutations(self):
         p=PROBE.read_text()
-        self.assertIn('"ipaddr","netmask","gateway","dns_server","pingd"',p)
+        self.assertIn('"lct_vlan","ipaddr","netmask","gateway","dns_server","pingd"',p)
         self.assertIn('"ping_ip","lct_mac","reverse_arp","https_redirect"',p)
+        self.assertIn('"/bin/ubus","call","network.interface."..section,"status"',p)
+        self.assertIn('"/sbin/ip","-d","link","show","dev","mgmt"',p)
         self.assertIn('"/usr/sbin/fwenv_get","--8311",name',p)
         self.assertIn('"/sbin/ip","-o","-4","addr","show","dev",iface',p)
         self.assertIn('"/sbin/ip","-4","route","show","default"',p)
@@ -77,8 +79,9 @@ class EffectiveManagementSourceTests(unittest.TestCase):
             "persist_after_reboot_proven", "recovery_proven",
             "hardware_qualified", "no_device_write",
             "kernel_ipv4_interface", "kernel_default_route_via",
-            "uci_dns_is_not_effective_resolver_evidence",
-            "running_daemon_does_not_prove_feature_enabled",
+            "netifd_active_dns", "kernel_vlan_link_id",
+            "pingd_runtime_receipt", "rarpd_runtime_receipt",
+            "runtime_target_does_not_prove_ping_success",
         ):
             self.assertIn(entry,p)
         self.assertNotIn("fwenv_set",p)

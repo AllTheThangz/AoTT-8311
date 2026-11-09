@@ -119,7 +119,124 @@ local function set_field(path, me, param, value)
     atomic_write(path,lines)
 end
 
-local function set_slot(path, newslot, dry_run)
+local function field_map(path, me, param)
+    param=tonumber(param)
+    if not param or param < 0 or param > 128 then die("invalid field index") end
+    if not tostring(me):match("^%d+$") then die("invalid ME class") end
+    local lines=load_file(path)
+    local values={}
+    for _,l in ipairs(lines) do
+        local t=l.tokens
+        if #t > 0 then
+            local mi=me_index(t)
+            if t[mi] == tostring(me) then
+                local instance=t[mi+1]
+                local target=mi+param+1
+                if not instance or not t[target] then die("target field missing in ME "..me) end
+                if values[instance]~=nil then die("duplicate ME instance in field source") end
+                values[instance]=t[target]
+            end
+        end
+    end
+    if next(values)==nil then die("ME class not found: "..me) end
+    return values
+end
+
+local function copy_field(source, dest, me, param, check_only)
+    local wanted=field_map(source,me,param)
+    local lines=load_file(dest)
+    local matched={}
+    for _,l in ipairs(lines) do
+        local t=l.tokens
+        if #t > 0 then
+            local mi=me_index(t)
+            if t[mi] == tostring(me) then
+                local instance=t[mi+1]
+                local target=mi+tonumber(param)+1
+                if not instance or not t[target] or wanted[instance]==nil then
+                    die("destination ME instance set differs from pristine source")
+                end
+                if check_only then
+                    if t[target]~=wanted[instance] then die("destination field differs from pristine source") end
+                else
+                    replace_token(l,target,wanted[instance])
+                end
+                matched[instance]=true
+            end
+        end
+    end
+    for instance in pairs(wanted) do
+        if not matched[instance] then die("pristine ME instance missing from destination") end
+    end
+    if not check_only then atomic_write(dest,lines) end
+end
+
+local function check_field(path, me, param, value)
+    param=tonumber(param)
+    if not param or param < 0 or param > 128 then die("invalid field index") end
+    if not tostring(me):match("^%d+$") then die("invalid ME class") end
+    local lines=load_file(path)
+    local expected=quoted(value)
+    local matched=0
+    for _,l in ipairs(lines) do
+        local t=l.tokens
+        if #t > 0 then
+            local mi=me_index(t)
+            if t[mi] == tostring(me) then
+                local target=mi+param+1
+                if not t[target] then die("target field missing in ME "..me) end
+                if t[target] ~= expected then die("target field does not match") end
+                matched=matched+1
+            end
+        end
+    end
+    if matched == 0 then die("ME class not found: "..me) end
+end
+
+local set_slot
+
+local function infer_slot_from_lines(lines)
+    local slot_candidates={}
+    for _,l in ipairs(lines) do
+        local t=l.tokens
+        if #t > 0 then
+            local mi=me_index(t)
+            if t[mi] == "277" then
+                local qinst=(t[mi+1] or ""):lower()
+                local port=(t[mi+7] or ""):lower()
+                local s,u=port:match("^0x(%x%x)(%x%x)%x%x%x%x$")
+                local slot=s and tonumber(s,16) or nil
+                if qinst:match("^0x00%x%x$") and slot and slot >= 1 and slot <= 254 and u == "01" then
+                    slot_candidates[slot]=true
+                end
+            end
+        end
+    end
+    local oldslot,nslots=nil,0
+    for slot in pairs(slot_candidates) do nslots=nslots+1;oldslot=slot end
+    if nslots == 0 then
+        die("cannot infer current UNI-1 slot from priority queue relationships")
+    elseif nslots > 1 then
+        die("ambiguous UNI-1 slot in priority queue relationships")
+    end
+    return oldslot
+end
+
+local function infer_slot(path)
+    return infer_slot_from_lines(load_file(path))
+end
+
+local function copy_slot(source,dest,check_only)
+    local source_slot=infer_slot(source)
+    local dest_slot=infer_slot(dest)
+    if check_only then
+        if source_slot~=dest_slot then die("destination slot differs from pristine source") end
+        return
+    end
+    set_slot(dest,tostring(source_slot),false)
+end
+
+set_slot=function(path, newslot, dry_run)
     newslot=tonumber(newslot)
     if not newslot or newslot < 1 or newslot > 254 or newslot ~= math.floor(newslot) then
         die("slot must be 1..254")
@@ -277,6 +394,21 @@ local cmd=arg[1]
 if cmd=="set-field" then
     if #arg ~= 5 then die("usage: set-field <file> <class> <field-index> <value>") end
     set_field(arg[2],arg[3],arg[4],arg[5])
+elseif cmd=="check-field" then
+    if #arg ~= 5 then die("usage: check-field <file> <class> <field-index> <value>") end
+    check_field(arg[2],arg[3],arg[4],arg[5])
+elseif cmd=="copy-field" then
+    if #arg ~= 5 then die("usage: copy-field <source> <dest> <class> <field-index>") end
+    copy_field(arg[2],arg[3],arg[4],arg[5],false)
+elseif cmd=="check-field-source" then
+    if #arg ~= 5 then die("usage: check-field-source <source> <dest> <class> <field-index>") end
+    copy_field(arg[2],arg[3],arg[4],arg[5],true)
+elseif cmd=="copy-slot" then
+    if #arg ~= 3 then die("usage: copy-slot <source> <dest>") end
+    copy_slot(arg[2],arg[3],false)
+elseif cmd=="check-slot-source" then
+    if #arg ~= 3 then die("usage: check-slot-source <source> <dest>") end
+    copy_slot(arg[2],arg[3],true)
 elseif cmd=="set-slot" then
     if #arg ~= 3 then die("usage: set-slot <file> <slot>") end
     set_slot(arg[2],arg[3],false)

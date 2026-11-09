@@ -10,9 +10,10 @@ local model = require "8311.effective_state"
 
 local IFACES = {"eth0_0_1_lct","mgmt"}
 local SECTIONS = {"lct","mgmt"}
+local DEFAULT_ROUTE_TARGET=table.concat({"0","0","0","0"},".")
 local UCI_KEYS = {"ipaddr","netmask","gateway","dns","macaddr","ifname"}
 local ENV_KEYS = {
-    "ipaddr","netmask","gateway","dns_server","pingd",
+    "lct_vlan","ipaddr","netmask","gateway","dns_server","pingd",
     "ping_ip","lct_mac","reverse_arp","https_redirect"
 }
 
@@ -30,6 +31,52 @@ end
 
 local function verified_interface(name)
     return name=="eth0_0_1_lct" or name=="mgmt"
+end
+
+local function sanitize_netifd_status(value,section)
+    if type(value)~="table" or (section~="lct" and section~="mgmt") then return nil end
+    if type(value.up)~="boolean" then return nil end
+    local expected=section=="lct" and "eth0_0_1_lct" or "mgmt"
+    if value.up and value.l3_device~=expected and value.device~=expected then return nil end
+    local result={probe_ok=true,up=value.up,device=expected,dns={}}
+    local addresses=value["ipv4-address"]
+    if type(addresses)=="table" and #addresses==1 then
+        local row=addresses[1]
+        if type(row)=="table" and model.valid_ipv4(row.address) and
+           type(row.mask)=="number" and model.dotted_mask(row.mask) then
+            result.ipv4=row.address
+            result.prefix=row.mask
+        end
+    elseif type(addresses)=="table" and #addresses>1 then
+        return nil
+    end
+    local routes=value.route
+    if type(routes)=="table" then
+        local gateway=nil
+        for _,row in ipairs(routes) do
+            if type(row)=="table" and row.target==DEFAULT_ROUTE_TARGET and row.mask==0 then
+                if gateway~=nil then return nil end
+                if type(row.nexthop)=="string" and row.nexthop~="" then
+                    if not model.valid_ipv4(row.nexthop) then return nil end
+                    gateway=row.nexthop
+                else
+                    gateway=""
+                end
+            end
+        end
+        result.gateway=gateway
+    end
+    local dns=value["dns-server"]
+    if type(dns)=="table" then
+        if #dns>8 then return nil end
+        local seen={}
+        for _,server in ipairs(dns) do
+            if not model.valid_ipv4(server) or seen[server] then return nil end
+            seen[server]=true
+            result.dns[#result.dns+1]=server
+        end
+    end
+    return result
 end
 
 local function parse_ip_output(body)
@@ -105,6 +152,11 @@ local function capture(adapter)
         end
         uci[section]=values
     end
+    local vlan_vid=safe_call(adapter.uci,"network","lct_vlan","vid")
+    uci.lct_vlan={}
+    if type(vlan_vid)=="string" and #vlan_vid<=128 then
+        uci.lct_vlan.vid=trim(vlan_vid)
+    end
     local redirect=safe_call(adapter.uci,"uhttpd","main","redirect_https")
     if type(redirect)=="string" and #redirect<=128 then
         uci.uhttpd.redirect_https=trim(redirect)
@@ -141,8 +193,42 @@ local function capture(adapter)
     end
 
     local ping=safe_call(adapter.ping)
-    local obs={uci=uci,kernel=kernel,runtime={ping_target=trim(ping)},
-               http={independent_response_checked=false}}
+    local pingd=type(adapter.daemon)=="function" and safe_call(adapter.daemon,"pingd") or nil
+    local rarpd=type(adapter.daemon)=="function" and safe_call(adapter.daemon,"rarpd") or nil
+    local http={independent_response_checked=false}
+    if type(adapter.http_redirect)=="function" then
+        local observed=safe_call(adapter.http_redirect)
+        if type(observed)=="table" and
+           observed.response_checked==true and
+           type(observed.redirects_https)=="boolean" then
+            http.independent_response_checked=true
+            http.redirects_https=observed.redirects_https
+        end
+    end
+    local netifd={}
+    if type(adapter.interface_status)=="function" then
+        for _,section in ipairs(SECTIONS) do
+            local value=safe_call(adapter.interface_status,section)
+            local sanitized=sanitize_netifd_status(value,section)
+            if sanitized then netifd[section]=sanitized end
+        end
+    end
+    local active_vlan_id=nil
+    if type(adapter.vlan_link)=="function" then
+        local raw=safe_call(adapter.vlan_link)
+        if type(raw)=="string" and #raw<=4096 then
+            local id=raw:match("%svlan%s+protocol%s+802%.1Q%s+id%s+(%d+)")
+            if not id then id=raw:match("%svlan%s+id%s+(%d+)") end
+            id=tonumber(id)
+            if id and id>=1 and id<=4094 and id==math.floor(id) then
+                active_vlan_id=id
+            end
+        end
+    end
+    local obs={uci=uci,kernel=kernel,
+               runtime={ping_target=trim(ping),pingd=pingd,rarpd=rarpd,
+                        netifd=netifd,vlan_id=active_vlan_id},
+               http=http}
     return model.inspect_management(saved,obs)
 end
 
@@ -158,6 +244,8 @@ function M.live_management()
         local uci=require("luci.model.uci").cursor()
         local web=require "8311.webutil"
         local fs=require "nixio.fs"
+        local http_probe=require "8311.local_http_probe"
+        local daemon_state=require "8311.daemon_state"
 
         local function bounded(args,max_bytes)
             local code,data,overflow=web.capture(args,max_bytes or 4096)
@@ -189,6 +277,31 @@ function M.live_management()
             end,
             ping=function()
                 return fs.readfile("/tmp/8311-ping-host",96)
+            end,
+            http_redirect=function()
+                local address=uci:get("network","mgmt","ipaddr")
+                if not model.valid_ipv4(address) then
+                    address=uci:get("network","lct","ipaddr")
+                end
+                if not model.valid_ipv4(address) then return nil end
+                return http_probe.inspect(address)
+            end,
+            daemon=function(name)
+                return daemon_state.read(name)
+            end,
+            interface_status=function(section)
+                if section~="lct" and section~="mgmt" then return nil end
+                local code,raw,overflow=web.capture(
+                    {"/bin/ubus","call","network.interface."..section,"status"},8192)
+                if code~=0 or overflow or type(raw)~="string" then return nil end
+                local json=require "luci.jsonc"
+                local ok,value=pcall(json.parse,raw)
+                return ok and type(value)=="table" and value or nil
+            end,
+            vlan_link=function()
+                local code,raw,overflow=web.capture(
+                    {"/sbin/ip","-d","link","show","dev","mgmt"},4096)
+                return code==0 and not overflow and raw or nil
             end,
         }
         return capture(adapter)

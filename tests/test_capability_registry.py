@@ -39,10 +39,10 @@ class CapabilityRegistryTests(unittest.TestCase):
 
     def test_canonical_gui_schema_is_not_a_separate_handwritten_duplicate(self):
         original = inventory.inspect(ROOT)
-        self.assertEqual(len(self.fields), 54)
+        self.assertEqual(len(self.fields), 55)
         self.assertEqual(set(self.fields), {x["id"] for x in original["gui_fields"]})
         self.assertEqual(self.report["summary"]["by_gui_group"], {
-            "pon":22, "isp":3, "device":13, "sfp":7, "manage":9,
+            "pon":22, "isp":3, "device":13, "sfp":7, "manage":10,
         })
         for r in original["gui_fields"]:
             self.assertEqual(self.fields[r["id"]]["schema_type"], r["schema_type"])
@@ -99,7 +99,7 @@ class CapabilityRegistryTests(unittest.TestCase):
         self.assertGreaterEqual(
             self.report["summary"]["gui_fields_with_native_reference"],40)
         self.assertLess(
-            self.report["summary"]["gui_fields_with_native_reference"],54)
+            self.report["summary"]["gui_fields_with_native_reference"],55)
         for item in list(self.fields.values())+list(self.missing.values()):
             for ref in item["static_native_references"]:
                 path=ROOT/ref["path"]
@@ -133,9 +133,9 @@ class CapabilityRegistryTests(unittest.TestCase):
 
     def test_missing_fields_are_distinguished_from_legacy_fallbacks(self):
         self.assertEqual(set(self.missing),{
-            "device_sn","factory_mode","lct_vlan","tx_en_mode"})
-        self.assertEqual(self.missing["lct_vlan"]["reason"],
-                         "GUI_DISABLED_AS_BROKEN")
+            "device_sn","factory_mode","tx_en_mode"})
+        self.assertIn("lct_vlan",self.fields)
+        self.assertEqual(self.fields["lct_vlan"]["category"],"manage")
         self.assertEqual(self.missing["factory_mode"]["candidate_backend"],
                          "unconfirmed_vendor_option")
         self.assertEqual(self.missing["tx_en_mode"]["reason"],
@@ -197,10 +197,12 @@ class CapabilityRegistryTests(unittest.TestCase):
             parsed=json.loads(p.read_text())
             self.assertEqual(parsed,self.report)
             self.assertEqual(parsed["summary"]["exposed_gui_environment_fields"],54)
+            self.assertNotIn("lct_vlan",{
+                row["id"] for row in parsed["firmware_environment_gui_fields"]})
         else:
             # Public source-only checkouts do not ship the proprietary
             # vendor rootfs or need the private r8 audit snapshot.
-            self.assertEqual(len(self.fields),54)
+            self.assertEqual(len(self.fields),55)
             self.assertEqual(self.report["summary"]["complete_A_to_Z_hardware_test_receipts"],0)
 
     def test_comment_only_fake_source_reference_not_counted(self):

@@ -178,17 +178,20 @@ r,e=m.verify_staged({},adapter,"offline_synthetic");assert(r==nil and e=="invali
 r,e=m.verify_staged(h,adapter,"production");assert(r==nil and e=="invalid_plan_handle")
 ''')
 
-    def test_no_runtime_install_or_new_native_dependency(self):
+    def test_planner_remains_dependency_free_and_deployed_executor_is_adapter_scoped(self):
         text=MODULE.read_text()
         for item in ("io.open", "io.popen", "os.execute", "nixio", "luci.model.uci", "subprocess", "socket"):
             self.assertNotIn(item,text)
-        self.assertIn("vlan_transition.lua",(ROOT/"MANIFEST.json").read_text())
         deployed=ROOT/"overlay/usr/lib/lua/8311/vlan_transition.lua"
         self.assertTrue(deployed.is_file())
         runtime=deployed.read_text()
+        for item in ("io.open", "io.popen", "os.execute", "nixio", "luci.model.uci", "subprocess", "socket"):
+            self.assertNotIn(item,runtime)
         self.assertIn('function M.redacted_summary(handle,mode)',runtime)
-        self.assertIn('production_write_allowed=false',runtime)
-        self.assertIn('if mode~="offline_synthetic" or not plan then deny("invalid_plan_handle") end',runtime)
+        self.assertIn('mode~="offline_synthetic" and mode~="production_runtime"',runtime)
+        self.assertIn('production and adapter.production_runtime~=true',runtime)
+        self.assertIn('production_applied=production',runtime)
+        self.assertIn('contains_configuration_values=false',runtime)
 
 
 class NativeLuaExecutionTests(unittest.TestCase):

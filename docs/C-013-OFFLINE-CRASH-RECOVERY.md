@@ -6,7 +6,7 @@ rollback are **NOT** qualified. No live ONU operation occurred.
 
 ## Why this matters
 
-C-012 tests all 54 GUI fields against an offline setter and readback
+C-012 historically tested the original 54-field GUI against an offline setter/readback model. Current V3 exposes 55 Configuration-page fields and routes them through live, management, PON/OMCI, boot, or credential transactions
 fixture. C-011 currently offers source readback for 45 of 54 fields.
 Neither proves that a setting survives a service restart, reboot, A/B
 transition, interrupted flash write or power outage. S-016 introduces a

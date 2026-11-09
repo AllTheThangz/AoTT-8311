@@ -8,7 +8,7 @@
 local M = {}
 
 local MANAGE = {
-    "ipaddr", "netmask", "gateway", "dns_server", "pingd",
+    "lct_vlan", "ipaddr", "netmask", "gateway", "dns_server", "pingd",
     "ping_ip", "lct_mac", "reverse_arp", "https_redirect"
 }
 local IFACE = {lct="eth0_0_1_lct", mgmt="mgmt"}
@@ -140,6 +140,15 @@ local function binary(v)
     return nil
 end
 
+local function vlan(v)
+    if type(v)~="string" or not v:match("^%d+$") or #v>4 then return nil end
+    local number=tonumber(v)
+    if not number or number<0 or number>4094 or number~=math.floor(number) then
+        return nil
+    end
+    return tostring(number)
+end
+
 local function route_for(kernel,dev)
     if not dev or type(kernel)~="table" then return nil end
     if kernel.default_route_readable~=true then return nil end
@@ -164,7 +173,8 @@ function M.inspect_management(saved,probes)
     end
     local uci=probes.uci or {}
     local kernel=probes.kernel or {}
-    if type(uci)~="table" or type(kernel)~="table" then
+    local runtime=probes.runtime or {}
+    if type(uci)~="table" or type(kernel)~="table" or type(runtime)~="table" then
         return nil,"invalid_probe_structure"
     end
     local section,reason=selected_interface(uci,kernel)
@@ -192,6 +202,12 @@ function M.inspect_management(saved,probes)
         configure(item,cfg[cfgkey],"uci_"..(section or "unresolved"),id=="lct_mac" and mac or nil)
     end
     configure(result.fields.dns_server,cfg.dns,"uci_"..(section or "unresolved"),nil)
+    local configured_vlan=(uci.lct_vlan or {}).vid
+    if configured_vlan==nil or configured_vlan=="" then
+        if section=="lct" then configured_vlan="0" end
+    end
+    configure(result.fields.lct_vlan,configured_vlan,
+              "uci_management_vlan",vlan)
     configure(result.fields.https_redirect,(uci.uhttpd or {}).redirect_https,"uci_uhttpd",binary)
 
     if section~=nil then
@@ -233,30 +249,87 @@ function M.inspect_management(saved,probes)
         else
             note(result.fields.gateway,"kernel_default_route_unavailable")
         end
+
+        local netifd=(runtime.netifd or {})[section]
+        if type(netifd)=="table" and netifd.probe_ok==true and netifd.up==true then
+            if section=="lct" then
+                observe(result.fields.lct_vlan,"0","netifd_untagged_management",
+                        vlan,true)
+            elseif section=="mgmt" and type(runtime.vlan_id)=="number" and
+                   runtime.vlan_id>=1 and runtime.vlan_id<=4094 then
+                observe(result.fields.lct_vlan,tostring(runtime.vlan_id),
+                        "kernel_vlan_link_id",vlan,true)
+            else
+                note(result.fields.lct_vlan,"active_vlan_id_unavailable")
+            end
+            if type(netifd.dns)=="table" and #netifd.dns==1 and
+               bounded_ipv4(netifd.dns[1]) then
+                observe(result.fields.dns_server,netifd.dns[1],
+                        "netifd_active_dns",bounded_ipv4,true)
+                note(result.fields.dns_server,
+                     "active_dns_configuration_does_not_prove_server_reachability")
+            elseif type(netifd.dns)=="table" and #netifd.dns==0 then
+                observe(result.fields.dns_server,"",
+                        "netifd_no_active_dns",bounded_ipv4,true)
+            else
+                note(result.fields.dns_server,
+                     "active_dns_list_unavailable_or_not_single_server")
+            end
+        else
+            note(result.fields.lct_vlan,"netifd_management_status_unavailable")
+            note(result.fields.dns_server,"netifd_active_dns_unavailable")
+        end
     else
-        for _,id in ipairs({"ipaddr","netmask","gateway","lct_mac","dns_server"}) do
+        for _,id in ipairs({"lct_vlan","ipaddr","netmask","gateway","lct_mac","dns_server"}) do
             note(result.fields[id],reason)
         end
     end
 
-    -- DNS in UCI is only configuration. It does not prove an active
-    -- resolver, that DNS server is reachable, or any Internet access.
-    note(result.fields.dns_server,"uci_dns_is_not_effective_resolver_evidence")
+    -- Active DNS from netifd proves which DNS configuration the interface
+    -- consumed. It does not prove that the DNS server is reachable or answers.
 
-    -- Pingd and reverse ARP daemons loop even when disabled. A process
-    -- PID alone is not evidence that packets are actually being sent.
-    for _,id in ipairs({"pingd","reverse_arp"}) do
-        local item=result.fields[id]
-        item.configured_source="boot_environment_only"
-        note(item,"running_daemon_does_not_prove_feature_enabled")
-    end
-    local ping=result.fields.ping_ip
-    local target=bounded_ipv4((probes.runtime or {}).ping_target)
-    if target then
-        observe(ping,target,"runtime_cached_ping_target",bounded_ipv4,false)
-        note(ping,"cached_target_does_not_prove_ping_sent")
+    -- V3 helper daemons publish root-private, boot-bound runtime receipts.
+    -- These prove which configuration the process consumed, not whether the
+    -- remote ping succeeds or reverse-ARP learned any neighbor.
+    local pingd=runtime.pingd
+    local ping_item=result.fields.pingd
+    if type(pingd)=="table" and pingd.schema==1 and
+       pingd.process_identity_verified==true and type(pingd.enabled)=="boolean" then
+        observe(ping_item,pingd.enabled and "1" or "0",
+                "pingd_runtime_receipt",binary,true)
+        note(ping_item,pingd.active and
+             "pingd_process_reports_active" or "pingd_process_reports_idle")
     else
-        note(ping,"runtime_ping_target_unavailable")
+        ping_item.configured_source="boot_environment_only"
+        note(ping_item,"pingd_runtime_receipt_unavailable")
+    end
+
+    local ping=result.fields.ping_ip
+    local target=type(pingd)=="table" and bounded_ipv4(pingd.target) or nil
+    if target then
+        observe(ping,target,"pingd_runtime_target",bounded_ipv4,true)
+        note(ping,"runtime_target_does_not_prove_ping_success")
+    else
+        target=bounded_ipv4(runtime.ping_target)
+        if target then
+            observe(ping,target,"runtime_cached_ping_target",bounded_ipv4,false)
+            note(ping,"cached_target_does_not_prove_daemon_consumed_value")
+        else
+            note(ping,"runtime_ping_target_unavailable")
+        end
+    end
+
+    local rarpd=runtime.rarpd
+    local rarp_item=result.fields.reverse_arp
+    if type(rarpd)=="table" and rarpd.schema==1 and
+       rarpd.process_identity_verified==true and type(rarpd.enabled)=="boolean" then
+        observe(rarp_item,rarpd.enabled and "1" or "0",
+                "rarpd_runtime_receipt",binary,true)
+        note(rarp_item,rarpd.active and
+             "rarpd_process_reports_active" or "rarpd_process_reports_idle")
+    else
+        rarp_item.configured_source="boot_environment_only"
+        note(rarp_item,"rarpd_runtime_receipt_unavailable")
     end
 
     -- HTTP redirect requires a real HTTP response probe. A uhttpd UCI

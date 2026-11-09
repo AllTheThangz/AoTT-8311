@@ -7,7 +7,19 @@ pon_hash() {
 }
 
 FIX_ENABLED=$(fwenv_get_8311 "fix_vlans" "1")
-[ "$FIX_ENABLED" -eq 0 ] 2>/dev/null && exit 0
+case "$FIX_ENABLED" in
+    0)
+        /usr/sbin/8311-fix-vlans.sh --clear-owned || exit 1
+        exit 0
+        ;;
+    1) ;;
+    2)
+        # Hook-only mode must not inherit stale selectors from the built-in
+        # reconciler. The hook owns any rules it deliberately creates.
+        /usr/sbin/8311-fix-vlans.sh --clear-owned || exit 1
+        ;;
+    *) exit 1 ;;
+esac
 
 HOOK="/ptconf/8311/vlan_fixes_hook.sh"
 

@@ -1,0 +1,13 @@
+#!/usr/bin/lua
+local json=require "luci.jsonc"
+local tx=require "8311.pon_config_transaction"
+local result,why=tx.recover_pending()
+if not result then
+    io.stderr:write("PON recovery failed: "..tostring(why).."\n")
+    os.exit(1)
+end
+io.write(json.stringify({
+    status=result.status,
+    recovered=result.recovered==true,
+    contains_configuration_values=false,
+}),"\n")

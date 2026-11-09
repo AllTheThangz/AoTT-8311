@@ -357,8 +357,10 @@ def build(root: Path, vendor_rootfs: Path | None = None) -> dict:
     require(len(settings) == audit["gui_fwenv_count"],
             "SCHEMA_INVENTORY_COUNT_MISMATCH")
     names={item["id"] for item in missing}
-    require({"lct_vlan", "device_sn", "factory_mode", "tx_en_mode"} <= names,
+    require({"device_sn", "factory_mode", "tx_en_mode"} <= names,
             "KNOWN_GAP_NOT_INVENTORIED")
+    require("lct_vlan" in ids and "lct_vlan" not in names,
+            "MANAGEMENT_VLAN_MUST_BE_EXPOSED_NOT_HIDDEN")
     require({"reg_id", "sw_ver"} <= {x["id"] for x in aliases},
             "LEGACY_ENV_FALLBACK_NOT_CLASSIFIED")
     require(all(not row["hardware_qualified"] for row in settings+missing),

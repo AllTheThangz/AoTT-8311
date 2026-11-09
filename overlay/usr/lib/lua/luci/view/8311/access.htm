@@ -1,0 +1,107 @@
+<%-
+local tools=require "8311.tools"
+local esc=tools.html_escape
+local names={
+ssh_enabled="SSH service",
+ssh_port="SSH port",
+ssh_password_auth="SSH password authentication",
+ssh_root_password_auth="Root password authentication over SSH",
+ssh_root_login="Root SSH login",
+ssh_gateway_ports="SSH gateway ports",
+ssh_keepalive="SSH keepalive seconds",
+ssh_idle_timeout="SSH idle timeout seconds",
+ssh_max_auth_tries="SSH maximum authentication tries",
+ssh_mdns="Advertise SSH with mDNS",
+luci_sessiontime="LuCI session timeout seconds",
+web_http_port="HTTP port (blank disables HTTP)",
+web_https_port="HTTPS port",
+web_script_timeout="Web script timeout seconds",
+web_network_timeout="Web network timeout seconds",
+web_http_keepalive="HTTP keepalive seconds",
+web_tcp_keepalive="TCP keepalive",
+web_max_requests="Maximum requests per process",
+web_max_connections="Maximum web connections",
+web_rfc1918_filter="RFC1918 host filter",
+}
+local desc={
+ssh_enabled="Disable only if another recovery path exists.",
+ssh_port="TCP port used by Dropbear.",
+ssh_password_auth="Allow ordinary SSH password authentication.",
+ssh_root_password_auth="Allow the root account to authenticate with a password.",
+ssh_root_login="Allow direct root SSH login.",
+ssh_gateway_ports="Allow SSH remote forwards to bind beyond loopback.",
+ssh_keepalive="Dropbear keepalive interval. 0 disables.",
+ssh_idle_timeout="Disconnect idle SSH sessions after this many seconds. 0 disables.",
+ssh_max_auth_tries="Maximum authentication attempts per SSH connection.",
+ssh_mdns="Publish the SSH service through local mDNS.",
+luci_sessiontime="Authenticated LuCI session lifetime.",
+web_http_port="Local HTTP listener. Leave blank to disable HTTP entirely.",
+web_https_port="Local HTTPS listener. HTTPS cannot be disabled.",
+web_script_timeout="Maximum CGI/LuCI script execution time.",
+web_network_timeout="Network operation timeout used by uHTTPd.",
+web_http_keepalive="HTTP keepalive timeout.",
+web_tcp_keepalive="Kernel TCP keepalive toggle used by uHTTPd.",
+web_max_requests="Maximum requests handled by a worker before recycling.",
+web_max_connections="Maximum simultaneous uHTTPd connections.",
+web_rfc1918_filter="Reject Host headers that violate the local RFC1918 policy.",
+}
+local bool={ssh_enabled=true,ssh_password_auth=true,ssh_root_password_auth=true,
+ssh_root_login=true,ssh_gateway_ports=true,ssh_mdns=true,web_rfc1918_filter=true}
+-%>
+<%+header%>
+<link rel="stylesheet" href="<%=resource%>/view/8311.css?v=aott-8311-v3-az" />
+<h2>Access &amp; servers</h2>
+<div class="aott-section-intro" role="note">
+<strong>Guarded access configuration</strong>
+<p>SSH, LuCI session, and web-server changes are previewed first. Applying a change saves a private recovery copy, reloads the affected services, verifies the running configuration, and requires confirmation before automatic rollback occurs.</p>
+<p>HTTPS remains mandatory for this page and for confirmation. Changing the HTTPS port can disconnect this page; reconnect to the same management address on the new port and confirm there.</p>
+</div>
+<div id="aott-access-message" role="status" aria-live="polite"></div>
+<form id="aott-access-form"
+ data-preview-url="<%=esc(url('admin/8311/access_preview'))%>"
+ data-apply-url="<%=esc(url('admin/8311/access_apply'))%>"
+ data-confirm-url="<%=esc(url('admin/8311/access_confirm'))%>"
+ data-status-url="<%=esc(url('admin/8311/access_status'))%>">
+<input type="hidden" name="token" value="<%=esc(token)%>">
+<input type="hidden" name="revision" value="<%=esc(access.revision)%>">
+<% for _,field in ipairs(access.fields) do
+local value=access.values[field.id] or ""
+%>
+<div class="cbi-value">
+<label class="cbi-value-title" for="aott-access-<%=esc(field.id)%>"><%=esc(names[field.id] or field.id)%></label>
+<div class="cbi-value-field">
+<% if bool[field.id] then %>
+<select id="aott-access-<%=esc(field.id)%>" name="<%=esc(field.id)%>">
+<option value="1" <% if value=="1" then %>selected<% end %>>Enabled</option>
+<option value="0" <% if value=="0" then %>selected<% end %>>Disabled</option>
+</select>
+<% else %>
+<input id="aott-access-<%=esc(field.id)%>" name="<%=esc(field.id)%>" type="number"
+ value="<%=esc(value)%>" <% if field.type=="optional_port" then %>placeholder="disabled"<% end %>
+ <% if field.min then %>min="<%=esc(field.min)%>"<% end %>
+ <% if field.max then %>max="<%=esc(field.max)%>"<% end %>>
+<% end %>
+<div class="cbi-value-description"><%=esc(desc[field.id] or "")%></div>
+<div class="cbi-value-error error" data-access-error="<%=esc(field.id)%>" style="display:none"></div>
+</div>
+</div>
+<% end %>
+<div class="aott-config-actions">
+<button id="aott-access-preview" type="submit" class="cbi-button">Review access changes</button>
+<button id="aott-access-apply" type="button" class="cbi-button cbi-button-save" disabled>Apply reviewed changes</button>
+</div>
+</form>
+<section id="aott-access-review" class="cbi-section" hidden>
+<h3>Reviewed changes</h3>
+<div id="aott-access-diff"></div>
+</section>
+<% if pending and pending.pending==true and pending.job_id then %>
+<section id="aott-access-pending" class="cbi-section" data-job-id="<%=esc(pending.job_id)%>">
+<h3>Access change awaiting confirmation</h3>
+<p>A guarded access transaction is pending. Confirm only after verifying that HTTPS and your intended recovery access work from this endpoint.</p>
+<button id="aott-access-confirm-pending" type="button" class="cbi-button cbi-button-save">Confirm access settings</button>
+<span id="aott-access-confirm-status" role="status" aria-live="polite"></span>
+</section>
+<% end %>
+<script src="<%=resource%>/view/8311-access.js?v=aott-8311-v3-az"></script>
+<%+footer%>

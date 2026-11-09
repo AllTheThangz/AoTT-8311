@@ -174,11 +174,25 @@ get_8311_netmask() { printf '%s\\n' "$C014_MASK"; }
                 self.assertEqual(result.returncode, 0)
                 self.assertEqual(result.stdout.strip(), "0")
 
-    def test_management_vlan_control_still_not_exposed(self):
+    def test_management_vlan_control_is_exposed_only_through_guarded_transaction(self):
         source = (ROOT / "overlay/usr/lib/lua/luci/controller/8311.lua").read_text()
         active = "\n".join(line for line in source.splitlines()
                            if not line.lstrip().startswith("--"))
-        self.assertNotIn('id="lct_vlan"', active)
+        self.assertIn('id="lct_vlan"', active)
+        field = active.split('id="lct_vlan"',1)[1].split("},{",1)[0]
+        self.assertIn('min=0', field)
+        self.assertIn('max=4094', field)
+        self.assertIn("timed confirmation", field)
+        for route in ("management_apply","management_confirm"):
+            self.assertIn(f'"{route}"', active)
+        transaction=(ROOT/"overlay/usr/lib/lua/8311/management_transaction.lua").read_text()
+        self.assertIn("management_confirmation_timeout",transaction)
+        self.assertIn("provider.restore",transaction)
+        self.assertIn("runtime.live(request)",transaction)
+        self.assertIn("hardware_qualified=false",
+            (ROOT/"overlay/usr/lib/lua/8311/management_preflight.lua").read_text())
+        # The historical startup script remains characterized here. Production
+        # live mutation is not delegated to this non-transactional block.
         self.assertNotIn("ifup", network_block())
 
 

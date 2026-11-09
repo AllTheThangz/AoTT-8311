@@ -24,10 +24,12 @@ end
 local A=ip(192,0,2,10)
 local ROUTER=ip(192,0,2,1)
 local OTHER=ip(192,0,2,25)
+local DEFAULT_ROUTE=ip(0,0,0,0)
 local DNS=ip(198,51,100,53)
 local MAC=mac("02","ab","cd","ef","01","02")
 local OTHER_MAC=mac("02","ab","cd","ef","99","88")
 local saved={
+    lct_vlan="0",
     ipaddr=A,netmask=ip(255,255,255,0),gateway=ROUTER,
     dns_server=DNS,pingd="1",ping_ip=ROUTER,lct_mac=MAC,
     reverse_arp="1",https_redirect="1"
@@ -35,7 +37,7 @@ local saved={
 local uci={
     lct={ipaddr=A,netmask=ip(255,255,255,0),gateway=ROUTER,
          dns=DNS,macaddr=MAC,ifname="eth0_0_1_lct"},
-    mgmt={},uhttpd={redirect_https="1"},
+    mgmt={},lct_vlan={},uhttpd={redirect_https="1"},
 }
 local addresses={
     eth0_0_1_lct="4: eth0_0_1_lct    inet "..A.."/24 brd "..ip(192,0,2,255)..
@@ -72,6 +74,44 @@ local adapter={
         reads[#reads+1]="ping"
         return ping
     end,
+    daemon=function(name)
+        reads[#reads+1]="daemon."..name
+        if name=="pingd" then
+            return {schema=1,process_identity_verified=true,
+                    enabled=true,active=true,target=ROUTER}
+        elseif name=="rarpd" then
+            return {schema=1,process_identity_verified=true,
+                    enabled=true,active=true}
+        end
+    end,
+    http_redirect=function()
+        reads[#reads+1]="http.redirect"
+        return {response_checked=true,status=307,redirects_https=true}
+    end,
+    interface_status=function(section)
+        reads[#reads+1]="ubus."..section
+        if section=="lct" and addresses.eth0_0_1_lct~="" then
+            return {
+                up=true,l3_device="eth0_0_1_lct",device="eth0_0_1_lct",
+                ["ipv4-address"]={{address=A,mask=24}},
+                route={{target=DEFAULT_ROUTE,mask=0,nexthop=ROUTER}},
+                ["dns-server"]={DNS},
+            }
+        elseif section=="mgmt" and addresses.mgmt~="" then
+            return {
+                up=true,l3_device="mgmt",device="mgmt",
+                ["ipv4-address"]={{address=OTHER,mask=24}},
+                route={{target=DEFAULT_ROUTE,mask=0,nexthop=ROUTER}},
+                ["dns-server"]={DNS},
+            }
+        end
+    end,
+    vlan_link=function()
+        reads[#reads+1]="ip.vlan_link"
+        if addresses.mgmt~="" then
+            return "8: mgmt@eth0_0_1_lct: <UP> mtu 1500\n    vlan protocol 802.1Q id 321 <REORDER_HDR>"
+        end
+    end,
 }
 local baseline,err=probe.capture(adapter)
 ok(baseline~=nil,"baseline_sample")
@@ -92,18 +132,27 @@ eq(baseline.fields.gateway.observed_source,"kernel_default_route_via","route_fro
 eq(baseline.fields.gateway.configured_to_observed,"match","route_match")
 eq(baseline.fields.lct_mac.observed_value,MAC,"kernel_mac_normalized")
 eq(baseline.fields.lct_mac.runtime_effect_proven,true,"kernel_mac_observed")
+eq(baseline.fields.lct_vlan.configured_value,"0","untagged_vlan_config")
+eq(baseline.fields.lct_vlan.observed_value,"0","untagged_vlan_observed")
+eq(baseline.fields.lct_vlan.runtime_effect_proven,true,"untagged_vlan_runtime_proof")
 eq(baseline.fields.dns_server.configured_value,DNS,"uci_dns_config")
-eq(baseline.fields.dns_server.runtime_effect_proven,false,"dns_not_verified_from_uci")
+eq(baseline.fields.dns_server.observed_value,DNS,"active_dns_observed")
+eq(baseline.fields.dns_server.observed_source,"netifd_active_dns","active_dns_source")
+eq(baseline.fields.dns_server.runtime_effect_proven,true,"dns_netifd_proof")
 eq(baseline.fields.https_redirect.configured_value,"1","uci_https_redirect")
-eq(baseline.fields.https_redirect.runtime_effect_proven,false,"redirect_requires_http_probe")
-eq(baseline.fields.pingd.runtime_effect_proven,false,"pingd_proc_not_proof")
-eq(baseline.fields.reverse_arp.runtime_effect_proven,false,"rarp_proc_not_proof")
-eq(baseline.fields.ping_ip.observed_value,ROUTER,"cached_ping_target")
-eq(baseline.fields.ping_ip.runtime_effect_proven,false,"cached_ping_not_proof")
-eq(baseline.summary.kernel_observed,4,"four_kernel_values_observed")
-eq(baseline.summary.effective_and_saved_match,4,"four_kernel_saved_matches")
+eq(baseline.fields.https_redirect.runtime_effect_proven,true,"redirect_http_response_proven")
+eq(baseline.fields.https_redirect.observed_source,"independent_http_response","redirect_http_source")
+eq(baseline.fields.pingd.runtime_effect_proven,true,"pingd_receipt_proof")
+eq(baseline.fields.pingd.observed_source,"pingd_runtime_receipt","pingd_receipt_source")
+eq(baseline.fields.reverse_arp.runtime_effect_proven,true,"rarp_receipt_proof")
+eq(baseline.fields.reverse_arp.observed_source,"rarpd_runtime_receipt","rarp_receipt_source")
+eq(baseline.fields.ping_ip.observed_value,ROUTER,"pingd_consumed_target")
+eq(baseline.fields.ping_ip.observed_source,"pingd_runtime_target","pingd_target_source")
+eq(baseline.fields.ping_ip.runtime_effect_proven,true,"pingd_target_proof")
+eq(baseline.summary.kernel_observed,10,"ten_independent_values_observed")
+eq(baseline.summary.effective_and_saved_match,10,"ten_runtime_saved_matches")
 eq(baseline.summary.drift_from_saved,0,"no_saved_drift")
-ok(#reads>=27 and #reads<=32,"fixed_read_only_probes_run")
+ok(#reads>=30 and #reads<=36,"fixed_read_only_probes_run")
 for _,request in ipairs(reads) do
     ok(not request:find("gpon_sn",1,true) and
        not request:find("root_pwhash",1,true) and
@@ -128,10 +177,13 @@ eq(live_drift.fields.ipaddr.saved_to_observed,"mismatch","kernel_drift_from_save
 eq(live_drift.fields.ipaddr.runtime_effect_proven,true,"real_kernel_value_not_hidden")
 addresses.eth0_0_1_lct="4: eth0_0_1_lct inet "..A.."/24 scope global\n"
 
--- HTTP is not called by the probe. A separately corroborated response
--- is the only way to promote redirect from configured to observed.
+-- Without the independent local HTTP response, redirect falls back to
+-- configured-only even when the UCI value matches the saved override.
+local original_http=adapter.http_redirect
+adapter.http_redirect=nil
 local source=assert(probe.capture(adapter))
 eq(source.fields.https_redirect.runtime_effect_proven,false,"http_source_only")
+adapter.http_redirect=original_http
 local explicit=assert(model.inspect_management(saved,{
     uci=uci,kernel={interfaces={
         eth0_0_1_lct={ipv4=A,prefix=24,mac=MAC,iface_exists=true}
@@ -148,6 +200,8 @@ uci.mgmt={
     ipaddr=OTHER,netmask=ip(255,255,255,0),gateway=ROUTER,
     dns=DNS,macaddr=OTHER_MAC,ifname="mgmt",
 }
+uci.lct_vlan={vid="321"}
+saved.lct_vlan="321"
 uci.lct.ipaddr=nil
 addresses.eth0_0_1_lct=""
 addresses.mgmt="8: mgmt inet "..OTHER.."/24 scope global mgmt\n"
@@ -157,6 +211,10 @@ local vlan=assert(probe.capture(adapter))
 eq(vlan.management_section,"mgmt","management_vlan_selected")
 eq(vlan.fields.ipaddr.observed_value,OTHER,"vlan_runtime_address")
 eq(vlan.fields.lct_mac.observed_value,OTHER_MAC,"vlan_active_mac")
+eq(vlan.fields.lct_vlan.configured_value,"321","vlan_configured_id")
+eq(vlan.fields.lct_vlan.observed_value,"321","vlan_runtime_id")
+eq(vlan.fields.lct_vlan.observed_source,"kernel_vlan_link_id","vlan_kernel_source")
+eq(vlan.fields.lct_vlan.runtime_effect_proven,true,"vlan_runtime_effect")
 eq(vlan.fields.ipaddr.saved_to_observed,"mismatch","vlan_changed_from_saved")
 
 -- Both interfaces having IPs cannot be silently resolved by choosing
@@ -223,6 +281,7 @@ local unsafe= {
         return ""
     end,
     mac=adapter.mac,routes=adapter.routes,ping=adapter.ping,
+    daemon=adapter.daemon,http_redirect=adapter.http_redirect,
 }
 local safe=assert(probe.capture(unsafe))
 eq(extra,2,"never_probe_arbitrary_device")

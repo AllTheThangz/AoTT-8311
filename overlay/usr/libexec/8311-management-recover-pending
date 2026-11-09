@@ -1,0 +1,13 @@
+#!/usr/bin/lua
+-- Recover an unconfirmed V3 management transaction before normal networking.
+-- Exit status only; no management values are printed.
+local ok,tx=pcall(require,"8311.management_transaction")
+if not ok or type(tx)~="table" or type(tx.recover_pending)~="function" then
+    os.exit(1)
+end
+local good,result=pcall(tx.recover_pending)
+if not good or type(result)~="table" then os.exit(1) end
+if result.recovered==true or result.status=="NO_PENDING_MANAGEMENT_TRANSACTION" then
+    os.exit(0)
+end
+os.exit(1)

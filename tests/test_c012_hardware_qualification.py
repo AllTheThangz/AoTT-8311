@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "tools"
 MATRIX_PATH = ROOT / "docs/C-012-HARDWARE-QUALIFICATION-MATRIX.json"
 BASELINE_PATH = ROOT / "docs/C-012-PRX126-READONLY-BASELINE.json"
+VLAN_BASELINE_PATH = ROOT / "docs/C-014-MANAGEMENT-VLAN-READONLY-BASELINE.json"
 
 sys.path.insert(0, str(TOOLS))
 import build_capability_registry as registry  # noqa: E402
@@ -33,25 +34,25 @@ class C012HardwareQualificationMatrixTests(unittest.TestCase):
             cls.registry["firmware_environment_gui_fields"]
         }
 
-    def test_exactly_all_54_registry_fields_once(self):
-        self.assertEqual(len(self.report["fields"]), 54)
-        self.assertEqual(len(self.rows), 54)
+    def test_exactly_all_55_registry_fields_once(self):
+        self.assertEqual(len(self.report["fields"]), 55)
+        self.assertEqual(len(self.rows), 55)
         self.assertEqual(set(self.rows), self.source_ids)
-        self.assertEqual(self.report["summary"]["fields"], 54)
-        self.assertEqual(self.report["summary"]["read_only_baseline_first"], 54)
+        self.assertEqual(self.report["summary"]["fields"], 55)
+        self.assertEqual(self.report["summary"]["read_only_baseline_first"], 55)
 
     def test_readback_groups_are_complete_and_nonoverlapping(self):
         mapped = matrix.group_map()
         self.assertEqual(set(mapped), self.source_ids)
         self.assertEqual(sum(
-            self.report["summary"]["readback_groups"].values()), 54)
+            self.report["summary"]["readback_groups"].values()), 55)
         self.assertEqual(
             self.report["summary"]["readback_groups"],
             {
                 "advanced_hardware": 8,
                 "device_and_virtual_sfp": 11,
                 "isp_vlan": 3,
-                "management": 9,
+                "management": 10,
                 "omci_reporting": 10,
                 "pon_omci_noncredential": 4,
                 "sensitive_identity": 9,
@@ -62,7 +63,7 @@ class C012HardwareQualificationMatrixTests(unittest.TestCase):
         self.assertEqual(
             self.report["summary"]["mutation_lanes"],
             {
-                "RECOVERY_PATH_REQUIRED": 25,
+                "RECOVERY_PATH_REQUIRED": 26,
                 "SAFE_LIVE_APPLY_CANDIDATE": 4,
                 "TEST_OLT_OR_SPARE_REQUIRED": 25,
             },
@@ -156,21 +157,28 @@ class C012HardwareQualificationMatrixTests(unittest.TestCase):
         self.assertFalse(
             committed["policy"]["generic_continue_authorizes_live_mutation"])
 
-    def test_public_readonly_baseline_is_value_free_and_bounded(self):
+    def test_public_readonly_baseline_union_is_value_free_and_bounded(self):
         baseline = json.loads(BASELINE_PATH.read_text())
+        vlan = json.loads(VLAN_BASELINE_PATH.read_text())
         self.assertEqual(
             baseline["status"], "C012_PRX126_READONLY_BASELINE_PUBLIC_SAFE")
         self.assertEqual(baseline["summary"]["fields_accounted"], 54)
         self.assertEqual(
             baseline["summary"]["read_only_baselines_observed"], 54)
         self.assertEqual(
+            vlan["status"], "C014_MANAGEMENT_VLAN_READONLY_BASELINE_PUBLIC_SAFE")
+        self.assertEqual(vlan["field"]["id"], "lct_vlan")
+        self.assertTrue(vlan["field"]["runtime_effect_proven"])
+        self.assertFalse(vlan["field"]["hardware_qualified"])
+        historical_ids={row["id"] for row in baseline["fields"]}
+        self.assertNotIn("lct_vlan",historical_ids)
+        self.assertEqual(historical_ids | {"lct_vlan"}, self.source_ids)
+        self.assertEqual(
             baseline["summary"]["runtime_effect_proven_ids"],
             ["gateway", "hostname", "ipaddr", "lct_mac", "netmask"],
         )
         self.assertEqual(
             baseline["summary"]["fully_hardware_qualified_fields"], 0)
-        self.assertEqual(
-            {row["id"] for row in baseline["fields"]}, self.source_ids)
         self.assertTrue(all(
             row["hardware_qualified"] is False
             for row in baseline["fields"]))
@@ -189,6 +197,8 @@ class C012HardwareQualificationMatrixTests(unittest.TestCase):
         ):
             self.assertFalse(safety[key])
         self.assertTrue(safety["before_after_device_state_identical"])
+        for key,value in vlan["safety"].items():
+            self.assertFalse(value,key)
 
     def test_tool_has_no_device_transport_or_mutation_dispatch(self):
         source = (TOOLS / "build_c012_hardware_qualification.py").read_text()

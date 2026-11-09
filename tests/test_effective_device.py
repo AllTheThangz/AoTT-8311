@@ -25,7 +25,7 @@ class DeviceEffectiveSourceTests(unittest.TestCase):
                     str(ROOT/"overlay/usr/lib/lua")],
                   capture_output=True,text=True,timeout=20)
         self.assertEqual(result.returncode,0,result.stderr)
-        self.assertIn("AOTT_C011_DEVICE_SFP_FIXTURE_PASS checks=168",
+        self.assertIn("AOTT_C011_DEVICE_SFP_FIXTURE_PASS checks=171",
                       result.stdout)
 
     def test_vendor_mips_fixture(self):
@@ -37,7 +37,7 @@ class DeviceEffectiveSourceTests(unittest.TestCase):
                 str(ROOT/"overlay/usr/lib/lua")],
                 capture_output=True,text=True,timeout=30)
         self.assertEqual(result.returncode,0,result.stderr)
-        self.assertIn("AOTT_C011_DEVICE_SFP_FIXTURE_PASS checks=168",
+        self.assertIn("AOTT_C011_DEVICE_SFP_FIXTURE_PASS checks=171",
                       result.stdout)
 
     def test_model_and_probe_compile(self):
@@ -70,11 +70,13 @@ class DeviceEffectiveSourceTests(unittest.TestCase):
     def test_never_claim_uci_sfp_as_host_eeprom(self):
         model=MOD.read_text()
         self.assertIn("virtual_eeprom_configuration_not_host_readback",model)
-        self.assertIn("configured_servers_do_not_prove_ntp_sync",model)
-        self.assertIn("luci_config_not_active_session_language_proof",model)
-        self.assertIn("uci_zonename_not_active_localtime_proof",model)
-        self.assertEqual(model.count("set_observed("),2)
+        self.assertIn("active_ntpd_peers_do_not_prove_clock_synchronization",model)
+        self.assertIn("active_language_is_this_authenticated_request",model)
+        self.assertIn("tmp_localtime_zoneinfo_target",model)
+        self.assertGreaterEqual(model.count("set_observed("),6)
         self.assertIn('set_observed(fields.hostname,actual_hostname',model)
+        self.assertIn('set_observed(fields.lang,active_language',model)
+        self.assertIn('set_observed(fields.timezone,active_timezone',model)
 
     def test_no_registration_secrets_or_native_configuration_actions(self):
         p=PROBE.read_text()
@@ -99,7 +101,7 @@ class DeviceEffectiveSourceTests(unittest.TestCase):
         self.assertIn('REQUEST_METHOD") ~= "GET"',func)
         self.assertIn('Cache-Control", "no-store, private"',func)
         self.assertIn('X-Content-Type-Options", "nosniff"',func)
-        self.assertIn('pcall(effective_device_probe.live_device)',func)
+        self.assertIn('pcall(effective_device_probe.live_device, i18n.context.lang)',func)
         self.assertNotIn("action_save(",func)
 
     def test_no_automatic_network_polling_or_dynamic_html(self):
@@ -114,7 +116,8 @@ class DeviceEffectiveSourceTests(unittest.TestCase):
         self.assertIn("request8311(url,{method:'GET',cache:'no-store'})",inner)
         self.assertIn("cell.textContent=value",inner)
         self.assertIn('Virtual EEPROM configured; host presentation unverified',inner)
-        self.assertIn('NTP servers configured; synchronization unverified',inner)
+        self.assertIn('Active ntpd peer arguments',inner)
+        self.assertIn('clock synchronization is not inferred',inner)
         for absent in ("setInterval","post8311","innerHTML","localStorage",
                        "firmwareBank", "fwenv_set"):
             self.assertNotIn(absent,inner)

@@ -60,13 +60,40 @@ local risk_notes = {
 <% end %>
 </details>
 <p class="aott-hint aott-config-revision">Saved configuration revision: <code><%=esc(revision)%></code>. This guards against another session changing values while you review.</p>
+<% if boot_trial and boot_trial.pending then %>
+<section id="aott-boot-config-trial" class="cbi-section aott-warning"
+ data-job-id="<%=esc(boot_trial.job_id or '')%>"
+ data-phase="<%=esc(boot_trial.phase or '')%>">
+<h3>Boot configuration trial pending</h3>
+<% if boot_trial.phase == "prepared" then %>
+<p>The reviewed boot-time settings are staged but have not been tested yet. Reboot once to enter the guarded trial. The previous boot settings and boot command are preserved for recovery.</p>
+<p><a class="cbi-button" href="<%=esc(url('admin/system/reboot'))%>">Reboot into the guarded trial</a></p>
+<% elseif boot_trial.phase == "trial_running" then %>
+<p>This boot is running the staged boot-time settings. Confirm this trial before the watchdog expires, or the previous boot settings and boot command will be restored and the device will reboot.</p>
+<button id="aott-boot-config-confirm" type="button" class="cbi-button cbi-button-save">Confirm this boot configuration</button>
+<span id="aott-boot-config-confirm-status" role="status" aria-live="polite"></span>
+<% elseif boot_trial.phase == "rollback_restored" then %>
+<p>The previous boot settings have been restored. One recovery reboot is required to complete cleanup.</p>
+<p><a class="cbi-button" href="<%=esc(url('admin/system/reboot'))%>">Complete recovery reboot</a></p>
+<% end %>
+</section>
+<% end %>
 <div id="config-message" role="status" aria-live="polite"></div>
 <ul class="cbi-tabmenu aott-config-tabs" id="aott-config-tabs" role="tablist" aria-label="Setting categories">
 <% for i, cat in ipairs(fwenvs) do %>
 <li role="presentation" class="cbi-tab<% if i > 1 then %>-disabled<% end %>" data-tab="<%=esc(cat.id)%>"><a id="aott-tab-<%=esc(cat.id)%>" role="tab" aria-selected="<%=i == 1 and "true" or "false"%>" aria-controls="8311-tab-<%=esc(cat.id)%>" tabindex="<%=i == 1 and "0" or "-1"%>" href="#8311-tab-<%=esc(cat.id)%>" data-8311-tab="<%=esc(cat.id)%>"><%=esc(cat.category)%></a></li>
 <% end %>
 </ul>
-<form id="8311-config" action="save" onsubmit="return saveConfig(this)" method="post" novalidate>
+<form id="8311-config" action="save"
+ data-management-apply-url="<%=esc(url('admin/8311/management_apply'))%>"
+ data-management-preflight-url="<%=esc(url('admin/8311/management_preflight'))%>"
+ data-boot-apply-url="<%=esc(url('admin/8311/boot_config_apply'))%>"
+ data-boot-confirm-url="<%=esc(url('admin/8311/boot_config_confirm'))%>"
+ data-reboot-url="<%=esc(url('admin/system/reboot'))%>"
+ data-pon-apply-url="<%=esc(url('admin/8311/pon_config_apply'))%>"
+ data-pon-status-url="<%=esc(url('admin/8311/pon_config_status'))%>"
+ data-pon-confirm-url="<%=esc(url('admin/8311/pon_config_confirm'))%>"
+ onsubmit="return saveConfig(this)" method="post" novalidate>
 <input type="hidden" name="token" value="<%=esc(token)%>" />
 <input type="hidden" name="complete" value="8311-v1" />
 <input type="hidden" name="revision" value="<%=esc(revision)%>" />
@@ -148,7 +175,7 @@ local label = named and option.name or option
          data-effective-url="<%=esc(url('admin/8311/effective_device'))%>"
          aria-label="Device and virtual SFP configuration">
 <h3>Device and virtual SFP configuration</h3>
-<p>View saved and UCI-configured system and host-visible SFP identity settings. Only the kernel hostname can be independently observed here. A configured virtual EEPROM value does not prove that the router sees it. No settings are changed.</p>
+<p>Compare saved values with UCI and independent running consumers. The active LuCI request language, kernel hostname, local-time zoneinfo target, and active ntpd peer arguments are observed separately. ntpd peers do not prove clock synchronization. Virtual SFP EEPROM configuration still does not prove what the router sees. No settings are changed.</p>
 <button id="aott-device-effective-refresh" type="button" class="cbi-button">Check device and SFP values</button>
 <div id="aott-device-effective-status" role="status" aria-live="polite"></div>
 <div id="aott-device-effective-results" role="region" aria-label="Read-only device and SFP comparison" hidden></div>

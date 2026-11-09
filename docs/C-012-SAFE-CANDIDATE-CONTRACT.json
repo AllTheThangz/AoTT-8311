@@ -2,108 +2,124 @@
   "baseline_release": "AoTT-8311-v2r9",
   "candidates": [
     {
-      "activation": "LIVE_UCI_APPLY_AFTER_SAVE",
+      "activation": "LIVE_UCI_NEW_AUTHENTICATED_REQUEST",
       "blockers": [
-        "independent authenticated active-session language verifier",
-        "bounded automatic revert verification"
+        "authorized live apply and restore evidence",
+        "reboot persistence and postboot restore evidence"
       ],
-      "current_effect_evidence": "CONFIGURED_UCI_ONLY",
-      "full_end_to_end_ready": false,
+      "current_effect_evidence": "ACTIVE_LUCI_REQUEST_VERIFIER_AVAILABLE",
+      "full_end_to_end_hardware_qualified": false,
       "hardware_qualified": false,
       "id": "lang",
       "mutation_permitted_by_this_artifact": false,
-      "partial_no_reboot_apply_test_ready": true,
       "read_only_baseline_observed": true,
       "requires_explicit_live_authorization": true,
-      "requires_reboot_for_current_source_path": false,
-      "runtime_effect_proven_on_current_baseline": false,
-      "schema_type": "select_named"
+      "requires_reboot_for_runtime_effect": false,
+      "runtime_effect_proven_on_current_r9_baseline": false,
+      "schema_type": "select_named",
+      "source_live_activation_present": true,
+      "source_ready_for_bounded_live_qualification": true,
+      "source_rollback_contract_present": true,
+      "source_runtime_effect_verifier_present": true
     },
     {
-      "activation": "NEXT_STARTUP_REQUIRED",
+      "activation": "LIVE_SYSTEM_RELOAD",
       "blockers": [
-        "authorized reboot persistence test",
-        "postboot effective readback and bounded revert"
+        "authorized live apply and restore evidence",
+        "reboot persistence and postboot restore evidence"
       ],
-      "current_effect_evidence": "KERNEL_HOSTNAME_READBACK_AVAILABLE",
-      "full_end_to_end_ready": false,
+      "current_effect_evidence": "KERNEL_HOSTNAME_VERIFIER_AVAILABLE",
+      "full_end_to_end_hardware_qualified": false,
       "hardware_qualified": false,
       "id": "hostname",
       "mutation_permitted_by_this_artifact": false,
-      "partial_no_reboot_apply_test_ready": true,
       "read_only_baseline_observed": true,
       "requires_explicit_live_authorization": true,
-      "requires_reboot_for_current_source_path": true,
-      "runtime_effect_proven_on_current_baseline": true,
-      "schema_type": "text"
+      "requires_reboot_for_runtime_effect": false,
+      "runtime_effect_proven_on_current_r9_baseline": true,
+      "schema_type": "text",
+      "source_live_activation_present": true,
+      "source_ready_for_bounded_live_qualification": true,
+      "source_rollback_contract_present": true,
+      "source_runtime_effect_verifier_present": true
     },
     {
-      "activation": "NEXT_STARTUP_REQUIRED",
+      "activation": "LIVE_SYSTEM_RELOAD",
       "blockers": [
-        "independent active local-time/timezone verifier",
-        "authorized reboot persistence test",
-        "postboot revert verification"
+        "authorized live apply and restore evidence",
+        "reboot persistence and postboot restore evidence"
       ],
-      "current_effect_evidence": "CONFIGURED_UCI_ONLY",
-      "full_end_to_end_ready": false,
+      "current_effect_evidence": "ACTIVE_LOCALTIME_VERIFIER_AVAILABLE",
+      "full_end_to_end_hardware_qualified": false,
       "hardware_qualified": false,
       "id": "timezone",
       "mutation_permitted_by_this_artifact": false,
-      "partial_no_reboot_apply_test_ready": true,
       "read_only_baseline_observed": true,
       "requires_explicit_live_authorization": true,
-      "requires_reboot_for_current_source_path": true,
-      "runtime_effect_proven_on_current_baseline": false,
-      "schema_type": "select"
+      "requires_reboot_for_runtime_effect": false,
+      "runtime_effect_proven_on_current_r9_baseline": false,
+      "schema_type": "select",
+      "source_live_activation_present": true,
+      "source_ready_for_bounded_live_qualification": true,
+      "source_rollback_contract_present": true,
+      "source_runtime_effect_verifier_present": true
     },
     {
-      "activation": "NEXT_STARTUP_REQUIRED",
+      "activation": "LIVE_SYSNTPD_RELOAD",
       "blockers": [
-        "independent running NTP configuration verifier",
-        "bounded synchronization evidence that does not expose server values",
-        "authorized reboot persistence test",
-        "postboot revert verification"
+        "authorized live apply and restore evidence",
+        "reboot persistence and postboot restore evidence",
+        "clock synchronization remains separate from configured-peer proof"
       ],
-      "current_effect_evidence": "CONFIGURED_UCI_ONLY",
-      "full_end_to_end_ready": false,
+      "current_effect_evidence": "ACTIVE_NTP_PEER_ARGUMENT_VERIFIER_AVAILABLE",
+      "full_end_to_end_hardware_qualified": false,
       "hardware_qualified": false,
       "id": "ntp_servers",
       "mutation_permitted_by_this_artifact": false,
-      "partial_no_reboot_apply_test_ready": true,
       "read_only_baseline_observed": true,
       "requires_explicit_live_authorization": true,
-      "requires_reboot_for_current_source_path": true,
-      "runtime_effect_proven_on_current_baseline": false,
-      "schema_type": "text"
+      "requires_reboot_for_runtime_effect": false,
+      "runtime_effect_proven_on_current_r9_baseline": false,
+      "schema_type": "text",
+      "source_live_activation_present": true,
+      "source_ready_for_bounded_live_qualification": true,
+      "source_rollback_contract_present": true,
+      "source_runtime_effect_verifier_present": true
     }
   ],
   "contains_runtime_values_or_credentials": false,
-  "contract_kind": "C012_SAFE_CANDIDATE_SOURCE_READINESS_ONLY",
+  "contract_kind": "C012_SAFE_CANDIDATE_SOURCE_READY_HARDWARE_UNQUALIFIED",
   "device_configuration_modified": false,
   "firmware_modified": false,
   "hardware_profile": "potron-prx126-aott-v1",
   "live_device_queried": false,
   "policy": {
-    "full_test_requires_effect_persistence_and_recovery_evidence": true,
+    "clock_sync_is_not_inferred_from_ntp_peer_configuration": true,
     "generic_continue_authorizes_mutation": false,
-    "lower_risk_lane_is_not_live_mutation_approval": true
+    "hardware_qualification_requires_apply_effect_persistence_recovery": true,
+    "source_ready_is_not_live_mutation_approval": true
   },
-  "schema": 1,
+  "schema": 2,
   "source_facts": {
-    "generic_diff_marks_only_lang_live": true,
-    "hostname_has_kernel_effect_probe": true,
-    "lang_explicitly_not_active_session_proof": true,
-    "lang_has_explicit_live_uci_set": true,
-    "ntp_explicitly_not_sync_proof": true,
-    "timezone_explicitly_not_active_localtime_proof": true
+    "activation_scope_contains_all_four_candidates": true,
+    "config_delegates_to_live_activation_layer": true,
+    "device_probe_verifies_hostname_timezone_ntp": true,
+    "hostname_live_reload_and_kernel_verifier": true,
+    "language_request_verifier_exists": true,
+    "language_requires_new_authenticated_request": true,
+    "ntp_live_reload_and_process_argument_verifier": true,
+    "runtime_mismatch_rolls_back": true,
+    "timezone_live_reload_and_localtime_verifier": true,
+    "transaction_restores_saved_environment_on_failure": true
   },
   "summary": {
     "candidate_fields": 4,
-    "current_runtime_effect_proven": 1,
-    "full_end_to_end_ready": 0,
+    "current_r9_baseline_runtime_effect_proven": 1,
+    "full_end_to_end_hardware_qualified": 0,
     "hardware_qualified": 0,
-    "live_apply_paths_present": 1,
-    "next_startup_paths": 3,
-    "partial_no_reboot_apply_test_ready": 4
+    "live_apply_paths_present": 4,
+    "rollback_contracts_present": 4,
+    "runtime_effect_verifiers_present": 4,
+    "source_ready_for_bounded_live_qualification": 4
   }
 }

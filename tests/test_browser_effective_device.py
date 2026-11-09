@@ -60,9 +60,23 @@ def payload():
         observed_source="kernel_proc_hostname",
         saved_to_observed="match",runtime_effect_proven=True,
     )
+    fields["lang"].update(
+        saved_value="en",configured_value="en",observed_value="en",
+        observed_source="active_luci_request_language",
+        saved_to_observed="match",runtime_effect_proven=True,
+    )
+    fields["timezone"].update(
+        saved_value="UTC",configured_value="UTC",observed_value="UTC",
+        observed_source="tmp_localtime_zoneinfo_target",
+        saved_to_observed="match",runtime_effect_proven=True,
+    )
     fields["ntp_servers"].update(
+        saved_value="ntp1.example ntp2.example",
         configured_value="ntp1.example ntp2.example",
         configured_source="uci_system_ntp_server_list",
+        observed_value="ntp1.example ntp2.example",
+        observed_source="active_ntpd_process_arguments",
+        saved_to_observed="match",runtime_effect_proven=True,
     )
     fields["sfp_vendor"].update(
         configured_value="<img src=x onerror=window.__sfp_injected=true>",
@@ -76,7 +90,7 @@ def payload():
         "no_firmware_commits":True,
         "source_only_not_hardware_qualified":True,
         "fields":fields,
-        "summary":{"observed_runtime":1,"configured_only":3,"unverified":7}
+        "summary":{"observed_runtime":4,"configured_only":2,"unverified":5}
     }}
 
 
@@ -166,14 +180,17 @@ class ReadOnlyDeviceBrowserTests(unittest.TestCase):
             "#aott-device-effective-results").evaluate("(el)=>el.hidden"))
         self.assertEqual(self.js_errors,[])
 
-    def test_kernel_hostname_separated_from_uci_sfp_and_ntp(self):
+    def test_lower_risk_runtime_consumers_are_distinct_from_sfp_and_ntp_sync(self):
         self.click_and_wait()
         body=self.page.locator("#aott-device-effective-results").inner_text()
-        self.assertIn("Kernel value matches saved",body)
+        self.assertIn("Running kernel hostname matches saved",body)
+        self.assertIn("This authenticated LuCI request language matches saved",body)
+        self.assertIn("Active local-time zoneinfo target matches saved",body)
+        self.assertIn("Active ntpd peer arguments matches saved",body)
+        self.assertIn("clock synchronization is not inferred",body)
         self.assertIn("Virtual EEPROM configured; host presentation unverified",body)
-        self.assertIn("NTP servers configured; synchronization unverified",body)
-        self.assertIn("Fields observed in running kernel: 1",body)
-        self.assertIn("No virtual SFP host EEPROM or time-sync status is inferred.",body)
+        self.assertIn("Fields with independent running-consumer evidence: 4",body)
+        self.assertIn("virtual SFP host presentation are not inferred",body)
         self.assertEqual(self.requests,[("GET",API)])
 
     def test_untrusted_source_value_escaped(self):

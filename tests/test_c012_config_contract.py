@@ -26,9 +26,9 @@ class C012ConfigurationContractTests(unittest.TestCase):
             capture_output=True, text=True, timeout=35, check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("54 fields, 54 positive writes, 5 sensitive fields",
+        self.assertIn("55 fields; routes live=22 management=6 boot=4 credential=1 pon=22; 23 ordinary verified writes; 5 sensitive fields",
                       result.stdout)
-        self.assertIn("failure/guard cases PASS", result.stdout)
+        self.assertIn("rollback guards PASS", result.stdout)
 
     def test_native_lua_full_real_schema_and_mock_writer(self):
         if not shutil.which("lua5.1"):

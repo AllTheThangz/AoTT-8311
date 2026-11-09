@@ -5,6 +5,32 @@ _lib_8311 2>/dev/null || . /lib/8311.sh
 START=18
 
 start() {
+	# An unconfirmed management-address/VLAN change must never survive a reboot.
+	# Restore the persistent pre-change tuple before normal network services use
+	# the boot environment or UCI state.
+	if [ -x /usr/libexec/8311-management-recover-pending ] &&
+	   ! /usr/libexec/8311-management-recover-pending >/dev/null 2>&1; then
+		echo "Management recovery: pending transaction restore failed" | to_console
+		return 1
+	fi
+
+	# An unconfirmed PON/OMCI transaction is restored before the normal boot
+	# consumers read environment/UCI/MIB state. No optical candidate survives
+	# a reboot without an explicit confirmation.
+	if [ -x /usr/libexec/8311-pon-config-recover-pending ] &&
+	   ! /usr/libexec/8311-pon-config-recover-pending >/dev/null 2>&1; then
+		echo "PON recovery: pending transaction restore failed" | to_console
+		return 1
+	fi
+
+	# Access/server changes are also guarded. Restore any unconfirmed
+	# Dropbear/uHTTPd/LuCI configuration before those services start.
+	if [ -x /usr/libexec/8311-access-recover-pending ] &&
+	   ! /usr/libexec/8311-access-recover-pending >/dev/null 2>&1; then
+		echo "Access recovery: pending transaction restore failed" | to_console
+		return 1
+	fi
+
 	CONSOLE_EN=$(get_8311_console_en)
 	DYING_GASP_EN=$(get_8311_dying_gasp_en)
 
@@ -81,6 +107,22 @@ start() {
 }
 
 boot() {
+	# Enter a pending one-boot configuration trial before any boot-time
+	# consumer (especially persistent-root bootcmd repair) can mutate state.
+	if [ -x /usr/libexec/8311-boot-config-guard ]; then
+		/usr/libexec/8311-boot-config-guard enter >/dev/null 2>&1
+		BOOT_GUARD_RC=$?
+		if [ "$BOOT_GUARD_RC" -eq 10 ]; then
+			echo "Boot configuration trial: previous settings restored; rebooting" | to_console
+			sync || return 1
+			reboot || return 1
+			return 1
+		elif [ "$BOOT_GUARD_RC" -ne 0 ]; then
+			echo "Boot configuration trial: recovery state could not be verified" | to_console
+			return 1
+		fi
+	fi
+
 	# 8311 MOD: Remove persistent root
 	_8311_check_persistent_root || return 1
 

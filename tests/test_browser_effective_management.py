@@ -19,7 +19,7 @@ JQUERY=Path("/usr/share/javascript/jquery/jquery.min.js")
 HOST="http://aott.test"
 PAGE="/cgi-bin/luci/admin/8311/config"
 ENDPOINT="/cgi-bin/luci/admin/8311/effective_management"
-FIELDS=("ipaddr","netmask","gateway","dns_server","pingd",
+FIELDS=("lct_vlan","ipaddr","netmask","gateway","dns_server","pingd",
         "ping_ip","lct_mac","reverse_arp","https_redirect")
 
 try:
@@ -71,8 +71,9 @@ def response():
         configured_source="uci_lct",
     )
     rows["https_redirect"].update(
-        configured_value="1",configured_source="uci_uhttpd",
-        runtime_effect_proven=False,
+        saved_value="1",configured_value="1",configured_source="uci_uhttpd",
+        observed_value="1",observed_source="independent_http_response",
+        saved_to_observed="match",runtime_effect_proven=True,
     )
     return {
         "success":True,
@@ -85,9 +86,9 @@ def response():
                 "no_reboot":True,
                 "no_hidden_hardware_qualification":True,
                 "fields":rows,
-                "summary":{"kernel_observed":1,"configured_only":2,
+                "summary":{"kernel_observed":2,"configured_only":1,
                            "unverified":6,
-                           "effective_and_saved_match":1,
+                           "effective_and_saved_match":2,
                            "drift_from_saved":0}}
     }
 
@@ -176,7 +177,7 @@ class EffectiveManagementBrowserTests(unittest.TestCase):
         self.assertEqual(self.bad_requests,[])
         self.assertEqual(
             self.page.locator("#aott-management-effective-results table tr").count(),
-            10)
+            11)
         self.assertFalse(
             self.page.locator("#aott-management-effective-results").evaluate(
                 "(el)=>el.hidden"))
@@ -188,8 +189,9 @@ class EffectiveManagementBrowserTests(unittest.TestCase):
         self.assertIn("Running value observed; matches saved",body)
         self.assertIn("Configuration found; running effect unverified",body)
         self.assertIn("Not independently verified",body)
-        self.assertIn("Kernel-observed fields: 1",body)
+        self.assertIn("Independently observed fields: 2",body)
         self.assertIn("eth0_0_1_lct",body)
+        self.assertIn("HTTP to HTTPS redirect",body)
 
     def test_html_in_an_api_value_is_plain_text(self):
         self.click_and_wait()

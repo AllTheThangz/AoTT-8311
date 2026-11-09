@@ -16,7 +16,7 @@ local result, code
 if not snapshot then result={success=false,error=err}; code=503 else
 	local prepared, errors, status = config.prepare(snapshot, form)
 	if not prepared then result={success=false,errors=errors}; code=status
-	elseif form.mode == "preview" then result={success=true,diff=prepared.diff,revision=snapshot.revision}; code=200
+	elseif form.mode == "preview" then result={success=true,diff=prepared.diff,revision=snapshot.revision,route=prepared.route,routes=prepared.routes}; code=200
 	else result=config.apply(snapshot, prepared); code=result.success and 200 or 502 end
 end
 result.http_status=code

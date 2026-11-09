@@ -10,9 +10,49 @@ local WORKER = "/usr/libexec/8311-job-worker"
 local MAX_UPLOAD, MAX_ARCHIVE = 24 * 1024 * 1024, 32 * 1024 * 1024
 local MAX_BYTES, MAX_JOBS, TTL = 96 * 1024 * 1024, 12, 7200
 local OUTPUT_LIMIT = 8192
-local kinds = { firmware_validate=true, firmware_install=true, bank_operation=true, tls_activate=true, support=true }
+local kinds = { firmware_validate=true, firmware_install=true, bank_operation=true, tls_activate=true, management_apply=true, pon_apply=true, access_apply=true, support=true }
 local bank_actions = {verify="check-json", trial="trial", commit="commit", cancel_trial="cancel-trial", return_saved="rollback", reboot="reboot"}
 local terminal = { succeeded=true, failed=true, cancelled=true }
+
+local function validated_management_request(args)
+    local ok,mod=pcall(require,"8311.management_runtime")
+    if not ok or type(mod)~="table" or type(mod.request_ok)~="function" then
+        return nil
+    end
+    return mod.request_ok(args)
+end
+
+local function validated_access_request(args)
+    local ok,mod=pcall(require,"8311.access_config")
+    if not ok or type(mod)~="table" or type(mod.request_ok)~="function" then
+        return nil
+    end
+    return mod.request_ok(args)
+end
+
+local PON_FIELDS={
+    gpon_sn=true,vendor_id=true,equipment_id=true,hw_ver=true,
+    cp_hw_ver_sync=true,sw_verA=true,sw_verB=true,fw_match_b64=true,
+    fw_match_num=true,override_active=true,override_commit=true,
+    pon_mode=true,omcc_version=true,iop_mask=true,reg_id_hex=true,
+    loid=true,lpwd=true,mib_file=true,pon_slot=true,iphost_mac=true,
+    iphost_hostname=true,iphost_domain=true,
+}
+local function validated_pon_request(args)
+    if type(args)~="table" or getmetatable(args)~=nil or
+       type(args.revision)~="string" or #args.revision~=64 or
+       args.revision:find("[^0-9a-f]") or
+       type(args.changes)~="table" or getmetatable(args.changes)~=nil then return nil end
+    local out,count={},0
+    for key,value in pairs(args.changes) do
+        if not PON_FIELDS[key] or type(value)~="string" or #value>2048 or
+           value:find("[%z\1-\31\127]") then return nil end
+        count=count+1
+        out[key]=value
+    end
+    if count<1 or count>22 then return nil end
+    return {revision=args.revision,changes=out}
+end
 
 local function ident(s)
 	return type(s) == "string" and #s == 32 and not s:find("[^0-9a-f]")
@@ -275,6 +315,17 @@ end
 function M.start(kind, args, owner)
 	if not kinds[kind] or not owner_ok(owner) or type(args) ~= "table" then return nil, "Invalid job request" end
 	if kind == "support" and args.full ~= nil and type(args.full) ~= "boolean" then return nil, "Invalid diagnostics mode" end
+    local validated_management,validated_pon,validated_access
+    if kind == "management_apply" then
+        validated_management=validated_management_request(args)
+        if not validated_management then return nil,"Invalid management transaction request" end
+    elseif kind == "pon_apply" then
+        validated_pon=validated_pon_request(args)
+        if not validated_pon then return nil,"Invalid PON/OMCI transaction request" end
+    elseif kind == "access_apply" then
+        validated_access=validated_access_request(args)
+        if not validated_access then return nil,"Invalid access transaction request" end
+    end
     if kind == "firmware_install" then
         if not ((args.expected_active == "A" and args.expected_target == "B") or
                 (args.expected_active == "B" and args.expected_target == "A")) then
@@ -312,7 +363,7 @@ function M.start(kind, args, owner)
 	if (kind == "support" and support_busy) or (kind ~= "support" and firmware_busy) then
 		return abort("A job of this type is already active; wait for its result")
 	end
-	local reserve = kind == "support" and MAX_ARCHIVE or ((kind == "bank_operation" or kind == "tls_activate") and 65536 or args.size)
+	local reserve = kind == "support" and MAX_ARCHIVE or ((kind == "bank_operation" or kind == "tls_activate" or kind == "management_apply" or kind == "pon_apply" or kind == "access_apply") and 65536 or args.size)
 	if type(reserve) ~= "number" or reserve < 1024 or reserve > MAX_ARCHIVE then return abort("Invalid job size") end
 	if bytes + reserve + 65536 > MAX_BYTES or not enough_space(reserve * 3 + pending_bytes) then return abort("Insufficient temporary memory for this job") end
 	local id = token()
@@ -330,6 +381,12 @@ function M.start(kind, args, owner)
             return abort("Invalid TLS candidate fingerprint")
         end
         request_args = {certificate_sha256=args.certificate_sha256}
+    elseif kind == "management_apply" then
+        request_args=validated_management
+    elseif kind == "pon_apply" then
+        request_args=validated_pon
+    elseif kind == "access_apply" then
+        request_args=validated_access
 	else
 		request_args, err = copy_upload(args, owner, dir .. "/firmware.tar")
 		if not request_args then return abort(err) end
@@ -394,10 +451,76 @@ function M.confirm_tls(id)
 	return public(record, dir)
 end
 
+function M.confirm_management(id)
+    -- Confirmation can arrive through the new management address and a new
+    -- authenticated root session after the worker has verified convergence.
+    local record,request,dir=load_job(id,nil)
+    if not record then return nil,request end
+    if request.kind~="management_apply" or record.state~="running" then
+        return nil,"Management transaction is not awaiting confirmation"
+    end
+    local loaded,transaction=pcall(require,"8311.management_transaction")
+    if not loaded or type(transaction)~="table" or
+       type(transaction.pending)~="function" or
+       type(transaction.confirm)~="function" then
+        return nil,"Management transaction runtime is unavailable"
+    end
+    local pending,why=transaction.pending()
+    if not pending or pending.pending~=true or pending.job_id~=id then
+        return nil,why or "Management transaction has not reached confirmation"
+    end
+    local receipt,confirm_why=transaction.confirm(id)
+    if not receipt then return nil,confirm_why or "Management confirmation failed" end
+    return public(record,dir)
+end
+
+function M.confirm_access(id)
+    local record,request,dir=load_job(id,nil)
+    if not record then return nil,request end
+    if request.kind~="access_apply" or record.state~="running" then
+        return nil,"Access transaction is not awaiting confirmation"
+    end
+    local loaded,transaction=pcall(require,"8311.access_transaction")
+    if not loaded or type(transaction)~="table" or
+       type(transaction.pending)~="function" or
+       type(transaction.confirm)~="function" then
+        return nil,"Access transaction runtime is unavailable"
+    end
+    local pending,why=transaction.pending()
+    if not pending or pending.pending~=true or pending.job_id~=id then
+        return nil,why or "Access transaction has not reached confirmation"
+    end
+    local receipt,confirm_why=transaction.confirm(id)
+    if not receipt then return nil,confirm_why or "Access confirmation failed" end
+    return public(record,dir)
+end
+
+function M.confirm_pon(id)
+    local record,request,dir=load_job(id,nil)
+    if not record then return nil,request end
+    if request.kind~="pon_apply" or record.state~="running" then
+        return nil,"PON/OMCI transaction is not awaiting confirmation"
+    end
+    local loaded,transaction=pcall(require,"8311.pon_config_transaction")
+    if not loaded or type(transaction)~="table" or
+       type(transaction.pending)~="function" or
+       type(transaction.confirm)~="function" then
+        return nil,"PON/OMCI transaction runtime is unavailable"
+    end
+    local pending,why=transaction.pending()
+    if not pending or pending.pending~=true or pending.job_id~=id or
+       pending.phase~="trial_running" then
+        return nil,why or "PON/OMCI transaction has not reached confirmation"
+    end
+    local receipt,confirm_why=transaction.confirm(id)
+    if not receipt then return nil,confirm_why or "PON/OMCI confirmation failed" end
+    return public(record,dir)
+end
+
 function M.cancel(id, owner)
 	local record, request, dir = load_job(id, owner)
 	if not record then return nil, request end
-	if request.kind ~= "support" then return nil, "Firmware jobs cannot be cancelled while flash operations may be running" end
+	if request.kind ~= "support" then return nil, "Mutating jobs cannot be cancelled through this endpoint; use their guarded rollback/confirmation flow" end
 	if terminal[record.state] then return public(record, dir) end
 	if not private(dir .. "/cancel", "reg", 600) and not atomic(dir .. "/cancel", {cancel=true}) then
 		return nil, "Cannot request cancellation"
@@ -444,6 +567,18 @@ function M.worker(id)
             argv = {"/usr/bin/lua", "/usr/libexec/8311-tls-activate.lua",
                     dir, fingerprint}
         end
+    elseif request.kind == "management_apply" then
+        -- The fixed wrapper acquires the same environment flock used by
+        -- firmware/config writers, then reads the private request from disk.
+        -- No management address, DNS or MAC value appears in process argv.
+        argv={"/usr/libexec/8311-management-apply",dir}
+    elseif request.kind == "pon_apply" then
+        -- Subscriber/PON values remain only in request.json. The fixed worker
+        -- receives the private directory path, never individual field values.
+        argv={"/usr/libexec/8311-pon-config-apply",dir}
+    elseif request.kind == "access_apply" then
+        -- Access settings remain only in the root-owned private request.
+        argv={"/usr/libexec/8311-access-apply",dir}
 	elseif request.kind == "bank_operation" and bank_actions[request.args.action] then
         local guard = request.args.state_guard
         if type(guard) ~= "string" or #guard ~= 64 or guard:find("[^0-9a-f]") then

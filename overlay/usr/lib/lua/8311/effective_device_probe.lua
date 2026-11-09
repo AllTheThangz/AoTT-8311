@@ -22,7 +22,10 @@ function M.capture(adapter)
        type(adapter.luci_language)~="function" or
        type(adapter.ntp_list)~="function" or
        type(adapter.sfp_option)~="function" or
-       type(adapter.kernel_hostname)~="function" then
+       type(adapter.kernel_hostname)~="function" or
+       type(adapter.active_language)~="function" or
+       type(adapter.active_timezone)~="function" or
+       type(adapter.active_ntp)~="function" then
         return nil,"invalid_readonly_device_adapter"
     end
     local function safe(fn,...)
@@ -63,12 +66,19 @@ function M.capture(adapter)
             safe(adapter.sfp_option,option),128)
     end
     local host=strip(safe(adapter.kernel_hostname),128)
-    return model.inspect(saved,configured,{hostname=host})
+    local active_language=strip(safe(adapter.active_language),128)
+    local active_timezone=strip(safe(adapter.active_timezone),128)
+    local active_ntp=safe(adapter.active_ntp)
+    if type(active_ntp)~="table" then active_ntp=nil end
+    return model.inspect(saved,configured,{
+        hostname=host,lang=active_language,timezone=active_timezone,
+        ntp=active_ntp
+    })
 end
 
 -- A source-only implementation. Do not call as an unauthenticated route.
 -- The caller must inherit LuCI administrator authentication.
-function M.live_device()
+function M.live_device(request_language)
     local ok,snapshot=pcall(function()
         local fs=require "nixio.fs"
         local web=require "8311.webutil"
@@ -109,6 +119,53 @@ function M.live_device()
             end,
             kernel_hostname=function()
                 return fs.readfile("/proc/sys/kernel/hostname",128)
+            end,
+            active_language=function()
+                if type(request_language)=="string" and #request_language<=128 and
+                   not request_language:find("[%z\1-\31\127]") then
+                    return request_language
+                end
+            end,
+            active_timezone=function()
+                local link=fs.readlink("/tmp/localtime")
+                local prefix="/usr/share/zoneinfo/"
+                if type(link)=="string" and link:sub(1,#prefix)==prefix then
+                    return link:sub(#prefix+1):gsub("_"," ")
+                end
+                local fallback=fs.readfile("/tmp/TZ",128)
+                if type(fallback)=="string" then
+                    return fallback:gsub("[\r\n]+$","")
+                end
+            end,
+            active_ntp=function()
+                local code,pids,overflow=web.capture({"/bin/pidof","ntpd"},512)
+                if overflow then return nil end
+                if code==1 then
+                    return {probe_ok=true,running=false,peers={}}
+                elseif code~=0 or type(pids)~="string" then
+                    return nil
+                end
+                local peers={}
+                local process_seen=false
+                for pid in pids:gmatch("%d+") do
+                    local raw=fs.readfile("/proc/"..pid.."/cmdline",8192)
+                    if type(raw)=="string" and raw:find("^/usr/sbin/ntpd%z") then
+                        process_seen=true
+                        local argv={}
+                        for part in raw:gmatch("([^%z]+)") do argv[#argv+1]=part end
+                        local index=1
+                        while index<=#argv do
+                            if argv[index]=="-p" and type(argv[index+1])=="string" then
+                                peers[#peers+1]=argv[index+1]
+                                index=index+2
+                            else
+                                index=index+1
+                            end
+                        end
+                    end
+                end
+                if not process_seen then return nil end
+                return {probe_ok=true,running=true,peers=peers}
             end
         }
         return M.capture(adapter)

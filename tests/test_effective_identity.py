@@ -18,9 +18,9 @@ class IdentityContractTests(unittest.TestCase):
                                       str(ROOT)], cwd=ROOT, capture_output=True,
                            text=True, timeout=40)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertRegex(r.stdout, r"AOTT_C011_IDENTITY_PASS covered=54 checks=\d+")
+        self.assertRegex(r.stdout, r"AOTT_C011_IDENTITY_PASS covered=55 checks=\d+")
 
-    def test_host_lua_real_schema_all_54_and_identity_contract(self):
+    def test_host_lua_real_schema_all_55_and_identity_contract(self):
         self.run_fixture(["lua5.1"])
 
     def test_vendor_mips_real_schema_and_sensitive_readback(self):

@@ -421,9 +421,34 @@ function renderDiff(rows, parent, labels) {
 	});
 	parent.appendChild(table);
 }
+const managementTupleFields = new Set([
+	'lct_vlan','ipaddr','netmask','gateway','dns_server','lct_mac'
+]);
 function configPayload(form) {
 	const data = new URLSearchParams(new FormData(form)); data.set('mode', 'preview');
 	return data.toString();
+}
+function managementTuplePayload(form) {
+	const value = name => {
+		const field = form.elements.namedItem(name);
+		return field && typeof field.value === 'string' ? field.value : '';
+	};
+	return {
+		vlan: value('lct_vlan'),
+		ipaddr: value('ipaddr'),
+		netmask: value('netmask'),
+		gateway: value('gateway'),
+		dns_server: value('dns_server'),
+		lct_mac: value('lct_mac')
+	};
+}
+function sameOriginPath(raw, suffix) {
+	try {
+		const target = new URL(raw, window.location.href);
+		if (target.origin !== window.location.origin || target.search || target.hash ||
+			!target.pathname.endsWith(suffix)) return null;
+		return target.pathname;
+	} catch (_) { return null; }
 }
 function invalidateConfigReview(message) {
 	++configGeneration; configReview = null;
@@ -445,9 +470,18 @@ function rejectedBeforeWrite(error) {
 }
 function writeFailureMessage(error, subject) {
 	let message = errorMessage(error) + '\n';
-	if (rejectedBeforeWrite(error)) message += 'The device rejected this request before changing ' + subject + '.';
-	else message += 'The save outcome is not confirmed. ' + subject + ' may have changed; do not repeat this save blindly.';
-	if (error.verified && error.verified.length) message += ' Verified writes: ' + error.verified.join(', ') + '.';
+	if (error && error.activation_failed) {
+		if (error.saved_rollback_succeeded===true && error.runtime_rollback_succeeded===true) {
+			message += 'Live activation failed, but both the saved lower-risk values and their running configuration were rolled back and verified.';
+		} else {
+			message += 'Live activation failed and rollback was not fully verified. Reload and inspect saved and running values before another change.';
+		}
+	} else if (rejectedBeforeWrite(error)) {
+		message += 'The device rejected this request before changing ' + subject + '.';
+	} else {
+		message += 'The save outcome is not confirmed. ' + subject + ' may have changed; do not repeat this save blindly.';
+	}
+	if (error.verified && error.verified.length) message += ' Verified writes still retained: ' + error.verified.join(', ') + '.';
 	return message;
 }
 function saveConfig(form) {
@@ -464,7 +498,18 @@ function saveConfig(form) {
 		$(form).find('[name]').removeAttr('aria-invalid');
 		renderDiff(record.diff, document.getElementById('config-diff'), ['Setting', 'Saved value', 'Proposed value', 'When used']);
         $('#config-message').removeClass('aott-error aott-warning').addClass('aott-success').text('Validation passed. Review the changes below before saving.');
-		data.set('mode', 'apply'); configReview = {preview:body, apply:data.toString(), sequence:sequence, changed:record.diff.length > 0};
+		const changedIds = record.diff.map(row => row && row.id).filter(id => typeof id === 'string');
+		if (typeof record.route !== 'string' ||
+			!['none','live','management','boot','credential','pon'].includes(record.route)) {
+			throw {error:'Validation did not return a recognized guarded apply route.'};
+		}
+		data.set('mode', 'apply');
+		configReview = {
+			preview:body, apply:data.toString(), sequence:sequence,
+			changed:record.diff.length > 0, route:record.route,
+			managementOnly:record.route === 'management',
+			changedIds:changedIds
+		};
 		$('#config-confirm').prop('disabled', !configReview.changed);
 		$('#config-review').show();
 	}).catch(error => { if (currentConfigPreview(sequence, body, form)) showFieldErrors(error); })
@@ -931,15 +976,19 @@ function refreshDeviceEffective() {
             const line=document.createElement('tr');
             let proof='No independent runtime proof';
             if (field.runtime_effect_proven===true) {
-                proof=field.saved_to_observed==='match'
-                    ? 'Kernel value matches saved'
+                const relation=field.saved_to_observed==='match'
+                    ? 'matches saved'
                     : field.saved_to_observed==='mismatch'
-                    ? 'Kernel value differs from saved'
-                    : 'Kernel value observed; saved comparison unavailable';
+                    ? 'differs from saved'
+                    : 'saved comparison unavailable';
+                if (id==='hostname') proof='Running kernel hostname '+relation;
+                else if (id==='lang') proof='This authenticated LuCI request language '+relation;
+                else if (id==='timezone') proof='Active local-time zoneinfo target '+relation;
+                else if (id==='ntp_servers') proof='Active ntpd peer arguments '+relation+
+                    '; clock synchronization is not inferred';
+                else proof='Observed running value; '+relation;
             } else if (id.startsWith('sfp_') && field.configured_value!==null) {
                 proof='Virtual EEPROM configured; host presentation unverified';
-            } else if (id==='ntp_servers' && field.configured_value!==null) {
-                proof='NTP servers configured; synchronization unverified';
             } else if (field.configured_value!==null) {
                 proof='Configured only; running effect unverified';
             }
@@ -954,9 +1003,9 @@ function refreshDeviceEffective() {
             table.appendChild(line);
         });
         const info=document.createElement('p');
-        info.textContent='Fields observed in running kernel: '+
+        info.textContent='Fields with independent running-consumer evidence: '+
             String(record.data.summary.observed_runtime||0)+
-            '. No virtual SFP host EEPROM or time-sync status is inferred.';
+            '. Active ntpd peer arguments are configuration evidence only; clock synchronization and virtual SFP host presentation are not inferred.';
         results.appendChild(info);
         results.appendChild(table);
         results.hidden=false;
@@ -990,6 +1039,7 @@ function refreshManagementEffective() {
             throw {error:'Incomplete read-only management response.'};
         }
         const fieldList=[
+            ['lct_vlan','Management VLAN'],
             ['ipaddr','Management IPv4'],
             ['netmask','Subnet mask'],
             ['gateway','Management gateway'],
@@ -1044,7 +1094,7 @@ function refreshManagementEffective() {
         intro.textContent='Management path: '+
             valueText(record.data.management_section,'undetermined')+
             '. Interface: '+valueText(record.data.management_interface,'undetermined')+
-            '. Kernel-observed fields: '+
+            '. Independently observed fields: '+
             String(record.data.summary.kernel_observed||0)+
             '. Saved values alone do not prove active service.';
         results.appendChild(intro);
@@ -1439,28 +1489,243 @@ $(document).ready(function() {
         event.preventDefault();
         refreshHardwareEffective();
     });
+	const bootTrialConfirm=document.getElementById('aott-boot-config-confirm');
+	if (bootTrialConfirm) {
+		bootTrialConfirm.addEventListener('click',function() {
+			const section=document.getElementById('aott-boot-config-trial');
+			const form=document.getElementById('8311-config');
+			const status=document.getElementById('aott-boot-config-confirm-status');
+			const job=section && section.getAttribute('data-job-id');
+			const endpoint=form && sameOriginPath(
+				form.getAttribute('data-boot-confirm-url') || '',
+				'/admin/8311/boot_config_confirm');
+			if (!endpoint || !job || !/^[0-9a-f]{32}$/.test(job)) {
+				if (status) status.textContent='Boot trial confirmation data is invalid. Reload without changing anything.';
+				return;
+			}
+			bootTrialConfirm.disabled=true;
+			if (status) status.textContent='Confirming this boot configuration…';
+			post8311(endpoint,{job_id:job}).then(record => {
+				if (record.success!==true || record.status!=='BOOT_CONFIG_TRIAL_CONFIRMED') {
+					throw {error:'Boot configuration confirmation was not accepted.'};
+				}
+				if (status) status.textContent='Boot configuration confirmed. The trial is now persistent.';
+				bootTrialConfirm.textContent='Confirmed';
+			}).catch(error => {
+				bootTrialConfirm.disabled=false;
+				if (status) status.textContent=errorMessage(error);
+			});
+		});
+	}
+
 	$('#config-confirm').on('click', function() {
 		if (!configReview || !configReview.changed || configWriteStarted) return;
 		const form = document.getElementById('8311-config');
 		if (configReview.sequence !== configGeneration || configReview.preview !== configPayload(form)) {
 			invalidateConfigReview('The form no longer matches the reviewed changes. Review it again before saving.'); return;
 		}
-		const body = configReview.apply;
+		const review = configReview;
+		const body = review.apply;
 		const submitted = Array.from(form.elements).filter(input => input.name).map(input => ({input:input,value:input.value}));
+		const managementOnly = review.route === 'management';
+		const bootOnly = review.route === 'boot';
+		const ponOnly = review.route === 'pon';
+		const managementValues = managementOnly ? managementTuplePayload(form) : null;
+		const managementApply = managementOnly ?
+			sameOriginPath(form.getAttribute('data-management-apply-url') || '', '/admin/8311/management_apply') : null;
+		const managementPreflight = managementOnly ?
+			sameOriginPath(form.getAttribute('data-management-preflight-url') || '', '/admin/8311/management_preflight') : null;
+		const bootApply = bootOnly ?
+			sameOriginPath(form.getAttribute('data-boot-apply-url') || '', '/admin/8311/boot_config_apply') : null;
+		const rebootUrl = bootOnly ?
+			sameOriginPath(form.getAttribute('data-reboot-url') || '', '/admin/system/reboot') : null;
+		const ponApply = ponOnly ?
+			sameOriginPath(form.getAttribute('data-pon-apply-url') || '', '/admin/8311/pon_config_apply') : null;
+		const ponStatus = ponOnly ?
+			sameOriginPath(form.getAttribute('data-pon-status-url') || '', '/admin/8311/pon_config_status') : null;
+		const ponConfirm = ponOnly ?
+			sameOriginPath(form.getAttribute('data-pon-confirm-url') || '', '/admin/8311/pon_config_confirm') : null;
+		if (managementOnly && (!managementApply || !managementPreflight)) {
+			invalidateConfigReview('The guarded management transaction endpoints are invalid. No change was submitted.');
+			return;
+		}
+		if (bootOnly && (!bootApply || !rebootUrl)) {
+			invalidateConfigReview('The guarded boot transaction endpoints are invalid. No change was submitted.');
+			return;
+		}
+		if (ponOnly && (!ponApply || !ponStatus || !ponConfirm)) {
+			invalidateConfigReview('The guarded PON/OMCI transaction endpoints are invalid. No optical setting was changed.');
+			return;
+		}
 		configWriteStarted = true; configReview = null; ++configGeneration;
 		$(form).find('input:not([type="hidden"]),select,textarea,button').prop('disabled', true);
 		$(form).attr('aria-busy', 'true'); $('#config-confirm').prop('disabled', true);
+		$('#config-review').hide();
+
+		if (ponOnly) {
+			const message=document.getElementById('config-message');
+			message.textContent='Submitting the guarded PON/OMCI transaction. The previous environment, UCI packages, and MIB profiles are already designated for persistent rollback before any optical mutation.';
+			request8311(ponApply,{method:'POST',body:new URLSearchParams(body)}).then(record => {
+				if (record.success!==true || !record.job || typeof record.job.id!=='string' ||
+					!/^[0-9a-f]{32}$/.test(record.job.id) ||
+					typeof record.rollback_seconds!=='number' ||
+					typeof record.verification_seconds!=='number') {
+					throw {error:'The PON/OMCI transaction response was incomplete.'};
+				}
+				const id=record.job.id;
+				const deadline=Date.now()+
+					(Math.max(30,record.rollback_seconds)+Math.max(30,record.verification_seconds)+30)*1000;
+				let confirmationSubmitted=false;
+				let timer=null;
+				function finish(text) {
+					if (timer) clearTimeout(timer);
+					message.textContent=text;
+					$(form).attr('aria-busy','false');
+				}
+				function renderReady(state) {
+					message.replaceChildren();
+					message.appendChild(document.createTextNode(
+						'The candidate PON/OMCI configuration has converged locally, omcid is running, and PON is O5.1. Per-field OLT acceptance is not inferred. '
+					));
+					const button=document.createElement('button');
+					button.type='button';
+					button.className='cbi-button cbi-button-save';
+					button.textContent='Confirm PON/OMCI configuration';
+					button.addEventListener('click',function() {
+						button.disabled=true;
+						message.appendChild(document.createTextNode(' Recording confirmation…'));
+						post8311(ponConfirm,{job_id:id}).then(result => {
+							if (result.success!==true) throw {error:'PON/OMCI confirmation was refused.'};
+							confirmationSubmitted=true;
+							message.textContent='PON/OMCI confirmation recorded. Waiting for the transaction worker to finalize the persistent recovery state…';
+							timer=setTimeout(poll,750);
+						}).catch(error => {
+							button.disabled=false;
+							message.appendChild(document.createTextNode(' '+errorMessage(error)));
+						});
+					});
+					message.appendChild(button);
+				}
+				function poll() {
+					if (Date.now()>deadline) {
+						finish('The browser stopped polling the PON/OMCI transaction. The device-side rollback timer remains authoritative. Reload Configuration to inspect the durable result.');
+						return;
+					}
+					request8311(ponStatus,{method:'GET',cache:'no-store'}).then(state => {
+						if (state.success!==true) throw {error:'PON/OMCI status is unavailable.'};
+						if (state.pending!==true) {
+							finish(confirmationSubmitted ?
+								'The confirmed PON/OMCI transaction has finalized. Reload Configuration to inspect saved and running state.' :
+								'The PON/OMCI transaction is no longer pending. It may have rolled back. Reload Configuration before making another change.');
+							return;
+						}
+						if (state.job_id!==id) {
+							finish('A different PON/OMCI transaction is pending. Reload Configuration before taking any action.');
+							return;
+						}
+						if (state.confirmation_available===true && confirmationSubmitted===false) {
+							renderReady(state);
+							return;
+						}
+						message.textContent='PON/OMCI transaction is waiting for local convergence: omcid '+
+							(state.omcid_running?'running':'not ready')+', PON '+
+							(state.pon_registered_o5_1?'O5.1':'not O5.1')+
+							'. Automatic rollback remains armed.';
+						timer=setTimeout(poll,2000);
+					}).catch(error => {
+						message.textContent=errorMessage(error)+' Automatic rollback remains armed on the device.';
+						timer=setTimeout(poll,3000);
+					});
+				}
+				message.textContent='PON/OMCI transaction accepted. Waiting for omcid and O5.1 before confirmation is allowed.';
+				poll();
+			}).catch(error => {
+				message.textContent=errorMessage(error)+' No new optical transaction was confirmed. Reload Configuration before retrying.';
+				$(form).attr('aria-busy','false');
+			});
+			return;
+		}
+
+		if (bootOnly) {
+			const message = document.getElementById('config-message');
+			message.textContent = 'Staging the guarded one-boot configuration trial. No reboot occurs until you explicitly request it.';
+			request8311(bootApply, {method:'POST', body:new URLSearchParams(body)}).then(record => {
+				if (record.success !== true || record.status !== 'BOOT_CONFIG_TRIAL_STAGED' ||
+					typeof record.job_id !== 'string' || record.job_id.length !== 32 ||
+					record.reboot_required !== true || record.confirmation_required !== true) {
+					throw {error:'The boot configuration transaction response was incomplete.'};
+				}
+				message.replaceChildren();
+				message.appendChild(document.createTextNode(
+					'Boot configuration trial staged. The previous boot settings and boot command are preserved. '
+				));
+				const link=document.createElement('a');
+				link.href=rebootUrl;
+				link.textContent='Reboot once to test the guarded configuration';
+				message.appendChild(link);
+				message.appendChild(document.createTextNode(
+					'. After reconnecting, return to Configuration and confirm the trial before automatic rollback.'
+				));
+			}).catch(error => {
+				message.textContent=errorMessage(error)+' No reboot was requested. Reload the configuration before retrying.';
+			}).finally(() => $(form).attr('aria-busy','false'));
+			return;
+		}
+
+		if (managementOnly) {
+			const seconds = 300;
+			const message = document.getElementById('config-message');
+			message.textContent = 'Submitting the guarded management change. If the connection moves, reconnect to the proposed management address and confirm it before automatic rollback.';
+			post8311(managementApply, managementValues).then(record => {
+				if (record.success !== true || !record.job || typeof record.job.id !== 'string' ||
+					record.job.id.length !== 32 || typeof record.rollback_seconds !== 'number') {
+					throw {error:'The management transaction response was incomplete.'};
+				}
+				const timeout = Math.max(30, Math.min(600, Math.floor(record.rollback_seconds || seconds)));
+				const port = window.location.port ? ':' + window.location.port : '';
+				const reconnect = 'https://' + managementValues.ipaddr + port + managementPreflight;
+				message.replaceChildren();
+				message.appendChild(document.createTextNode(
+					'Management transaction accepted. The device will automatically restore the previous management configuration unless the new path is confirmed within ' + timeout + ' seconds.'
+				));
+				message.appendChild(document.createElement('br'));
+				const link = document.createElement('a');
+				link.href = reconnect;
+				link.rel = 'noopener';
+				link.textContent = 'Open the proposed management address to verify and confirm';
+				message.appendChild(link);
+				message.appendChild(document.createElement('br'));
+				message.appendChild(document.createTextNode(
+					'If the new address is unreachable, do not submit another change. Allow the rollback window to restore the previous configuration.'
+				));
+			}).catch(error => {
+				message.textContent = errorMessage(error) +
+					' If the connection changed before the response arrived, try the proposed management address; otherwise allow the rollback window to expire.';
+			}).finally(() => $(form).attr('aria-busy', 'false'));
+			return;
+		}
+
 		$('#config-message').text('Saving the reviewed settings. Keep this page open until the outcome is shown.');
 		request8311(form.action, {method:'POST', body:new URLSearchParams(body)}).then(record => {
 			if (record.success !== true || !Array.isArray(record.verified)) throw {error:'The settings save response was incomplete.'};
 			const changed = submitted.some(item => item.input.value !== item.value);
-			$('#config-message').text('Reviewed settings saved and read back. ' + (record.warning || '') +
-				(changed ? ' Values changed in this page after submission are not saved.' : '') + ' Reload this page to inspect the saved values and updated startup comparison.');
+			let activation='';
+			if (record.activation && Array.isArray(record.activation.order) && record.activation.order.length) {
+				const verified=record.activation.order.filter(id =>
+					record.activation.fields && record.activation.fields[id] &&
+					record.activation.fields[id].runtime_effect_proven===true);
+				const pending=record.activation.order.filter(id =>
+					record.activation.fields && record.activation.fields[id] &&
+					record.activation.fields[id].runtime_pending===true);
+				if (verified.length) activation+=' Live runtime verified: '+verified.join(', ')+'.';
+				if (pending.length) activation+=' Runtime verification pending a new authenticated request: '+pending.join(', ')+'.';
+			}
+			$('#config-message').text('Reviewed settings saved and read back.' + activation + ' ' + (record.warning || '') +
+				(changed ? ' Values changed in this page after submission are not saved.' : '') + ' Reload this page to inspect saved and running values.');
 		}).catch(error => {
 			showFieldErrors(error);
 			$('#config-message').text(writeFailureMessage(error, 'the settings') + ' Reload this page and inspect the durable values before another save.');
 		}).finally(() => $(form).attr('aria-busy', 'false'));
-		$('#config-review').hide();
 	});
 	const fix = document.getElementById('widget.cbid.system.poncfg.fix_vlans');
 	if (fix) {

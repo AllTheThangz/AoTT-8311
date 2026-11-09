@@ -57,6 +57,20 @@ local adapter={
         reads[#reads+1]="kernel:hostname"
         return running
     end,
+    active_language=function()
+        reads[#reads+1]="runtime:lang"
+        return config.lang
+    end,
+    active_timezone=function()
+        reads[#reads+1]="runtime:timezone"
+        return config.timezone
+    end,
+    active_ntp=function()
+        reads[#reads+1]="runtime:ntp"
+        local peers={}
+        for i,value in ipairs(config.ntp_servers or {}) do peers[i]=value end
+        return {probe_ok=true,running=#peers>0,peers=peers}
+    end,
 }
 
 local baseline,reason=probe.capture(adapter)
@@ -68,10 +82,10 @@ same(baseline.no_device_write,true,"no_writes")
 same(baseline.no_reboot,true,"no_reboot")
 same(baseline.no_firmware_commits,true,"no_commit")
 same(baseline.source_only_not_hardware_qualified,true,"no_auto_hardware_qual")
-same(baseline.summary.observed_runtime,1,"only_hostname_observed")
-same(baseline.summary.configured_only,10,"ten_configured_only")
+same(baseline.summary.observed_runtime,4,"four_lower_risk_runtime_observed")
+same(baseline.summary.configured_only,7,"seven_sfp_configured_only")
 same(baseline.summary.unverified,0,"no_missing_config")
-same(baseline.summary.saved_matches_runtime,1,"hostname_match")
+same(baseline.summary.saved_matches_runtime,4,"four_runtime_matches")
 
 local total=0
 for _,id in ipairs(model.fields) do
@@ -83,7 +97,8 @@ for _,id in ipairs(model.fields) do
     same(field.hardware_qualified,false,"unqualified_"..id)
     same(field.persists_across_reboot_proven,false,"persistence_not_proven_"..id)
     same(field.recovery_proven,false,"recovery_not_proven_"..id)
-    if id~="hostname" then
+    local runtime_fields={hostname=true,lang=true,timezone=true,ntp_servers=true}
+    if not runtime_fields[id] then
         same(field.observed_value,nil,"no_invented_running_"..id)
         same(field.runtime_effect_proven,false,"no_invented_effect_"..id)
         same(field.observed_source,"unavailable","no_invented_source_"..id)
@@ -94,15 +109,25 @@ same(baseline.fields.hostname.observed_value,"house-onu","hostname_runtime")
 same(baseline.fields.hostname.observed_source,"kernel_proc_hostname",
      "kernel_hostname_source")
 same(baseline.fields.hostname.runtime_effect_proven,true,"hostname_effect")
-same(baseline.fields.lang.observed_value,nil,"language_not_proven")
-same(baseline.fields.timezone.observed_value,nil,"timezone_not_proven")
-same(baseline.fields.ntp_servers.observed_value,nil,"ntp_sync_not_proven")
+same(baseline.fields.lang.observed_value,"en","language_request_runtime")
+same(baseline.fields.lang.observed_source,"active_luci_request_language",
+     "language_runtime_source")
+same(baseline.fields.lang.runtime_effect_proven,true,"language_effect")
+same(baseline.fields.timezone.observed_value,"UTC","timezone_runtime")
+same(baseline.fields.timezone.observed_source,"tmp_localtime_zoneinfo_target",
+     "timezone_runtime_source")
+same(baseline.fields.timezone.runtime_effect_proven,true,"timezone_effect")
+same(baseline.fields.ntp_servers.observed_value,
+     "ntp1.example ntp2.example","ntp_runtime_peers")
+same(baseline.fields.ntp_servers.observed_source,
+     "active_ntpd_process_arguments","ntp_runtime_source")
+same(baseline.fields.ntp_servers.runtime_effect_proven,true,"ntp_process_effect")
 same(baseline.fields.sfp_serial.sensitivity,"potential_device_identity",
      "identity_classification")
 same(baseline.fields.sfp_serial.configured_source,
      "uci_virtual_sfp_eeprom","virtual_sfp_is_configuration")
 same(baseline.fields.sfp_vendor.observed_value,nil,"no_claim_host_eeprom")
-same(#reads,23,"fixed_read_calls_total")
+same(#reads,26,"fixed_read_calls_total")
 for _,read in ipairs(reads) do
     verify(not read:find("reg_id") and not read:find("gpon_sn") and
            not read:find("root_pwhash") and not read:find("loid") and
@@ -133,11 +158,25 @@ saved.hostname="house-onu"
 -- server list is never silently accepted or treated as active sync.
 config.ntp_servers={"ntp2.example","ntp1.example"}
 local reorder=assert(probe.capture(adapter))
-same(reorder.fields.ntp_servers.saved_to_configured,"mismatch",
-     "ntp_order_mismatch_is_reported")
-same(reorder.fields.ntp_servers.runtime_effect_proven,false,
-     "ntp_list_not_proof_of_synchronization")
+same(reorder.fields.ntp_servers.saved_to_configured,"match",
+     "ntp_peer_order_is_semantically_equivalent")
+same(reorder.fields.ntp_servers.runtime_effect_proven,true,
+     "ntp_active_process_peers_are_runtime_evidence")
+same(reorder.fields.ntp_servers.saved_to_observed,"match",
+     "ntp_runtime_peer_set_matches_saved")
 config.ntp_servers={"ntp1.example","ntp2.example"}
+local original_active_ntp=adapter.active_ntp
+adapter.active_ntp=function()
+    reads[#reads+1]="runtime:ntp"
+    return {probe_ok=true,running=true,
+            peers={"ntp1.example","dhcp.ntp.example","ntp2.example"}}
+end
+local extra_ntp=assert(probe.capture(adapter))
+same(extra_ntp.fields.ntp_servers.saved_to_observed,"match",
+     "configured_ntp_peers_may_coexist_with_dhcp_peer")
+same(extra_ntp.fields.ntp_servers.runtime_effect_proven,true,
+     "extra_native_ntp_peer_does_not_break_runtime_proof")
+adapter.active_ntp=original_active_ntp
 config.ntp_servers={"host name with spaces"}
 local bad_ntp=assert(probe.capture(adapter))
 same(bad_ntp.fields.ntp_servers.configured_value,nil,

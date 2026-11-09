@@ -4,7 +4,7 @@
 
 ## What was implemented
 
-A deterministic Python registry builder in `tools/build_capability_registry.py` reads the **existing LuCI configuration schema** through `tools/audit_configurability.py`. It does not introduce a second manually maintained list of 54 settings or change how values are saved.
+A deterministic Python registry builder in `tools/build_capability_registry.py` reads the **existing LuCI configuration schema** through `tools/audit_configurability.py`. The historical checkpoint contained 54 settings; current V3 source contains **55** after the guarded management-VLAN repair. The registry remains source-derived rather than a second manually maintained field list.
 
 Each field record contains:
 - Stable identifier, GUI group and schema type from the actual controller.
@@ -21,15 +21,15 @@ The builder never contacts the real ONU, runs SSH, reads live environment values
 
 | Inventory | Count | Interpretation |
 | --- | ---: | --- |
-| GUI firmware-environment fields | 54 | All recognized by schema, zero individually end-to-end certified by this audit |
+| GUI firmware-environment fields | 55 | All recognized by schema; current source readiness is tracked separately from hardware qualification |
 | PON/OMCI | 22 | Source-only GUI definitions |
 | ISP/VLAN | 3 | Source-only GUI definitions |
 | System | 13 | Source-only GUI definitions |
 | Host-visible SFP | 7 | Source-only GUI definitions |
-| Management | 9 | Source-only GUI definitions |
-| Fields with identified native code references | 48 | Presence only, not evidence of working apply/effect |
+| Management | 10 | Includes guarded `lct_vlan` control |
+| Fields with identified native code references | 49 | Presence only; hardware qualification remains separate |
 | Fields without matching native code references in scanned overlay | 6 | Need an independent backend/consumer trace; may be implemented in vendor code or bootloader |
-| Known missing/hidden environment candidates | 4 | Not certified safe to expose |
+| Known missing environment candidates | 3 | `device_sn`, `tx_en_mode`, and `factory_mode` remain unexposed |
 | Legacy environment fallback aliases | 2 | Not standalone controls |
 | Vendor UCI configuration domains | 13 | Offline file names and section types only |
 | Vendor UCI option names | 89 | Names only, no confirmed setters or live values |
@@ -41,7 +41,7 @@ The six GUI settings lacking matching native references in the scanned source ar
 
 | Identifier | Source evidence | Required work |
 | --- | --- | --- |
-| `lct_vlan` | Hidden as broken in the controller, while management startup/helper references remain | C-014: confirm real interface/route operation, safe management recovery and persistence |
+| `lct_vlan` | Now exposed in V3 behind the guarded management transaction, exact runtime VLAN-ID verification, timed confirmation, and automatic rollback | C-014 hardware apply/reconnect/reboot/recovery qualification remains required before FULLY_QUALIFIED |
 | `device_sn` | PON startup helper reads it but GUI lacks a control | C-015: verify vendor semantics, authorization/identity risks and hardware effect |
 | `tx_en_mode` | PON startup reads the value, sets the optical control through UCI; not in GUI | C-015: optical and pin safety, supported enumerations, module-specific effects before any UI |
 | `factory_mode` | Upstream-documented candidate, no confirmed current AoTT backend evidence | C-015: confirm whether this exists on a specific board and should be exposed at all |
@@ -81,7 +81,7 @@ The dedicated `tests/test_capability_registry.py` validates parser/schema identi
 
 ## C-010 completion criteria and next work
 
-**Done at source-evidence level:** the 54 GUI field inventory and vendor key discovery are reproducible; unknown/default/legacy source behavior is not falsely certified; data types, key namespaces and consumer references have an automatically tested artifact.
+**Done at current source-evidence level:** the 55-field V3 GUI inventory and vendor key discovery are reproducible; `lct_vlan` is no longer a hidden broken candidate; unknown/default/legacy behavior is not falsely certified; data types, key namespaces and consumer references have an automatically tested artifact.
 
 **Not yet done:** A single runtime-consumable, hardware-qualified capability adapter with per-field effective/readback and persistence semantics. This is C-011 and C-012, not an excuse to mark C-010 as fully hardware validated.
 

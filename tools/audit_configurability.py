@@ -20,9 +20,7 @@ UPSTREAM_KNOWN_EXTRA={
     "factory_mode":"Upstream 8311 documented debug toggle, absent from current GUI; verify vendor support before exposing.",
     "device_sn":"Upstream 8311 documented device serial setting, not present in current GUI; determine hardware effect before exposing.",
 }
-EXPECTED_KNOWN_HIDDEN={
-    "lct_vlan":"Management VLAN has a commented-out GUI field marked currently broken; needs route/apply/recovery qualification."
-}
+EXPECTED_KNOWN_HIDDEN={}
 REGEX_ID=re.compile(r'^\s*id\s*=\s*"([A-Za-z0-9_]+)"')
 REGEX_TYPE=re.compile(r'^\s*type\s*=\s*"([A-Za-z0-9_]+)"')
 REGEX_OPTION=re.compile(r"^\s*(?:option|list)\s+([A-Za-z_][A-Za-z0-9_]*)\b")

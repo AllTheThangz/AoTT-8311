@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "status": "C014_MANAGEMENT_VLAN_READONLY_BASELINE_PUBLIC_SAFE",
+  "hardware_profile": "potron-prx126-aott-v1",
+  "running_release": "AoTT-8311-v2r9",
+  "field": {
+    "id": "lct_vlan",
+    "saved_source_status": "unset_default",
+    "configured_topology": "untagged_management",
+    "observed_runtime_topology": "untagged_management",
+    "runtime_effect_proven": true,
+    "persist_after_reboot_proven": false,
+    "recovery_proven": false,
+    "hardware_qualified": false
+  },
+  "safety": {
+    "raw_setting_values_included": false,
+    "private_network_addresses_included": false,
+    "mac_addresses_included": false,
+    "dns_values_included": false,
+    "subscriber_identity_values_included": false,
+    "credential_values_or_hashes_included": false,
+    "device_writes": false,
+    "firmware_writes": false,
+    "reboot": false,
+    "bank_state_changed": false
+  },
+  "note": "Read-only extension for the newly exposed management VLAN control. It proves only that the current untagged topology is independently observable on the unchanged r9 reference unit. No mutation, reboot-persistence, tagged-VLAN apply, confirmation, or recovery qualification is claimed."
+}

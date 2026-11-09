@@ -30,7 +30,7 @@ for _,mod in ipairs({"effective_state","effective_device_state","effective_pon_s
 end
 local before=0
 for _ in pairs(covered) do before=before+1 end
-eq(before,45,"prior_coverage")
+eq(before,46,"prior_coverage")
 local fields=state.field_ids()
 eq(#fields,9,"new_nine_fields")
 for _,id in ipairs(fields) do
@@ -41,7 +41,7 @@ for _,id in ipairs(fields) do
 end
 local all=0
 for id in pairs(covered) do all=all+1;ok(schema[id],"no_invented_field_"..id) end
-eq(all,54,"full_stored_source_coverage")
+eq(all,55,"full_stored_source_coverage")
 for id in pairs(schema) do eq(covered[id],true,"all_schema_covered_"..id) end
 
 local synthetic={gpon_sn="TEST".."10ABCDEF",vendor_id="TST9",reg_id_hex="A1B2",
@@ -187,4 +187,4 @@ eq(response.code,200,"controller_returns_redacted")
 eq(headers["Cache-Control"],"no-store, private","no_store")
 eq(headers["X-Content-Type-Options"],"nosniff","nosniff")
 no_leak(response.body)
-print("AOTT_C011_IDENTITY_PASS covered=54 checks="..checked)
+print("AOTT_C011_IDENTITY_PASS covered=55 checks="..checked)

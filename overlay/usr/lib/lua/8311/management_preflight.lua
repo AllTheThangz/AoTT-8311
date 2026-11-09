@@ -6,6 +6,7 @@ local web=require "8311.webutil"
 local reader=require "8311.native_management_reader"
 local storage=require "8311.recovery_storage"
 local transition=require "8311.vlan_transition"
+local access=require "8311.management_access"
 local M={}
 local STORE="/ptconf/8311/aott-recovery/v1"
 local MOUNT="/ptconf"
@@ -134,6 +135,22 @@ function M.status()
     else
         topology_why=current_why
     end
+    local ssh,ssh_why
+    if current and vlan~=nil then ssh,ssh_why=access.verify(vlan) end
+    local pending={pending=false}
+    local loaded,tx=pcall(require,"8311.management_transaction")
+    if loaded and type(tx)=="table" and type(tx.pending)=="function" then
+        local ok,value,reason=pcall(tx.pending)
+        if ok and type(value)=="table" then
+            pending={
+                pending=value.pending==true,
+                job_id=value.pending==true and value.job_id or nil,
+                status=value.pending==true and "awaiting_confirmation" or "none",
+            }
+        elseif not ok or value==nil then
+            pending={pending=false,status="unavailable",reason=reason}
+        end
+    end
     return {
         schema=1,status="MANAGEMENT_VLAN_RUNTIME_PREFLIGHT",
         storage=store or {status="unavailable",reason=storage_why},
@@ -141,8 +158,13 @@ function M.status()
         topology=current and vlan~=nil and
             {status="qualified_for_preview",current_vlan=vlan} or
             {status="unavailable",reason=topology_why},
-        preview_available=store~=nil and native~=nil and current~=nil and vlan~=nil,
-        production_write_allowed=false,
+        ssh_binding=ssh and {status="verified",process_binding_verified=true} or
+            {status="unavailable",reason=ssh_why},
+        pending_transaction=pending,
+        preview_available=store~=nil and native~=nil and current~=nil and vlan~=nil and ssh~=nil,
+        production_apply_source_available=true,
+        hardware_qualified=false,
+        timed_confirmation_seconds=loaded and type(tx)=="table" and tx.WAIT_SECONDS or 300,
         recovery_store_write_performed=false,
         uci_write_performed=false,
         native_environment_write_performed=false,
@@ -164,6 +186,10 @@ function M.preview(requested)
     if not current then return nil,current_why end
     local current_vlan,topology_why=topology(current)
     if current_vlan==nil then return nil,topology_why end
+    local current_ssh,current_ssh_why=access.verify(current_vlan)
+    if not current_ssh then return nil,current_ssh_why end
+    local ssh_plan,ssh_why=access.preflight(vlan)
+    if not ssh_plan then return nil,ssh_why end
     local handle,why=transition.prepare(current,vlan,"eth0_0_1_lct","lan")
     if not handle then return nil,why end
     local plan,plan_why=transition.redacted_summary(handle,"production_preview")
@@ -181,6 +207,8 @@ function M.preview(requested)
         native_fields_checked=native.fields,
         native_present_empty=native.present_empty,
         present_empty_restore_blocker=native.wrapper_cannot_restore_present_empty,
+        ssh_binding_change_required=ssh_plan.change_required,
+        ssh_binding_preflight_verified=true,
         contains_configuration_values=false,
         production_write_allowed=false,
         requires_separate_apply_authorization=true,
@@ -189,5 +217,55 @@ function M.preview(requested)
         recovery_store_write_performed=false,
     }
 end
+function M.preview_management(request)
+    if type(request)~="table" then return nil,"Management request is invalid" end
+    local store,storage_why=storage_status()
+    if not store then return nil,storage_why end
+    local native,native_why=native_status()
+    if not native then return nil,native_why end
+    if native.wrapper_cannot_restore_present_empty==true or
+       (native.present_empty or 0)>0 then
+        return nil,"Management environment contains a present-empty value that cannot be restored losslessly"
+    end
+    local current,current_why=snapshot()
+    if not current then return nil,current_why end
+    local current_vlan,topology_why=topology(current)
+    if current_vlan==nil then return nil,topology_why end
+    local current_ssh,current_ssh_why=access.verify(current_vlan)
+    if not current_ssh then return nil,current_ssh_why end
+    local requested=tonumber(request.vlan)
+    local ssh_plan,ssh_why=access.preflight(requested)
+    if not ssh_plan then return nil,ssh_why end
+    local handle,why=transition.prepare_management(
+        current,request,"eth0_0_1_lct","lan")
+    if not handle then return nil,why end
+    local plan,plan_why=transition.redacted_summary(
+        handle,"production_preview")
+    if not plan then return nil,plan_why end
+    return {
+        schema=1,status="MANAGEMENT_TUPLE_PREVIEW",
+        current_vlan=current_vlan,requested_vlan=requested,
+        operations=plan.operations,
+        network_operations=plan.network_operations,
+        firewall_operations=plan.firewall_operations,
+        changes_required=plan.changes_required,
+        recovery_store_present=store.store_present,
+        recovery_store_ready=store.store_ready,
+        recovery_provisioning_required=store.provisioning_required,
+        native_fields_checked=native.fields,
+        native_present_empty=native.present_empty,
+        ssh_binding_change_required=ssh_plan.change_required,
+        ssh_binding_preflight_verified=true,
+        contains_configuration_values=false,
+        production_apply_source_available=true,
+        hardware_qualified=false,
+        requires_timed_confirmation=true,
+        requires_separate_apply_authorization=true,
+        uci_write_performed=false,
+        native_environment_write_performed=false,
+        recovery_store_write_performed=false,
+    }
+end
+
 M.STORE=STORE
 return M

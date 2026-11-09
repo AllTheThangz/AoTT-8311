@@ -65,6 +65,9 @@ _set_8311_lct_mac() {
 }
 
 _set_8311_iphost_mac() {
-	# handled by uci-defaults
-	return 0
+	# Runtime consumer is the same native network.iphost1 MAC option used by
+	# the boot defaults. Commit here so a guarded PON transaction can verify
+	# the actual configured consumer instead of treating this setter as a no-op.
+	uci -q set "network.iphost1.macaddr=$1" || return 1
+	uci -q commit network || return 1
 }

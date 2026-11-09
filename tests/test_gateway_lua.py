@@ -11,6 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "overlay/usr/lib/lua/8311/config.lua"
+LUA_ROOT = ROOT / "overlay/usr/lib/lua"
 
 class GatewayLuaMigrationTests(unittest.TestCase):
     def run_case(self, saved_gateway, proposed_gateway, saved_ip="192.0.2.10",
@@ -19,6 +20,7 @@ class GatewayLuaMigrationTests(unittest.TestCase):
             self.skipTest("Lua 5.1 not installed on this test runner")
         proposed_ip = proposed_ip or saved_ip
         script=r"""
+package.path=LUA_ROOT.."/?.lua;"..package.path
 package.preload["8311.tools"] = function()
     return {fwenv_read_all=function()
         return {["8311_ipaddr"]=SAVED_IP, ["8311_netmask"]="255.255.255.0",
@@ -60,7 +62,8 @@ end
     "SAVED_GATEWAY",json.dumps(saved_gateway)).replace(
     "PROPOSED_GATEWAY",json.dumps(proposed_gateway)).replace(
     "NEW_HOSTNAME",json.dumps(new_hostname)).replace(
-    "CONFIG_PATH",json.dumps(str(CONFIG)))
+    "CONFIG_PATH",json.dumps(str(CONFIG))).replace(
+    "LUA_ROOT",json.dumps(str(LUA_ROOT)))
         p=subprocess.run(["lua5.1","-"],input=script,text=True,
                          capture_output=True,timeout=6)
         self.assertEqual(p.returncode,0,p.stderr)
@@ -73,7 +76,7 @@ end
         self.assertEqual(result["changed"],"hostname")
 
     def test_explicitly_clearing_saved_gateway_is_allowed_and_recorded(self):
-        result=self.run_case("192.0.2.10","")
+        result=self.run_case("192.0.2.10","",new_hostname="old-test-host")
         self.assertEqual(result["status"],"200")
         self.assertIn("gateway",result["changed"])
 
@@ -88,7 +91,7 @@ end
         self.assertIn("New self-address",result["gateway_error"])
 
     def test_valid_router_migration_is_supported(self):
-        result=self.run_case("192.0.2.10","192.0.2.1")
+        result=self.run_case("192.0.2.10","192.0.2.1",new_hostname="old-test-host")
         self.assertEqual(result["status"],"200")
         self.assertIn("gateway",result["changed"])
 
@@ -98,7 +101,7 @@ end
         self.assertIn("explicitly replacing",result["gateway_error"])
 
     def test_ip_change_with_explicit_new_router_is_supported(self):
-        result=self.run_case("192.0.2.10","192.0.2.1",proposed_ip="192.0.2.20")
+        result=self.run_case("192.0.2.10","192.0.2.1",proposed_ip="192.0.2.20",new_hostname="old-test-host")
         self.assertEqual(result["status"],"200")
 
     def test_saved_custom_router_is_not_rewritten(self):

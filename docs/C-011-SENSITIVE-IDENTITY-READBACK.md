@@ -55,6 +55,6 @@ The basic source regression ran 728 tests: 714 passed, 14 environment-dependent 
 
 ## Still required
 
-Actual read-only PRX126 acceptance must confirm the deployed getter version, real LuCI session behavior, process/output bounds and service impact before this source change is considered hardware-qualified. Independent runtime consumers, safe setter behavior, persistence, recovery and the missing/hidden controls remain separate C-011/C-013/C-014/C-015 tasks. Do not mark C-011 DONE_HARDWARE or claim that all 54 controls work end to end based on this source coverage.
+Actual read-only PRX126 acceptance must confirm the deployed getter version, real LuCI session behavior, process/output bounds and service impact before this source change is considered hardware-qualified. Independent runtime consumers, safe setter behavior, persistence, recovery and the missing/hidden controls remain separate C-011/C-013/C-014/C-015 tasks. Do not mark C-011 DONE_HARDWARE based on this historical 54-field source-coverage milestone. Current V3 has 55 Configuration-page controls and separate A-to-Z transaction routing, but hardware qualification still requires per-route live evidence.
 
 No live PON identity, password, HTTPS service, network configuration, firmware bank or boot selector was changed.

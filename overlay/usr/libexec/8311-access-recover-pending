@@ -1,0 +1,6 @@
+#!/usr/bin/lua
+local tx=require "8311.access_transaction"
+local ok,receipt,why=pcall(tx.recover_pending)
+if not ok or type(receipt)~="table" then os.exit(1) end
+if receipt.recovered==true or receipt.status=="NO_PENDING_ACCESS_TRANSACTION" then os.exit(0) end
+os.exit(1)

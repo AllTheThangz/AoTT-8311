@@ -1,0 +1,8 @@
+#!/bin/sh
+# Serialize the complete V3 management transaction with all boot-environment writers.
+set -eu
+. /lib/8311-env-lock.sh || exit 1
+[ "$#" -eq 1 ] || exit 2
+case "$1" in /tmp/8311-web-jobs/[0-9a-f][0-9a-f]*) ;; *) exit 2 ;; esac
+lock_environment || exit $?
+exec /usr/bin/lua /usr/libexec/8311-management-apply.lua "$1"

@@ -4,7 +4,7 @@
 
 AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible web interface, deeper optical and network diagnostics, security visibility, and guarded A/B firmware management.
 
-**Firmware source in this checkout:** AoTT-8311-v3r1, the V3 development line promoted from the privately hardware-qualified AoTT-8311-v2r9 release-candidate baseline. The current hardware-stage candidate is **V3r1 RC3**, pinned at `release/v3r1-rc3` / `00c6d096a4051a20de80e0fcfe7dc39f257f56ef`. RC3 is privately built and fully offline-qualified but **has not been staged, trial-booted, or hardware-qualified**. The exact r9 image remains the currently proven PRX126 runtime and recovery reference. See [V3r1 RC3 qualification](docs/V3R1-RC3-QUALIFICATION.md).
+**Firmware source in this checkout:** AoTT-8311-v3r1, the V3 development line promoted from the privately hardware-qualified AoTT-8311-v2r9 baseline. The last frozen firmware candidate remains **V3r1 RC3**, pinned at `release/v3r1-rc3` / `00c6d096a4051a20de80e0fcfe7dc39f257f56ef`. **`dev/v3` now contains substantial post-RC3 A-to-Z configuration development that is not part of the pinned RC3 image.** RC3 itself has not been staged or trial-booted. The exact r9 image remains the currently proven PRX126 runtime and recovery reference. See [V3r1 RC3 qualification](docs/V3R1-RC3-QUALIFICATION.md) and [current configuration coverage](docs/CONFIGURATION-COVERAGE.md).
 
 **Private hardware acceptance, November 7, 2026:** the exact qualified `AoTT-8311-v2r9` image is running and permanently committed in bank A on one LL-XS1010 / PRX126-SFP-PON device. Enhanced r8 remains complete and valid in bank B as the recovery image. Independent trial and post-commit checks confirmed PON O5.1, a 10 Gbps host link, recovery access, both complete bank images, and the pinned r9 runtime set. See [r9 hardware acceptance](docs/V2R9-HARDWARE-ACCEPTANCE.md), [r9 integration](docs/V2R9-INTEGRATED-RELEASE.md), and [project continuity](docs/PROJECT-CONTINUITY.md).
 
@@ -12,11 +12,11 @@ AoTT-8311 extends the 8311 community firmware ecosystem with a more accessible w
 
 ## AoTT-8311 V3 development line
 
-V3 turns the r9 release-candidate foundation into a deployment-oriented residential firmware line rather than continuing the v2rN revision cadence. The current V3r1 integration adds a major-version identity, a capability-status surface, and an opt-in RAM-only local-history worker with authenticated History UI/API, bounded exports, dual-lock freshness checks, and independent PON/host sampling. Collection remains disabled by default.
+V3 turns the r9 foundation into a deployment-oriented residential firmware line rather than continuing the v2rN revision cadence. Current `dev/v3` exposes **55 Configuration-page controls**, and every one is now assigned to an explicit A-to-Z mutation route: 22 live-activation fields, 6 guarded management fields, 22 guarded PON/OMCI fields, 4 guarded one-boot fields, and 1 dedicated credential field. Generic save no longer silently persists high-risk fields without their proper transaction. The branch also adds an **Access & servers** page with 20 guarded SSH/uHTTPd/LuCI settings, plus the capability-status surface and opt-in RAM-only local-history worker. History collection remains disabled by default.
 
-The V3 branch deliberately retains r9's proven PON/OMCI runtime, management-routing compatibility, guarded A/B firmware lifecycle, and recovery assumptions. Remote GUI access remains disabled by default. Local history is volatile and performs no periodic flash writes. Management VLAN read/preview is integrated with recovery-storage admission and native-source classification, but production apply remains gated. V3 also hardens the qualified persistent HTTPS key to root-only mode and supports guarded activation of locally generated self-signed TLS candidates with persistent backup, browser confirmation, and timed automatic rollback; operator-owned certificate import remains gated. Other configuration mutation, durable history, remote-access firewalling, and additional hardware support remain qualification-gated until their exact production paths pass the documented acceptance gates.
+The V3 branch deliberately retains r9's proven PON/OMCI runtime, guarded A/B firmware lifecycle, and recovery assumptions. Management VLAN is no longer a hidden broken field: source now implements full-tuple preview/apply, exact netifd/kernel convergence verification, reconnect confirmation, timeout rollback, and boot recovery. PON/OMCI changes have their own environment/UCI/MIB recovery transaction and deliberately do not claim OLT acceptance from local readback alone. Boot-only controls use one-boot trials with watchdog rollback. Access/server changes use HTTPS-only guarded transactions with service/runtime verification and confirmation. Remote GUI exposure remains disabled by default, and the optional remote-access firewall remains a separate qualification gate. V3 also supports guarded locally generated self-signed TLS activation; operator-owned certificate import remains gated. Hardware qualification, durable history, certificate import, remote-access firewalling, and additional-board support remain separate from source-path completion.
 
-See [V3r1 RC3 qualification](docs/V3R1-RC3-QUALIFICATION.md), [V3 deployment foundation](docs/V3-DEPLOYMENT-FOUNDATION.md), [V3 local history runtime qualification](docs/V3-HISTORY-RUNTIME-QUALIFICATION.md), [V3 management VLAN preflight qualification](docs/V3-MANAGEMENT-PREFLIGHT-QUALIFICATION.md), and [V3 TLS candidate qualification](docs/V3-TLS-CANDIDATE-QUALIFICATION.md).
+See [current configuration coverage](docs/CONFIGURATION-COVERAGE.md), [C-012 lower-risk A-to-Z readiness](docs/C-012-SAFE-CANDIDATE-CONTRACT.md), [C-014 guarded management transaction](docs/C-014-V3-GUARDED-MANAGEMENT-TRANSACTION.md), [V3r1 RC3 qualification](docs/V3R1-RC3-QUALIFICATION.md), [V3 deployment foundation](docs/V3-DEPLOYMENT-FOUNDATION.md), [V3 local history runtime qualification](docs/V3-HISTORY-RUNTIME-QUALIFICATION.md), and [V3 TLS candidate qualification](docs/V3-TLS-CANDIDATE-QUALIFICATION.md).
 
 ## AoTT-8311 v2 r9
 
@@ -38,14 +38,14 @@ For continuity, feature planning and acceptance, read the [complete desired prod
 
 The goal is a comprehensive, reliable residential XGS-PON bridge and management firmware that retains supported advanced controls and develops useful local history, stable service and separately qualified cross-stick compatibility. Do not treat a source-only proof, a one-shot hardware trial or a similar chipset label as an installed, committed, or universally compatible release.
 
-### C-011 stored-source readback now covers all 54 GUI fields
+### V3 configuration/readback coverage now covers all 55 GUI fields
 
 The [nine-field sensitive identity readback](docs/C-011-SENSITIVE-IDENTITY-READBACK.md)
 adds a root-session-checked, manual Configuration-page panel for PON
 identity, registration credentials, IP-host identity and the root password
 override. It shows only valid/invalid saved format, unset, or unavailable.
 No values, credential hashes or lengths are returned. The source coverage
-test accounts for all 54 GUI fields. **Effective hardware behavior,
+test accounts for all 55 Configuration-page fields. **Effective hardware behavior,
 authentication, persistence and deployment remain unverified.**
 
 ### C-013 offline crash-safe configuration journal
@@ -56,7 +56,7 @@ kernel lock, a previous verified snapshot and a pending/committed
 journal to test synthetic config writes. Separate processes are
 deliberately terminated during staging, installation, confirmation and
 cleanup; unconfirmed changes roll back and confirmed changes survive.
-It does **not** run on the ONU, cover all 54 settings, or prove
+It does **not** replace the production per-route transactions or prove
 PRX126 flash/power-loss recovery.
 
 ### S-016 protected configuration backup and offline restore planning

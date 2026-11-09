@@ -38,10 +38,11 @@ end
 function M.live_reporting()
     local ok,record=pcall(function()
         local web=require "8311.webutil"
-        local function read_env(key,base,limit)
+        local function read_env(key,base,limit,encoded)
             local argv={"/usr/bin/timeout","-k","1","3",
                         "/usr/sbin/fwenv_get"}
             if not base then argv[#argv+1]="--8311" end
+            if encoded then argv[#argv+1]="--base64" end
             argv[#argv+1]=key
             local status,output,overflow=web.capture(argv,limit)
             if status==0 and overflow==false and
@@ -53,7 +54,7 @@ function M.live_reporting()
             environment=function(id)
                 if model.field_set[id]~=true then return nil end
                 return read_env(id,false,
-                    id=="fw_match_b64" and 258 or 36)
+                    id=="fw_match_b64" and 258 or 36,false)
             end,
             image_label=function(bank)
                 if bank~="A" and bank~="B" then return nil end

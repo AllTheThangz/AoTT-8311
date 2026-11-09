@@ -1,6 +1,10 @@
 -- C-012 source-only tests of the real LuCI schema and 8311.config writer.
 -- All native dependencies are memory-only stubs. No ONU, UCI or flash calls.
+local config_path=assert(arg[1],"config path")
+local lua_root=assert(config_path:match("^(.*)/8311/config%.lua$"),"overlay Lua root unavailable")
+package.path=lua_root.."/?.lua;"..package.path
 local calls, saved, fail_mode, missing_readback = {}, {}, nil, false
+local activation_fail=false
 local function copy(t)
     local out={}
     for k,v in pairs(t) do out[k]=v end
@@ -13,6 +17,7 @@ local function setter(kind)
         if fail_mode=="before" then return false end
         saved[(kind=="base" and "" or "8311_")..args[1]]=args[2]
         if fail_mode=="after" then return false end
+        if fail_mode=="after_once" then fail_mode=nil; return false end
         return true
     end
 end
@@ -78,6 +83,43 @@ package.preload["base64"]=function()
     }
 end
 package.preload["luci.jsonc"]=function() return {} end
+package.preload["8311.config_activation"]=function()
+    return {
+        apply=function(changes)
+            local route=require "8311.config_route"
+            local order={}
+            for _,change in ipairs(changes or {}) do
+                if change.item and route.route(change.item.id)=="live" then
+                    order[#order+1]=change.item.id
+                end
+            end
+            if activation_fail and #order>0 then
+                activation_fail=false
+                return {
+                    schema=1,success=false,order=order,
+                    rollback_attempted=true,rollback_succeeded=true,
+                    error="synthetic_activation_failure",
+                }
+            end
+            return {
+                schema=1,success=true,order=order,
+                requires_new_authenticated_request=false,
+                rollback_attempted=false,
+            }
+        end
+    }
+end
+package.preload["8311.credential_activation"]=function()
+    return {
+        apply=function()
+            return {
+                schema=1,success=true,changed=true,credential_verified=true,
+                contains_credential_material=false,
+                observed_source="fixture_redacted_credential_readback",
+            }
+        end
+    }
+end
 for _,name in ipairs({
     "luci.template","luci.http","luci.dispatcher","luci.sys",
     "luci.ltn12","nixio.bit","luci.model.uci","8311.health","8311.monitoring",
@@ -89,7 +131,8 @@ for _,name in ipairs({
     "8311.uploads","8311.jobs"
 }) do package.preload[name]=function() return {} end end
 
-local config=assert(loadfile(assert(arg[1],"config path")))()
+local config=assert(loadfile(config_path))()
+local config_route=require "8311.config_route"
 package.loaded["8311.config"]=config
 assert(loadfile(assert(arg[2],"controller path")))()
 local controller=assert(package.loaded["luci.controller.8311"])
@@ -104,7 +147,7 @@ for _,category in ipairs(canonical) do
 end
 local count=0
 for _ in pairs(fields) do count=count+1 end
-assert(count==54,"Unexpected real GUI field count: "..count)
+assert(count==55,"Unexpected real GUI field count: "..count)
 
 -- This fixture uses only synthetic values; it never loads a real profile.
 saved={["8311_gpon_sn"]="TEST00000000", ["8311_ipaddr"]="192.0.2.10"}
@@ -134,7 +177,7 @@ local function example_for(item, old)
     local custom={
         gpon_sn="TEST12345678", vendor_id="ABCD", reg_id_hex="AABB",
         ipaddr="192.0.2.20", netmask="255.255.255.".."128",
-        gateway="192.0.2.1", dns_server="192.0.2.20",
+        lct_vlan="321", gateway="192.0.2.1", dns_server="192.0.2.20",
         ping_ip="192.0.2.20",
         root_pwhash="$6$aa$"..string.rep("A",86),
         iphost_mac=table.concat({"02","01","02","03","04","05"},":"),
@@ -172,6 +215,7 @@ local function example_for(item, old)
 end
 
 local checked, mutation_count, sensitive_count, max_count=0,0,0,0
+local route_counts={live=0,management=0,boot=0,credential=0,pon=0}
 for _,category in ipairs(canonical) do
     for _,field in ipairs(category.items) do
         saved={["8311_gpon_sn"]="TEST00000000", ["8311_ipaddr"]="192.0.2.10"}
@@ -221,8 +265,29 @@ for _,category in ipairs(canonical) do
             item.id..": unrelated PON identity mutation in preview")
         for _,diff in ipairs(planned.diff) do
             if diff.id==item.id then
-                assert(diff.applies and not diff.applies:find("verified",1,true),
-                    item.id..": falsely reported verified runtime effect")
+                local route=config_route.route(item.id)
+                assert(type(diff.applies)=="string" and #diff.applies>0,
+                    item.id..": missing activation description")
+                if route=="management" then
+                    assert(diff.applies:find("Guarded live management transaction",1,true),
+                        item.id..": timed management transaction not disclosed")
+                elseif route=="live" then
+                    assert(not diff.applies:find("no independent live-effect verifier",1,true),
+                        item.id..": live verified field fell back to generic activation text")
+                elseif route=="boot" then
+                    assert(diff.applies:find("Guarded",1,true) and
+                           diff.applies:find("reboot",1,true),
+                        item.id..": guarded boot/recovery transaction not disclosed")
+                elseif route=="credential" then
+                    assert(diff.applies:find("Dedicated secret-safe root credential",1,true),
+                        item.id..": credential transaction not disclosed")
+                elseif route=="pon" then
+                    assert(diff.applies:find("Guarded PON/OMCI transaction",1,true) and
+                           diff.applies:find("OLT acceptance",1,true),
+                        item.id..": optical rollback/qualification boundary not disclosed")
+                else
+                    error(item.id..": missing source-owned configuration route")
+                end
             end
         end
         if item.secret then
@@ -237,22 +302,47 @@ for _,category in ipairs(canonical) do
         end
         if planned_ids[item.id] then
             assert(#planned.changes==1,item.id..": positive edit produced unrelated writes")
+            local route=config_route.route(item.id)
+            assert(planned.route==route,item.id..": preview route mismatch")
             local apply=config.apply(snap,planned)
-            assert(apply.success and #apply.verified==1 and apply.verified[1]==item.id,
-                item.id..": positive write/readback failed")
-            assert(#calls==1,item.id..": native setter not called exactly once")
-            assert(calls[1].kind==(item.base and "base" or "prefixed"),
-                item.id..": wrong boot environment namespace")
-            assert(saved[stored_key(item)]==planned.changes[1].raw,
-                item.id..": readback differs from proposed stored value")
-            mutation_count=mutation_count+1
+            route_counts[route]=route_counts[route]+1
+            if route=="management" or route=="boot" or route=="pon" then
+                assert(not apply.success and apply.rejected_before_write and
+                       apply.required_route==route,
+                    item.id..": dedicated guarded route reached ordinary writer")
+                assert(#calls==0,item.id..": guarded route wrote boot environment before its dedicated transaction")
+                if route=="management" then assert(apply.management_transaction_required) end
+                if route=="boot" then assert(apply.boot_transaction_required) end
+                if route=="pon" then assert(apply.pon_transaction_required) end
+            elseif route=="live" or route=="credential" then
+                assert(apply.success and #apply.verified==1 and apply.verified[1]==item.id,
+                    item.id..": positive write/readback failed")
+                assert(#calls==1,item.id..": native setter not called exactly once")
+                assert(calls[1].kind==(item.base and "base" or "prefixed"),
+                    item.id..": wrong boot environment namespace")
+                assert(saved[stored_key(item)]==planned.changes[1].raw,
+                    item.id..": readback differs from proposed stored value")
+                if route=="credential" then
+                    assert(apply.activation and apply.activation.contains_credential_material==false,
+                        item.id..": credential result was not explicitly redacted")
+                end
+                mutation_count=mutation_count+1
+            else
+                error(item.id..": unexpected route")
+            end
         end
         checked=checked+1
         max_count=max_count+#planned.diff
     end
 end
-assert(checked==54 and mutation_count>=47,
-       "Too few positive write cases: "..mutation_count.."/"..checked)
+assert(checked==55 and mutation_count==23,
+       "Unexpected ordinary live/credential write count: "..mutation_count.."/"..checked)
+assert(route_counts.live==22 and route_counts.management==6 and
+       route_counts.boot==4 and route_counts.credential==1 and
+       route_counts.pon==22,
+       ("Unexpected A-to-Z route partition: live=%d management=%d boot=%d credential=%d pon=%d"):format(
+           route_counts.live,route_counts.management,route_counts.boot,
+           route_counts.credential,route_counts.pon))
 assert(sensitive_count==5,"Unexpected source secret markers: "..sensitive_count)
 
 local function fresh()
@@ -260,6 +350,7 @@ local function fresh()
     calls={}
     fail_mode=nil
     missing_readback=false
+    activation_fail=false
     local s=assert(config.snapshot(canonical))
     local f=baseline_form(s)
     return s,f
@@ -284,29 +375,41 @@ form.hostname="good-lab-host"
 form.ntp_servers="time.example"
 plan,errors,status=config.prepare(snap,form)
 assert(plan and #plan.changes==2,"Two-field plan was not recorded")
-fail_mode="after"
+fail_mode="after_once"
 local result=config.apply(snap,plan)
-assert(not result.success and result.durability_unknown and result.partial,
-       "Postwrite failure must acknowledge unknown durability")
-assert(#calls==1,"Postwrite failure retried unapproved writes")
+assert(not result.success and result.rollback_attempted and result.rollback_succeeded,
+       "Postwrite failure was not restored")
+assert(not result.durability_unknown and not result.partial and #result.verified==0,
+       "Verified rollback was misclassified as unknown/partial")
+assert(#calls==2,"Postwrite failure did not perform exactly one reverse restoration")
+assert((saved["8311_hostname"] or "")=="",
+       "Postwrite rollback did not restore original hostname override")
 
 snap,form=fresh()
 form.hostname="good-lab-host"
 form.ntp_servers="time.example"
 plan=assert(config.prepare(snap,form))
--- First write succeeds, second fails before mutation. Preserve partial status.
+-- First write succeeds, second fails before mutation. Both attempted
+-- fields must be restored in reverse order under the same environment lock.
 local original_setter=package.loaded["8311.tools"].fw_setenv_8311
+local failed_ntp_once=false
 package.loaded["8311.tools"].fw_setenv_8311=function(args)
-    if args[1]=="ntp_servers" then return false end
+    if args[1]=="ntp_servers" and not failed_ntp_once then
+        failed_ntp_once=true
+        return false
+    end
     return original_setter(args)
 end
 result=config.apply(snap,plan)
-assert(not result.success and result.partial and result.durability_unknown,
-       "Multi-field write failure falsely reported all-or-nothing")
-assert(result.verified[1]=="hostname" and #result.verified==1,
-       "Partial write receipt did not identify completed field")
-assert(#calls==1 and saved["8311_ntp_servers"]==nil,
-       "Failed second setter unexpectedly changed values")
+assert(not result.success and result.rollback_attempted and result.rollback_succeeded,
+       "Multi-field persistence failure was not rolled back")
+assert(not result.partial and not result.durability_unknown and #result.verified==0,
+       "Verified multi-field rollback was reported as partial")
+assert((saved["8311_hostname"] or "")=="" and
+       (saved["8311_ntp_servers"] or "")=="",
+       "Multi-field rollback did not restore original saved values")
+assert(#calls==3,
+       "Expected original hostname write plus reverse ntp/hostname restoration")
 package.loaded["8311.tools"].fw_setenv_8311=original_setter
 
 snap,form=fresh()
@@ -314,8 +417,9 @@ form.hostname="good-lab-host"
 plan=assert(config.prepare(snap,form))
 missing_readback=true
 result=config.apply(snap,plan)
-assert(not result.success and result.durability_unknown,
-       "Unavailable postwrite readback falsely reported saved")
+assert(not result.success and result.rollback_attempted and
+       not result.rollback_succeeded and result.durability_unknown,
+       "Unavailable rollback readback must remain durability-unknown")
 
 -- A native setter that reports success but stores the wrong value must fail.
 snap,form=fresh()
@@ -328,11 +432,36 @@ package.loaded["8311.tools"].fw_setenv_8311=function(args)
     return true
 end
 result=config.apply(snap,plan)
-assert(not result.success and result.durability_unknown and result.partial,
-       "Incorrect native readback cannot be accepted as success")
-assert(#result.verified==0 and #calls==1,
-       "Mismatch must fail before additional writes or verified receipts")
+assert(not result.success and result.rollback_attempted and
+       not result.rollback_succeeded and result.durability_unknown,
+       "Incorrect native readback plus failed restoration cannot be accepted")
+assert(#result.verified==0 and #calls==2,
+       "Mismatch must attempt one restoration and retain no verified receipt")
 package.loaded["8311.tools"].fw_setenv_8311=original_write
 
-print(("C-012 native schema configuration fixtures: %d fields, %d positive writes, %d sensitive fields, 7 failure/guard cases PASS"):format(
-    checked,mutation_count,sensitive_count))
+-- A live activation failure for a lower-risk field must restore the saved
+-- boot-environment value so the rejected change cannot appear after reboot.
+snap,form=fresh()
+saved["8311_hostname"]="old-fixture-host"
+snap=assert(config.snapshot(canonical))
+form=baseline_form(snap)
+form.hostname="new-fixture-host"
+plan=assert(config.prepare(snap,form))
+activation_fail=true
+calls={}
+result=config.apply(snap,plan)
+assert(not result.success and result.activation_failed,
+       "Synthetic live activation failure was reported as success")
+assert(result.saved_rollback_attempted and result.saved_rollback_succeeded,
+       "Saved environment rollback was not verified")
+assert(result.runtime_rollback_succeeded==true,
+       "Runtime rollback receipt was not preserved")
+assert(saved["8311_hostname"]=="old-fixture-host",
+       "Rejected live hostname change remained saved for next boot")
+assert(#result.verified==0 and not result.partial and not result.durability_unknown,
+       "Fully rolled-back activation failure was misclassified as partial/unknown")
+activation_fail=false
+
+print(("C-012 native schema configuration fixtures: %d fields; routes live=%d management=%d boot=%d credential=%d pon=%d; %d ordinary verified writes; %d sensitive fields; rollback guards PASS"):format(
+    checked,route_counts.live,route_counts.management,route_counts.boot,
+    route_counts.credential,route_counts.pon,mutation_count,sensitive_count))

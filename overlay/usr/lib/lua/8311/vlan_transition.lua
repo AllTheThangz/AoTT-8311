@@ -170,9 +170,47 @@ local function address(opts)
         for bits=0,32 do if mask==4294967296-2^(32-bits) then valid=true;break end end
     elseif type(opts.netmask)=="string" and opts.netmask:match("^%d+$") and
            tonumber(opts.netmask)<=32 then valid=true end
-    if not valid or (opts.gateway and opts.gateway~="" and not ipv4(opts.gateway)) then
+    if not valid or (opts.gateway and opts.gateway~="" and not ipv4(opts.gateway)) or
+       (opts.dns and opts.dns~="" and not ipv4(opts.dns)) then
         deny("management_ipv4_profile_unqualified")
     end
+end
+
+local function management_request(request)
+    if not plain(request) then deny("management_request_invalid") end
+    local allow={vlan=true,ipaddr=true,netmask=true,gateway=true,
+                 dns_server=true,lct_mac=true}
+    for key in pairs(request) do
+        if not allow[key] then deny("management_request_field_invalid") end
+    end
+    local out={}
+    local vlan=request.vlan
+    if type(vlan)=="string" and vlan:match("^%d+$") and #vlan<=4 then
+        vlan=tonumber(vlan)
+    end
+    if type(vlan)~="number" or vlan~=math.floor(vlan) or vlan<0 or vlan>4094 then
+        deny("vlan_not_explicitly_supported")
+    end
+    out.vlan=vlan
+    for _,key in ipairs({"ipaddr","netmask","gateway","dns_server"}) do
+        local value=request[key]
+        if value~=nil then
+            if type(value)~="string" or #value>15 or
+               (value~="" and not ipv4(value)) then
+                deny("management_ipv4_profile_unqualified")
+            end
+            out[key]=value
+        end
+    end
+    if request.lct_mac~=nil then
+        local value=request.lct_mac
+        if type(value)~="string" or
+           not value:match("^[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]$") then
+            deny("management_mac_profile_unqualified")
+        end
+        out.lct_mac=value:upper()
+    end
+    return out
 end
 local function members(zone)
     local v=zone.options.network
@@ -197,11 +235,10 @@ local function allowed(opts,allow,extra)
     for k in pairs(opts) do if not allow[k] and k~=extra then return false end end
     return true
 end
-local function prepare(snapshot,vlan,parent,zone_name)
+local function prepare_management(snapshot,request,parent,zone_name)
     bounded_snapshot(snapshot)
-    if type(vlan)~="number" or vlan~=math.floor(vlan) or vlan<0 or vlan>4094 then
-        deny("vlan_not_explicitly_supported")
-    end
+    request=management_request(request)
+    local vlan=request.vlan
     if not ident(parent) or #parent>32 then deny("parent_unqualified") end
     if not ident(zone_name) or zone_name=="wan" then deny("trusted_zone_unqualified") end
     local desired=copy(snapshot);local net,fw=desired.network,desired.firewall
@@ -227,6 +264,14 @@ local function prepare(snapshot,vlan,parent,zone_name)
         for _,k in ipairs(ADDRESS) do if opts[k]~=nil then deny("legacy_or_foreign_interface_ownership") end end
         if mo.macaddr~=opts.macaddr then deny("management_mac_profile_mismatch") end
         source=mo
+    end
+    if request.ipaddr~=nil then source.ipaddr=request.ipaddr end
+    if request.netmask~=nil then source.netmask=request.netmask end
+    if request.gateway~=nil then source.gateway=request.gateway~="" and request.gateway or nil end
+    if request.dns_server~=nil then source.dns=request.dns_server~="" and request.dns_server or nil end
+    if request.lct_mac~=nil then
+        opts.macaddr=request.lct_mac
+        source.macaddr=request.lct_mac
     end
     address(source)
     for name,section in pairs(net) do
@@ -297,7 +342,12 @@ local function prepare(snapshot,vlan,parent,zone_name)
     plans[handle]={before=copy(snapshot),after=desired,operations=ops}
     return handle
 end
-function M.prepare(snapshot,vlan,parent,zone) return safe(prepare,snapshot,vlan,parent,zone) end
+function M.prepare(snapshot,vlan,parent,zone)
+    return safe(prepare_management,snapshot,{vlan=vlan},parent,zone)
+end
+function M.prepare_management(snapshot,request,parent,zone)
+    return safe(prepare_management,snapshot,request,parent,zone)
+end
 -- Test-only projection contains synthetic configuration. Never expose it in a
 -- GUI or log. Copies cannot alter the private plan used by verify_staged.
 function M.fixture_projection(handle,mode)
@@ -332,8 +382,14 @@ function M.redacted_summary(handle,mode)
 end
 local function execute(handle,adapter,mode)
     local plan=plans[handle]
-    if mode~="offline_synthetic" or not plan then deny("invalid_plan_handle") end
-    if type(adapter)~="table" or adapter.disposable_fixture~=true or
+    if not plan or (mode~="offline_synthetic" and mode~="production_runtime") then
+        deny("invalid_plan_handle")
+    end
+    local fixture=mode=="offline_synthetic"
+    local production=mode=="production_runtime"
+    if type(adapter)~="table" or
+       (fixture and adapter.disposable_fixture~=true) or
+       (production and adapter.production_runtime~=true) or
        type(adapter.snapshot)~="function" or type(adapter.persisted_snapshot)~="function" or
        type(adapter.command)~="function" then deny("private_candidate_adapter_required") end
     local current=bounded_snapshot(adapter.snapshot())
@@ -349,9 +405,14 @@ local function execute(handle,adapter,mode)
     end
     local persisted=bounded_snapshot(adapter.persisted_snapshot())
     if not equal(persisted,plan.after) then deny("candidate_readback_mismatch") end
-    return {status="SOURCE_LUA_UCI_CANDIDATE_VALIDATED",operations_checked=#plan.operations,
-        source_only_not_deployed=true,live_promote_available=false,
-        hardware_network_and_recovery_unverified=true,contains_configuration_values=false}
+    return {
+        status=production and "MANAGEMENT_UCI_APPLIED_VERIFIED" or
+            "SOURCE_LUA_UCI_CANDIDATE_VALIDATED",
+        operations_checked=#plan.operations,
+        production_applied=production,
+        source_only_not_deployed=fixture,
+        contains_configuration_values=false
+    }
 end
 function M.verify_staged(handle,adapter,mode) return safe(execute,handle,adapter,mode) end
 return M

@@ -1,6 +1,29 @@
 # AoTT-8311 Changelog
 
-## v3r1 (development, RC3 hardware-stage candidate, not yet trialed)
+## v3r1 (development, post-RC3 A-to-Z configuration work)
+
+### Post-RC3 A-to-Z configuration development
+- Expanded the canonical Configuration-page schema from **54 to 55 controls** by repairing and re-enabling `lct_vlan`; all 55 fields now belong to exactly one server-owned mutation route and **no field can silently fall through to generic environment persistence**.
+- Added an explicit five-way A-to-Z routing contract for the 55 Configuration controls:
+  - **22 live-activation controls** with native consumer/readback contracts, including language, hostname, timezone, NTP, HTTPS redirect, ping/reverse-ARP helpers, console/dying-gasp/RX_LOS behavior, Ethernet override, seven virtual-SFP EEPROM fields, and the three service-VLAN controls.
+  - **6 lockout-sensitive management controls** (`lct_vlan`, `ipaddr`, `netmask`, `gateway`, `dns_server`, `lct_mac`) using a persistent guarded transaction with reconnect confirmation, exact runtime convergence verification, timeout rollback, and boot recovery.
+  - **22 PON/OMCI controls** using a separate guarded transaction that snapshots environment/UCI/MIB state before mutation, applies fixed native consumers, verifies local readback, requires confirmation, and restores unconfirmed state at boot. Local write success is not treated as OLT acceptance.
+  - **4 boot-only controls** (`bootdelay`, `uart_select`, `failsafe_delay`, `persist_root`) using a guarded one-boot trial with persistent pre-change state, watchdog timeout rollback, reboot-aware confirmation, and boot-command recovery.
+  - **1 credential control** (`root_pwhash`) using a dedicated secret-safe live shadow transaction with exact redacted readback and restore-on-failure.
+- Reworked ordinary configuration persistence into a rollback-capable transaction. Failed sequential persistence restores earlier attempted values in reverse order and verifies the durable restore before returning failure.
+- Added independent runtime verification for kernel hostname, active zoneinfo target, live `ntpd` peer arguments, and a subsequent authenticated LuCI request for language.
+- Expanded live activation to `https_redirect`, `pingd`, `ping_ip`, `reverse_arp`, `console_en`, `dying_gasp_en`, `rx_los`, `ethtool_speed`, all seven virtual-SFP fields, `fix_vlans`, `internet_vlan`, and `services_vlan`.
+- Added fixed-path host runtime helpers for GPIO/ethtool behavior and host-visible virtual-SFP EEPROM verification. Dynamic shell execution is not used.
+- Added full management-tuple planning, UCI/environment transactions, persistent recovery storage, Dropbear binding migration, exact active-interface/address/route/DNS/MAC/VLAN verification, and authenticated confirmation from the surviving management path.
+- Added guarded PON/OMCI environment, UCI, MIB and auxiliary-runtime transactions with persistent recovery. Sensitive subscriber values remain private and public receipts are redacted.
+- Added the **Access & servers** GUI for **20 additional SSH/uHTTPd/LuCI settings**. It provides validation, exact preview, private recovery snapshots, service reload/runtime verification, HTTPS-only guarded apply, reconnect guidance, timed confirmation, automatic rollback, and boot-time recovery.
+- Added a source-derived routing/inventory contract so future GUI fields must be explicitly assigned to `live`, `management`, `pon`, `boot`, or `credential`; mixed high-risk routes are refused instead of being partially applied.
+- Current exact-tree regression: **1,329 source tests**, zero failures/errors, with environment-dependent tests skipped where their runtime is intentionally unavailable.
+- Current real-browser regression: **143/143 Chromium/Playwright tests**, zero failures.
+- Dedicated A-to-Z qualification against host plus extracted vendor-MIPS runtime passes for the new activation, management, PON, boot, credential, VLAN, runtime-helper and effective-readback paths.
+- Release identity and public-source sanitization pass with **169 overlay files**, zero detected secrets, prohibited files, or manifest drift.
+- This remains substantive `dev/v3` source development, **not a new RC**. The live ONU remains committed r9 A/A. No V3 firmware stage, live A-to-Z mutation, reboot trial, or commit was performed by this source-development batch.
+- Hardware qualification remains separate from source completion: disruptive management, PON/OMCI, boot, host-link and provider-facing controls still require the appropriate recovery route, spare/test OLT, reboot, and live effect/revert evidence before being marked `FULLY_QUALIFIED`.
 
 ### RC3 first-login and hardware-stage readiness
 - Current candidate: `release/v3r1-rc3` at `00c6d096a4051a20de80e0fcfe7dc39f257f56ef`.

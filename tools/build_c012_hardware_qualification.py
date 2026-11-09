@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the source-only C-012 PRX126 hardware qualification matrix.
 
-This tool consumes the canonical 54-field capability registry. It assigns
+This tool consumes the canonical 55-field capability registry. It assigns
 conservative hardware-test lanes and required proof stages. It never reads a
 live ONU, never changes firmware, and never upgrades source evidence into a
 hardware-qualified claim.
@@ -25,7 +25,7 @@ READBACK_GROUPS = {
     "management": {
         "module": "overlay/usr/lib/lua/8311/effective_state.lua",
         "ids": {
-            "ipaddr", "netmask", "gateway", "dns_server", "pingd",
+            "lct_vlan", "ipaddr", "netmask", "gateway", "dns_server", "pingd",
             "ping_ip", "lct_mac", "reverse_arp", "https_redirect",
         },
     },
@@ -158,17 +158,17 @@ def build(source_root: Path) -> dict:
     source_root = source_root.resolve(strict=True)
     canonical = registry.build(source_root)
     fields = canonical["firmware_environment_gui_fields"]
-    require(len(fields) == 54, "CANONICAL_FIELD_COUNT_CHANGED")
+    require(len(fields) == 55, "CANONICAL_FIELD_COUNT_CHANGED")
 
     mapped = group_map()
     source_ids = {row["id"] for row in fields}
-    require(len(source_ids) == 54, "CANONICAL_FIELD_IDS_NOT_UNIQUE")
-    require(set(mapped) == source_ids, "READBACK_GROUP_UNION_NOT_54_FIELDS")
+    require(len(source_ids) == 55, "CANONICAL_FIELD_IDS_NOT_UNIQUE")
+    require(set(mapped) == source_ids, "READBACK_GROUP_UNION_NOT_55_FIELDS")
 
     lane_union = (SAFE_LIVE_APPLY_CANDIDATE
                   | RECOVERY_PATH_REQUIRED
                   | TEST_OLT_OR_SPARE_REQUIRED)
-    require(lane_union == source_ids, "MUTATION_LANE_UNION_NOT_54_FIELDS")
+    require(lane_union == source_ids, "MUTATION_LANE_UNION_NOT_55_FIELDS")
     require(not (SAFE_LIVE_APPLY_CANDIDATE & RECOVERY_PATH_REQUIRED),
             "SAFE_AND_RECOVERY_LANES_OVERLAP")
     require(not (SAFE_LIVE_APPLY_CANDIDATE & TEST_OLT_OR_SPARE_REQUIRED),
@@ -218,10 +218,10 @@ def build(source_root: Path) -> dict:
     group_counts = Counter(row["readback_group"] for row in rows)
     require(lane_counts == Counter({
         "SAFE_LIVE_APPLY_CANDIDATE": 4,
-        "RECOVERY_PATH_REQUIRED": 25,
+        "RECOVERY_PATH_REQUIRED": 26,
         "TEST_OLT_OR_SPARE_REQUIRED": 25,
     }), "MUTATION_LANE_COUNTS_CHANGED")
-    require(sum(group_counts.values()) == 54, "READBACK_GROUP_COUNT_CHANGED")
+    require(sum(group_counts.values()) == 55, "READBACK_GROUP_COUNT_CHANGED")
 
     return {
         "schema": 1,

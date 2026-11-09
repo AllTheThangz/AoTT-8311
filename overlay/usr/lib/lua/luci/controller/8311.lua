@@ -42,6 +42,12 @@ function index()
 	entry({"admin", "8311", "support"}, call("action_support"), translate("Support"), 5)
 
 	entry({"admin", "8311", "save"}, post("action_save"))
+	entry({"admin", "8311", "boot_config_apply"}, post("action_boot_config_apply")).leaf=true
+	entry({"admin", "8311", "boot_config_status"}, call("action_boot_config_status")).leaf=true
+	entry({"admin", "8311", "boot_config_confirm"}, post("action_boot_config_confirm")).leaf=true
+	entry({"admin", "8311", "pon_config_apply"}, post("action_pon_config_apply")).leaf=true
+	entry({"admin", "8311", "pon_config_status"}, call("action_pon_config_status")).leaf=true
+	entry({"admin", "8311", "pon_config_confirm"}, post("action_pon_config_confirm")).leaf=true
 	entry({"admin", "8311", "get_hook_script"}, call("action_get_hook_script")).leaf=true
 	entry({"admin", "8311", "save_hook_script"}, post("action_save_hook_script")).leaf=true
 	entry({"admin", "8311", "pontop"}, call("action_pontop")).leaf=true
@@ -87,6 +93,12 @@ function index()
           translate("Management preflight"), 11)
     entry({"admin", "8311", "management_vlan_preview"},
           post("action_management_vlan_preview")).leaf=true
+    entry({"admin", "8311", "management_preview"},
+          post("action_management_preview")).leaf=true
+    entry({"admin", "8311", "management_apply"},
+          post("action_management_apply")).leaf=true
+    entry({"admin", "8311", "management_confirm"},
+          post("action_management_confirm")).leaf=true
     entry({"admin", "8311", "tls"}, call("action_tls"), translate("HTTPS certificates"), 12)
     entry({"admin", "8311", "tls_generate"}, post("action_tls_generate")).leaf=true
     entry({"admin", "8311", "tls_discard"}, post("action_tls_discard")).leaf=true
@@ -94,6 +106,11 @@ function index()
     entry({"admin", "8311", "tls_confirm"}, post("action_tls_confirm")).leaf=true
     entry({"admin", "8311", "v3"}, call("action_v3"), translate("V3 status"), 13)
     entry({"admin", "8311", "v3_status"}, call("action_v3_status")).leaf=true
+    entry({"admin", "8311", "access"}, call("action_access"), translate("Access & servers"), 14)
+    entry({"admin", "8311", "access_preview"}, post("action_access_preview")).leaf=true
+    entry({"admin", "8311", "access_apply"}, post("action_access_apply")).leaf=true
+    entry({"admin", "8311", "access_confirm"}, post("action_access_confirm")).leaf=true
+    entry({"admin", "8311", "access_status"}, call("action_access_status")).leaf=true
     entry({"admin", "8311", "factory_password_ack"}, post("action_factory_password_ack")).leaf=true
     entry({"admin", "8311", "monitoring_save"},
           post("action_r8_monitoring_save")).leaf=true
@@ -649,15 +666,14 @@ function fwenvs_8311()
 			id="manage",
 			category=translate("Management network"),
 			items={	{
---					Currently Broken, hide for the time being
---					id="lct_vlan",
---					name=translate("Management VLAN"),
---					description=translate("Set the management VLAN ID (0 to 4095). Defaults to 0 (untagged)."),
---					type="number",
---					min=0,
---					max=4095,
---					default="0"
---				},{
+					id="lct_vlan",
+					name=translate("Management VLAN"),
+					description=translate("Management interface VLAN. 0 is untagged; 1-4094 creates the guarded tagged management interface. Changes use timed confirmation with automatic rollback."),
+					type="number",
+					min=0,
+					max=4094,
+					default="0"
+				},{
 					id="ipaddr",
 					name=translate("Management IPv4 address"),
 					description=translate("Local IPv4 address for the ONU management interface. Changing it can end this web/SSH session; reconnect to the new address after a restart. Factory baseline: 192.168.11.1."),
@@ -823,7 +839,7 @@ function action_effective_device()
     end
     http.header("Cache-Control", "no-store, private")
     http.header("X-Content-Type-Options", "nosniff")
-    local ok, snapshot = pcall(effective_device_probe.live_device)
+    local ok, snapshot = pcall(effective_device_probe.live_device, i18n.context.lang)
     if not ok or type(snapshot) ~= "table" or snapshot.schema ~= 1 then
         return web.reply(http, 503,
             {success=false,error="Device and SFP readback unavailable; no settings changed"})
@@ -1074,7 +1090,9 @@ local function checked_worker(kind, values)
 	local path = dir .. "/request.json"
 	local ok, err = web.write(path, content, 600)
 	if not ok then fs.rmdir(dir); return web.reply(http,507,{success=false,error=err}) end
-	local command = kind == "config" and "/usr/libexec/8311-config-apply" or "/usr/libexec/8311-hook-save"
+	local commands={config="/usr/libexec/8311-config-apply",hook="/usr/libexec/8311-hook-save",["boot-config"]="/usr/libexec/8311-boot-config-apply"}
+	local command=commands[kind]
+	if not command then fs.unlink(path);fs.rmdir(dir);return web.reply(http,400,{success=false,error="Unsupported checked operation"}) end
 	local code, output, overflow = web.capture({command,path}, 65536)
 	local cleaned = fs.unlink(path) and fs.rmdir(dir)
 	local result = code == 0 and not overflow and json.parse(output or "") or nil
@@ -1135,12 +1153,171 @@ function action_config()
     table.sort(snapshot.schema, function(a,b)
         return (display_order[a.id] or 99) < (display_order[b.id] or 99)
     end)
+	local boot_config=require "8311.boot_config_transaction"
+	local boot_trial,boot_trial_why=boot_config.status()
+	if not boot_trial then
+		boot_trial={schema=1,pending=false,error=boot_trial_why or "Boot trial status unavailable"}
+	end
 	ltemplate.render("8311/config", {fwenvs=snapshot.schema,revision=snapshot.revision,
-		boot_known=snapshot.boot_known,pending=snapshot.pending})
+		boot_known=snapshot.boot_known,pending=snapshot.pending,boot_trial=boot_trial})
 end
 
 function action_save()
 	checked_worker("config", http.formvalue())
+end
+
+function action_boot_config_apply()
+	if not dispatcher.context.authsession or
+	   not dispatcher.test_post_security() then return end
+	if dispatcher.context.authuser~="root" then
+		return web.reply(http,403,{success=false,error="Root administrator session required"})
+	end
+	checked_worker("boot-config", http.formvalue())
+end
+
+function action_boot_config_status()
+	local boot_config=require "8311.boot_config_transaction"
+	if http.getenv("REQUEST_METHOD")~="GET" then
+		return web.reply(http,405,{success=false,error="GET required"})
+	end
+	if not dispatcher.context.authsession then
+		return web.reply(http,403,{success=false,error="Authentication required"})
+	end
+	local state,why=boot_config.status()
+	http.header("Cache-Control","no-store, private")
+	return web.reply(http,state and 200 or 503,
+		state or {success=false,error=why or "Boot configuration trial status unavailable"})
+end
+
+function action_boot_config_confirm()
+	local boot_config=require "8311.boot_config_transaction"
+	if not dispatcher.context.authsession or
+	   not dispatcher.test_post_security() then return end
+	if dispatcher.context.authuser~="root" then
+		return web.reply(http,403,{success=false,error="Root administrator session required"})
+	end
+	local values=http.formvalue()
+	local parse_error,parse_code=http.inputerror()
+	if parse_error then return web.reply(http,parse_code,{success=false,error=parse_error}) end
+	for name,value in pairs(values) do
+		if (name~="token" and name~="job_id") or type(value)~="string" then
+			return web.reply(http,400,{success=false,error="Unknown, missing or duplicate confirmation field"})
+		end
+	end
+	if type(values.job_id)~="string" or #values.job_id~=32 or
+	   values.job_id:find("[^0-9a-f]") then
+		return web.reply(http,400,{success=false,error="Valid boot trial job ID required"})
+	end
+	local result,why=boot_config.confirm(values.job_id)
+	return web.reply(http,result and 200 or 409,
+		result and {success=true,status=result.status,confirmation_required=false,
+			contains_configuration_values=false}
+			or {success=false,error=why or "Boot configuration trial confirmation refused"})
+end
+
+function action_pon_config_apply()
+    local pon_transaction=require "8311.pon_config_transaction"
+    local https=http.getenv("HTTPS")
+    if https~="on" and https~="1" then
+        return web.reply(http,403,{success=false,error="HTTPS is required for PON/OMCI changes"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security() then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local form=http.formvalue()
+    local parse_error,parse_code=http.inputerror()
+    if parse_error then return web.reply(http,parse_code,{success=false,error=parse_error}) end
+    local snapshot,why=config.snapshot(fwenvs_8311())
+    if not snapshot then return web.reply(http,503,{success=false,error=why or "Configuration snapshot unavailable"}) end
+    local prepared,errors,status=config.prepare(snapshot,form)
+    if not prepared then return web.reply(http,status or 422,{success=false,errors=errors}) end
+    if form.mode~="apply" or prepared.route~="pon" or #prepared.changes<1 then
+        return web.reply(http,409,{success=false,error="Reviewed request is not a PON/OMCI transaction"})
+    end
+    local changes={}
+    for _,change in ipairs(prepared.changes) do
+        changes[change.item.id]=change.raw
+    end
+    local record,error_code=jobs.start("pon_apply",{
+        revision=snapshot.revision,changes=changes
+    },dispatcher.context.authsession)
+    changes=nil
+    return web.reply(http,record and 202 or 409,
+        record and {
+            success=true,job=record,
+            rollback_seconds=pon_transaction.WAIT_SECONDS,
+            verification_seconds=pon_transaction.VERIFY_SECONDS,
+            requires_explicit_confirmation=true,
+            olt_per_field_effect_proven=false,
+        } or {success=false,error=error_code or "PON/OMCI transaction could not start"})
+end
+
+function action_pon_config_status()
+    local pon_transaction=require "8311.pon_config_transaction"
+    local pon_runtime=require "8311.pon_config_runtime"
+    if http.getenv("REQUEST_METHOD")~="GET" then
+        return web.reply(http,405,{success=false,error="GET required"})
+    end
+    if not dispatcher.context.authsession then
+        return web.reply(http,403,{success=false,error="Authentication required"})
+    end
+    local query=http.getenv("QUERY_STRING")
+    if query~=nil and query~="" then
+        return web.reply(http,400,{success=false,error="PON status query parameters are not supported"})
+    end
+    local pending,why=pon_transaction.pending()
+    if not pending then
+        return web.reply(http,503,{success=false,error=why or "PON transaction state unavailable"})
+    end
+    local state=pon_runtime.pon_state()
+    local omcid=pon_runtime.omcid_running()
+    http.header("Cache-Control","no-store, private, max-age=0")
+    http.header("X-Content-Type-Options","nosniff")
+    if pending.pending~=true then
+        return web.reply(http,200,{
+            success=true,pending=false,confirmation_available=false,
+            pon_registered_o5_1=state==51,omcid_running=omcid==true,
+            contains_configuration_values=false,
+        })
+    end
+    local confirm=pending.phase=="trial_running" and state==51 and omcid==true
+    return web.reply(http,200,{
+        success=true,pending=true,job_id=pending.job_id,phase=pending.phase,
+        confirmation_available=confirm,
+        pon_registered_o5_1=state==51,omcid_running=omcid==true,
+        olt_per_field_effect_proven=false,
+        contains_configuration_values=false,
+    })
+end
+
+function action_pon_config_confirm()
+    local https=http.getenv("HTTPS")
+    if https~="on" and https~="1" then
+        return web.reply(http,403,{success=false,error="HTTPS is required to confirm PON/OMCI changes"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security() then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=http.formvalue()
+    local parse_error,parse_code=http.inputerror()
+    if parse_error then return web.reply(http,parse_code,{success=false,error=parse_error}) end
+    for name,value in pairs(values) do
+        if (name~="token" and name~="job_id") or type(value)~="string" then
+            return web.reply(http,400,{success=false,error="Unknown, missing or duplicate confirmation field"})
+        end
+    end
+    if type(values.job_id)~="string" or #values.job_id~=32 or
+       values.job_id:find("[^0-9a-f]") then
+        return web.reply(http,400,{success=false,error="Valid PON transaction job ID required"})
+    end
+    local record,why=jobs.confirm_pon(values.job_id)
+    return web.reply(http,record and 200 or 409,
+        record and {success=true,job=record,contains_configuration_values=false}
+            or {success=false,error=why or "PON/OMCI confirmation refused"})
 end
 
 function action_pon_explorer()
@@ -1307,7 +1484,7 @@ end
 
 function action_management_vlan_preview()
     if not dispatcher.context.authsession or
-       not dispatcher.test_post_security(true) then return end
+       not dispatcher.test_post_security() then return end
     local values=operation_form({vlan=true})
     if not values then return end
     local plan,why=management_preflight.preview(values.vlan)
@@ -1325,6 +1502,201 @@ function action_management_vlan_preview()
             native_present_empty=plan.native_present_empty,
             production_write_allowed=false
         } or {success=false,error=why or "Management VLAN preview unavailable"})
+end
+
+function action_management_preview()
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security() then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=operation_form({
+        vlan=true,ipaddr=true,netmask=true,gateway=true,dns_server=true,lct_mac=true
+    })
+    if not values then return end
+    local plan,why=management_preflight.preview_management(values)
+    return web.reply(http,plan and 200 or 422,
+        plan and {
+            success=true,status=plan.status,current_vlan=plan.current_vlan,
+            requested_vlan=plan.requested_vlan,operations=plan.operations,
+            network_operations=plan.network_operations,
+            firewall_operations=plan.firewall_operations,
+            changes_required=plan.changes_required,
+            recovery_store_ready=plan.recovery_store_ready,
+            recovery_provisioning_required=plan.recovery_provisioning_required,
+            native_fields_checked=plan.native_fields_checked,
+            production_apply_source_available=plan.production_apply_source_available,
+            hardware_qualified=false,requires_timed_confirmation=true
+        } or {success=false,error=why or "Management preview unavailable"})
+end
+
+function action_management_apply()
+    local https=http.getenv("HTTPS")
+    if https~="on" and https~="1" then
+        return web.reply(http,403,{success=false,error="HTTPS is required for management changes"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security() then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=operation_form({
+        vlan=true,ipaddr=true,netmask=true,gateway=true,dns_server=true,lct_mac=true
+    })
+    if not values then return end
+    local plan,why=management_preflight.preview_management(values)
+    if not plan then
+        return web.reply(http,422,{success=false,error=why or "Management preflight failed"})
+    end
+    local record,error_code=jobs.start(
+        "management_apply",values,dispatcher.context.authsession)
+    local loaded,tx=pcall(require,"8311.management_transaction")
+    local seconds=loaded and type(tx)=="table" and tx.WAIT_SECONDS or 180
+    return web.reply(http,record and 202 or 409,
+        record and {success=true,job=record,rollback_seconds=seconds,
+                    changes_required=plan.changes_required}
+            or {success=false,error=error_code or "Management transaction could not start"})
+end
+
+function action_management_confirm()
+    local https=http.getenv("HTTPS")
+    if https~="on" and https~="1" then
+        return web.reply(http,403,{success=false,error="HTTPS is required to confirm management changes"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security() then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=operation_form({job_id=true})
+    if not values then return end
+    local record,why=jobs.confirm_management(values.job_id)
+    return web.reply(http,record and 200 or 409,
+        record and {success=true,job=record}
+            or {success=false,error=why or "Management confirmation was refused"})
+end
+
+local function access_values()
+    return operation_form({
+        revision=true,
+        ssh_enabled=true,ssh_port=true,ssh_password_auth=true,
+        ssh_root_password_auth=true,ssh_root_login=true,
+        ssh_gateway_ports=true,ssh_keepalive=true,ssh_idle_timeout=true,
+        ssh_max_auth_tries=true,ssh_mdns=true,luci_sessiontime=true,
+        web_http_port=true,web_https_port=true,web_script_timeout=true,
+        web_network_timeout=true,web_http_keepalive=true,
+        web_tcp_keepalive=true,web_max_requests=true,
+        web_max_connections=true,web_rfc1918_filter=true
+    })
+end
+
+local function access_runtime()
+    local ok,cfg=pcall(require,"8311.access_config")
+    local ok2,tx=pcall(require,"8311.access_transaction")
+    if not ok or type(cfg)~="table" or not ok2 or type(tx)~="table" then
+        return nil,nil,"Access configuration runtime is unavailable"
+    end
+    return cfg,tx
+end
+
+function action_access()
+    if http.getenv("REQUEST_METHOD")~="GET" then
+        return web.reply(http,405,{success=false,error="GET required"})
+    end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local cfg,tx,why=access_runtime()
+    if not cfg then return web.reply(http,503,{success=false,error=why}) end
+    local snapshot,swhy=cfg.snapshot()
+    if not snapshot then return web.reply(http,503,{success=false,error=swhy or "Access configuration unavailable"}) end
+    local public=cfg.public_snapshot(snapshot)
+    if not public then return web.reply(http,503,{success=false,error="Access configuration unavailable"}) end
+    local pending,pwhy=tx.pending()
+    if not pending then pending={pending=false,error=pwhy} end
+    http.header("Cache-Control","no-store, private")
+    http.header("X-Content-Type-Options","nosniff")
+    return ltemplate.render("8311/access",{access=public,pending=pending})
+end
+
+function action_access_preview()
+    if not dispatcher.context.authsession or not dispatcher.test_post_security() then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=access_values(); if not values then return end
+    local cfg,_,why=access_runtime()
+    if not cfg then return web.reply(http,503,{success=false,error=why}) end
+    local snapshot,swhy=cfg.snapshot()
+    if not snapshot then return web.reply(http,503,{success=false,error=swhy}) end
+    local prepared,errors,status=cfg.prepare(snapshot,values)
+    return web.reply(http,prepared and 200 or (status or 422),
+        prepared and {success=true,revision=prepared.revision,diff=prepared.diff,
+                      changes_required=prepared.changes_required,
+                      confirmation_required=prepared.confirmation_required,
+                      listener_migration_required=prepared.listener_migration_required}
+            or {success=false,errors=errors})
+end
+
+function action_access_apply()
+    local https=http.getenv("HTTPS")
+    if https~="on" and https~="1" then
+        return web.reply(http,403,{success=false,error="HTTPS is required for access changes"})
+    end
+    if not dispatcher.context.authsession or not dispatcher.test_post_security() then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=access_values(); if not values then return end
+    local cfg,tx,why=access_runtime()
+    if not cfg then return web.reply(http,503,{success=false,error=why}) end
+    local snapshot,swhy=cfg.snapshot()
+    if not snapshot then return web.reply(http,503,{success=false,error=swhy}) end
+    local prepared,errors,status=cfg.prepare(snapshot,values)
+    if not prepared then return web.reply(http,status or 422,{success=false,errors=errors}) end
+    if not prepared.changes_required then
+        return web.reply(http,200,{success=true,status="ACCESS_TRANSACTION_NO_CHANGE",
+            confirmation_required=false,changes_required=false})
+    end
+    local record,error_code=jobs.start("access_apply",values,dispatcher.context.authsession)
+    return web.reply(http,record and 202 or 409,
+        record and {success=true,job=record,rollback_seconds=tx.WAIT_SECONDS,
+                    confirmation_required=true,changes_required=true}
+            or {success=false,error=error_code or "Access transaction could not start"})
+end
+
+function action_access_confirm()
+    local https=http.getenv("HTTPS")
+    if https~="on" and https~="1" then
+        return web.reply(http,403,{success=false,error="HTTPS is required to confirm access changes"})
+    end
+    if not dispatcher.context.authsession or not dispatcher.test_post_security() then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=operation_form({job_id=true}); if not values then return end
+    local record,why=jobs.confirm_access(values.job_id)
+    return web.reply(http,record and 200 or 409,
+        record and {success=true,job=record}
+            or {success=false,error=why or "Access confirmation was refused"})
+end
+
+function action_access_status()
+    if http.getenv("REQUEST_METHOD")~="GET" then
+        return web.reply(http,405,{success=false,error="GET required"})
+    end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local cfg,tx,why=access_runtime()
+    if not cfg then return web.reply(http,503,{success=false,error=why}) end
+    local snapshot,swhy=cfg.snapshot()
+    if not snapshot then return web.reply(http,503,{success=false,error=swhy}) end
+    local public=cfg.public_snapshot(snapshot)
+    local pending,pwhy=tx.pending()
+    return web.reply(http,200,{success=true,access=public,
+        pending=pending or {pending=false,error=pwhy},
+        contains_credentials=false,contains_management_address=false})
 end
 
 function action_tls()

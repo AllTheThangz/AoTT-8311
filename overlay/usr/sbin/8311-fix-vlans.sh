@@ -77,8 +77,31 @@ rules() {
     fi
 }
 
+clear_owned() {
+    { [ -e "$CONFIG_FILE" ] || [ -L "$CONFIG_FILE" ]; } || return 0
+    valid_config "$CONFIG_FILE" || fail 'stored configuration is invalid'
+    reset_config
+    . "$CONFIG_FILE"
+    valid_rules_config || fail 'stored rule configuration is invalid'
+    rules > "$work/old-rules" || fail 'cannot record previous rules'
+    while IFS= read -r rule; do
+        tc_flower_del $rule || fail 'could not remove previous owned rule'
+    done < "$work/old-rules"
+    while IFS= read -r rule; do
+        if tc_flower_matches $rule; then
+            fail 'previous owned rule still present'
+        fi
+    done < "$work/old-rules"
+    rm -f "$CONFIG_FILE" || fail 'could not remove stale reconciliation receipt'
+    printf '%s\n' 'VLAN owned rules cleared'
+}
+
 [ -x "$DETECT_CONFIG" ] || fail 'detection script unavailable'
 work=$(mktemp -d /tmp/8311-vlans.XXXXXX) || fail 'cannot create workspace'
+if [ "$1" = "--clear-owned" ]; then
+    clear_owned
+    exit 0
+fi
 reset_config
 : > "$work/old-rules"
 if [ -e "$CONFIG_FILE" ] || [ -L "$CONFIG_FILE" ]; then

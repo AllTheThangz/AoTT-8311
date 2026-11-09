@@ -45,17 +45,52 @@ local function ntp_text(v)
     return table.concat(parts," ")
 end
 
+local function timezone_text(value)
+    local text=clean(value,128)
+    return text and text:gsub("_"," ") or nil
+end
+
+local function ntp_equal(a,b)
+    local left,right=ntp_text(a),ntp_text(b)
+    if left==nil or right==nil then return nil end
+    local counts={}
+    for word in left:gmatch("%S+") do counts[word]=(counts[word] or 0)+1 end
+    for word in right:gmatch("%S+") do
+        if not counts[word] or counts[word]<1 then return false end
+        counts[word]=counts[word]-1
+    end
+    for _,count in pairs(counts) do if count~=0 then return false end end
+    return true
+end
+
+local function ntp_contains(expected,actual)
+    local left,right=ntp_text(expected),ntp_text(actual)
+    if left==nil or right==nil then return nil end
+    local counts={}
+    for word in right:gmatch("%S+") do counts[word]=(counts[word] or 0)+1 end
+    for word in left:gmatch("%S+") do
+        if not counts[word] or counts[word]<1 then return false end
+        counts[word]=counts[word]-1
+    end
+    return true
+end
+
 local function norm(value,id)
     if id=="ntp_servers" then return ntp_text(value) end
+    if id=="timezone" then return timezone_text(value) end
     return clean(value,id=="sfp_vendordata" and 32 or 128)
 end
 
 local function status(a,b,id)
     local x=norm(a,id)
     local y=norm(b,id)
-    if x==nil or y==nil or x=="" or y=="" then
-        return "unverified"
+    if x==nil or y==nil then return "unverified" end
+    if id=="ntp_servers" then
+        local same=ntp_equal(x,y)
+        return same==nil and "unverified" or same and "match" or "mismatch"
     end
+    if id=="lang" and (x=="auto" or y=="auto") then return "unverified" end
+    if x=="" or y=="" then return "unverified" end
     return x==y and "match" or "mismatch"
 end
 
@@ -94,16 +129,25 @@ local function set_config(field,value,source)
     field.saved_to_configured=status(field.saved_value,parsed,field.id)
 end
 
-local function set_observed(field,value,source)
+local function set_observed(field,value,source,allow_empty)
     local parsed=norm(value,field.id)
-    if parsed==nil or parsed=="" then
+    if parsed==nil or (parsed=="" and not allow_empty) then
         field.notes[#field.notes+1]="independent_runtime_value_unavailable"
         return
     end
     field.observed_value=parsed
     field.observed_source=source
-    field.configured_to_observed=status(field.configured_value,parsed,field.id)
-    field.saved_to_observed=status(field.saved_value,parsed,field.id)
+    if field.id=="ntp_servers" then
+        local configured=ntp_contains(field.configured_value,parsed)
+        local saved=ntp_contains(field.saved_value,parsed)
+        field.configured_to_observed=configured==nil and "unverified" or
+            configured and "match" or "mismatch"
+        field.saved_to_observed=saved==nil and "unverified" or
+            saved and "match" or "mismatch"
+    else
+        field.configured_to_observed=status(field.configured_value,parsed,field.id)
+        field.saved_to_observed=status(field.saved_value,parsed,field.id)
+    end
     field.runtime_effect_proven=true
 end
 
@@ -132,12 +176,49 @@ function M.inspect(saved,configured,runtime)
         fields.hostname.notes[#fields.hostname.notes+1]=
             "kernel_hostname_unavailable"
     end
-    fields.lang.notes[#fields.lang.notes+1]=
-        "luci_config_not_active_session_language_proof"
-    fields.timezone.notes[#fields.timezone.notes+1]=
-        "uci_zonename_not_active_localtime_proof"
-    fields.ntp_servers.notes[#fields.ntp_servers.notes+1]=
-        "configured_servers_do_not_prove_ntp_sync"
+
+    local active_language=clean(runtime.lang,128)
+    if active_language and active_language~="" then
+        set_observed(fields.lang,active_language,"active_luci_request_language")
+        fields.lang.notes[#fields.lang.notes+1]=
+            "active_language_is_this_authenticated_request"
+    else
+        fields.lang.notes[#fields.lang.notes+1]=
+            "active_luci_request_language_unavailable"
+    end
+
+    local active_timezone=timezone_text(runtime.timezone)
+    if active_timezone and active_timezone~="" then
+        set_observed(fields.timezone,active_timezone,
+                     "tmp_localtime_zoneinfo_target")
+    else
+        fields.timezone.notes[#fields.timezone.notes+1]=
+            "active_localtime_zone_unavailable"
+    end
+
+    local ntp=runtime.ntp
+    if type(ntp)=="table" and ntp.probe_ok==true and
+       type(ntp.running)=="boolean" then
+        if ntp.running then
+            local peers=ntp_text(ntp.peers)
+            if peers~=nil then
+                set_observed(fields.ntp_servers,peers,
+                             "active_ntpd_process_arguments",true)
+                fields.ntp_servers.notes[#fields.ntp_servers.notes+1]=
+                    "active_ntpd_peers_do_not_prove_clock_synchronization"
+            else
+                fields.ntp_servers.notes[#fields.ntp_servers.notes+1]=
+                    "active_ntpd_peer_parse_failed"
+            end
+        else
+            set_observed(fields.ntp_servers,"","ntpd_process_absent",true)
+            fields.ntp_servers.notes[#fields.ntp_servers.notes+1]=
+                "ntpd_absence_verifies_disabled_runtime_only"
+        end
+    else
+        fields.ntp_servers.notes[#fields.ntp_servers.notes+1]=
+            "active_ntpd_process_probe_unavailable"
+    end
     local summary={observed_runtime=0,configured_only=0,unverified=0,
                    saved_matches_runtime=0,saved_drift_from_runtime=0}
     for _,id in ipairs(KEYS) do

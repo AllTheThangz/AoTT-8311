@@ -1,0 +1,30 @@
+#!/usr/bin/lua
+local json=require "luci.jsonc"
+local tx=require "8311.boot_config_transaction"
+local action=arg[1]
+local result,why
+if action=="enter" then
+    result,why=tx.boot_enter()
+elseif action=="status" then
+    result,why=tx.status()
+elseif action=="timeout" then
+    result,why=tx.timeout()
+else
+    os.exit(64)
+end
+if not result then
+    io.stderr:write("boot-config guard failed: "..tostring(why).."\n")
+    os.exit(1)
+end
+if action=="status" then
+    io.write(json.stringify(result),"\n")
+    if result.pending and result.phase=="trial_running" then os.exit(20) end
+    os.exit(0)
+end
+io.write(json.stringify({
+    status=result.status,
+    reboot_required=result.reboot_required==true,
+    contains_configuration_values=false,
+}),"\n")
+if result.reboot_required==true then os.exit(10) end
+os.exit(0)
