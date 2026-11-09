@@ -5,19 +5,19 @@
       "bytes": 138,
       "executable": false,
       "path": "etc/8311_version",
-      "sha256": "204cda163a731295d20bf3d7a7dc78d36f03580ad0ee4fa3b2f4dfc835531455"
+      "sha256": "5d0e047697df778e738b74015c992ddf1ac897224a74ed88bc0db3135ef89103"
     },
     {
       "bytes": 238,
       "executable": false,
       "path": "etc/aott_release",
-      "sha256": "7a6289c67ad5b7738a6e5e3a8399817a1e8a58c6ac8d66b648a3ad69eec716d4"
+      "sha256": "092b2dde4c1279e1bbd986aa4e6f637a1e6bd53ae83a9d32257f09f835cea179"
     },
     {
       "bytes": 288,
       "executable": false,
       "path": "etc/banner",
-      "sha256": "e7a7bad969d1b236814f96738af6090834a5a3d0af9d2469e534c22d2c62c4c7"
+      "sha256": "72db78cb0af429de51ba059178effd8e80c75f35bded84319134fedbf6063306"
     },
     {
       "bytes": 248,
@@ -605,7 +605,7 @@
       "bytes": 112,
       "executable": false,
       "path": "usr/lib/lua/8311/version.lua",
-      "sha256": "1b3cb35fda86c1e4b242d66cf4920ad6ede6641a6f5b85e06b75dc648b0a23af"
+      "sha256": "7fb3f4e78c1e4ee0982214967ebb22751e79646fff96ba2513a917fbeb54c154"
     },
     {
       "bytes": 4168,
@@ -647,7 +647,7 @@
       "bytes": 9109,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/firmware.htm",
-      "sha256": "dcf4a547401b0c20ed68b9260a04f3feed89b848a8b7a3c81dbec03e10687152"
+      "sha256": "eb05e761c683f729180ba48f4b67520d340ffd82ced5060df9e910df916cf9af"
     },
     {
       "bytes": 6041,
@@ -731,7 +731,7 @@
       "bytes": 17552,
       "executable": false,
       "path": "usr/lib/lua/luci/view/themes/bootstrap/header.htm",
-      "sha256": "e817163b2657e1e451c8247388f07717001c717d765b488dad169f40132236ed"
+      "sha256": "494ef3a4e1ff4f30a20f37157f5921c51f98b2eacd7f862b2958424b15f3c106"
     },
     {
       "bytes": 235,
@@ -1053,8 +1053,8 @@
     }
   ],
   "product": "AoTT-8311",
-  "release": "AoTT-8311-v3r1",
-  "revision": "r1",
+  "release": "AoTT-8311-v3r2",
+  "revision": "r2",
   "schema": 1,
   "secrets_included": false,
   "source_only": true,

@@ -92,8 +92,8 @@ class BankStatePreconditionContracts(unittest.TestCase):
 
     def test_firmware_assets_use_current_revision_cache_buster(self):
         template = (ROOT / "overlay/usr/lib/lua/luci/view/8311/firmware.htm").read_text()
-        self.assertIn('8311.js?v=aott-8311-v3-r1', template)
-        self.assertIn('8311.css?v=aott-8311-v3-r1', template)
+        self.assertIn('8311.js?v=aott-8311-v3-r2', template)
+        self.assertIn('8311.css?v=aott-8311-v3-r2', template)
         self.assertNotIn('8311.js?v=aott-8311-v1-r3', template)
 
     def test_original_local_cli_remains_available(self):
