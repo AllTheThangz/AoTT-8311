@@ -22,6 +22,9 @@
 - Current real-browser regression: **143/143 Chromium/Playwright tests**, zero failures.
 - Dedicated A-to-Z qualification against host plus extracted vendor-MIPS runtime passes for the new activation, management, PON, boot, credential, VLAN, runtime-helper and effective-readback paths.
 - Release identity and public-source sanitization pass with **169 overlay files**, zero detected secrets, prohibited files, or manifest drift.
+- Exact post-RC3 A-to-Z source checkpoint built offline: `023b8865a956b6ff13935e1c703bb7e414b0942e` / tree `098cd52047f476667244a2616dd827a2362b209a`.
+- Two independent private builds are byte-identical. Rootfs: **5,840,896 bytes**, **380,928 bytes** fixed-bank headroom, SHA-256 `e5c15033e66ea72f65376040be57fb68e6f2a19f7248e020f1fc888ae1c04505`. Upgrade archive SHA-256: `a40504c7e76adcad0a97a00dee111a2e08f3aa604e679fb88875f4de6bc2489d`.
+- Independent pair audit status: `PRIVATE_INDEPENDENT_RELEASE_PAIR_REPRODUCIBLE`; hardware-qualified remains false and the production device was not modified.
 - This remains substantive `dev/v3` source development, **not a new RC**. The live ONU remains committed r9 A/A. No V3 firmware stage, live A-to-Z mutation, reboot trial, or commit was performed by this source-development batch.
 - Hardware qualification remains separate from source completion: disruptive management, PON/OMCI, boot, host-link and provider-facing controls still require the appropriate recovery route, spare/test OLT, reboot, and live effect/revert evidence before being marked `FULLY_QUALIFIED`.
 
