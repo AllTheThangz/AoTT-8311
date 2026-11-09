@@ -21,6 +21,9 @@ class CommunityServiceOptimizationTest(unittest.TestCase):
             old="while true ; do"
             self.assertEqual(PING.count(old),1)
             script=PING.replace(old,"for _aott_round in 1 2 3; do",1)
+            state_dir = 'STATE_DIR=/var/run/aott-runtime'
+            self.assertEqual(script.count(state_dir), 1)
+            script = script.replace(state_dir, 'STATE_DIR="$AOTT_STATE_DIR"', 1)
             helpers=r'''
 _lib_8311() { :; }
 fwenv_get_8311() {
@@ -38,7 +41,8 @@ to_console() { cat; }
 ping() { return 0; }
 sleep() { :; }
 '''
-            env={**os.environ,"AOTT_TICK":str(step),"AOTT_MODE":mode}
+            env={**os.environ,"AOTT_TICK":str(step),"AOTT_MODE":mode,
+                 "AOTT_STATE_DIR":str(Path(tmp)/"aott-runtime")}
             p=subprocess.run(["/bin/sh","-c",helpers+"\n"+script],
                              env=env,capture_output=True,text=True,timeout=5)
             self.assertEqual(p.returncode,0,p.stderr)
@@ -72,6 +76,9 @@ sleep() { :; }
             orig='GPIO="/sys/class/gpio/gpio'+'$'+'{PIN}"'
             self.assertEqual(LOS.count(orig),1)
             script=LOS.replace(orig,'GPIO="$AOTT_GPIO"',1)
+            state_dir = 'STATE_DIR=/var/run/aott-runtime'
+            self.assertEqual(script.count(state_dir), 1)
+            script = script.replace(state_dir, 'STATE_DIR="$AOTT_STATE_DIR"', 1)
             export='[ -d "$GPIO" ] || echo "$PIN" > "/sys/class/gpio/export"'
             self.assertEqual(script.count(export),1)
             script=script.replace(export,":",1)
@@ -84,7 +91,8 @@ to_console() { cat; }
 sleep() { :; }
 '''
             env={**os.environ,"AOTT_GPIO":str(gpio),
-                 "AOTT_RX_LOS":"1" if enabled else "0"}
+                 "AOTT_RX_LOS":"1" if enabled else "0",
+                 "AOTT_STATE_DIR":str(Path(tmp)/"aott-runtime")}
             p=subprocess.run(["/bin/sh","-c",helpers+"\n"+script],
                              env=env,capture_output=True,text=True,timeout=5)
             self.assertEqual(p.returncode,0,p.stderr)
