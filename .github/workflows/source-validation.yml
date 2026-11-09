@@ -43,6 +43,10 @@ jobs:
           find overlay/www -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
       - name: Validate Lua 5.1 code and gateway regressions
         shell: bash
+        # The source-only overlay is not installed into the CI runner's
+        # system Lua modules. Explicitly load only the checked-out source.
+        env:
+          LUA_PATH: "overlay/usr/lib/lua/?.lua;overlay/usr/lib/lua/?/init.lua;;"
         run: |
           set -euo pipefail
           find overlay -type f -name '*.lua' -print0 | xargs -0 -r -n1 luac5.1 -p
