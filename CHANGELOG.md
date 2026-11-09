@@ -1,6 +1,16 @@
 # AoTT-8311 Changelog
 
-## v3r1 (development, hardware trial active; not permanently committed)
+## v3r1 (development, hardware-trialed and permanently committed on reference PRX126)
+
+### V3 completion permanent commit, November 9, 2026
+- The already-running, verified V3 bank B was permanently committed under a separately authorized guarded action. The commit changed only the committed-bank selector and **did not reboot or rewrite firmware**.
+- Final verified bank state is **active B / committed B / pending none / running_trial=false**.
+- Bank B remained exact after commit: rootfs SHA-256 `3b0e20115c8e01d65feade99794e3bd90e31a98df0a6e997ce980cf968687907`; post-commit `check-json B` passed.
+- Post-commit health remained good: PON **O5.1**, host Ethernet **10 Gbps**, `omcid` running, SSH healthy, and HTTPS returned HTTP 200.
+- Bank A remains complete and valid with the previously committed r9 image, available as an alternate verified bank if an explicitly authorized future switch is required.
+- User-observed UniFi gateway speed-test evidence during the accepted V3 trial: **2626 Mbps download, 2766 Mbps upload, 5 ms latency**. This is operational evidence, not a controlled laboratory performance benchmark.
+- Private permanent-commit receipt SHA-256: `3dbe3fca83ff17569fa186907b7ed18330a1191de5e86c782eadbb22850050eb`.
+- See [V3 completion hardware acceptance](docs/V3-COMPLETION-HARDWARE-ACCEPTANCE.md).
 
 ### V3 completion hardware trial, November 9, 2026
 - Exact completion implementation tree `e5ac19d8938ec7cb48a9628f0e4019ae4a6d69b6` was staged into bank B from archive SHA-256 `c1204f07b88c231251208b870de0f7dacaad303278e42be122f7139f4129ad82`; rootfs SHA-256 is `3b0e20115c8e01d65feade99794e3bd90e31a98df0a6e997ce980cf968687907`.
@@ -49,7 +59,7 @@
 - Exact post-RC3 A-to-Z source checkpoint built offline: `023b8865a956b6ff13935e1c703bb7e414b0942e` / tree `098cd52047f476667244a2616dd827a2362b209a`.
 - Two independent private builds are byte-identical. Rootfs: **5,840,896 bytes**, **380,928 bytes** fixed-bank headroom, SHA-256 `e5c15033e66ea72f65376040be57fb68e6f2a19f7248e020f1fc888ae1c04505`. Upgrade archive SHA-256: `a40504c7e76adcad0a97a00dee111a2e08f3aa604e679fb88875f4de6bc2489d`.
 - Independent pair audit status: `PRIVATE_INDEPENDENT_RELEASE_PAIR_REPRODUCIBLE`; hardware-qualified remains false and the production device was not modified.
-- The source-development batch is now hardware-trialed on the reference PRX126. V3 is running as a one-shot bank-B trial while bank A/r9 remains committed; no permanent V3 commit has been performed.
+- The source-development batch is now hardware-trialed and permanently committed on the reference PRX126. V3 is active and committed in B; bank A remains a complete valid r9 alternate bank.
 - Hardware qualification remains separate from source completion: disruptive management, PON/OMCI, boot, host-link and provider-facing controls still require the appropriate recovery route, spare/test OLT, reboot, and live effect/revert evidence before being marked `FULLY_QUALIFIED`.
 
 ### RC3 first-login and hardware-stage readiness

@@ -76,3 +76,13 @@ This trial proves the exact V3 completion image boots and operates on the tested
 The private operator receipt is retained off-repository. Public documentation records only its digest:
 
 `1b499882e0653144810c9b203f5c322a3849645e0223cd7288575a64bd3c43af`
+
+## Subsequent permanent commit
+
+After the trial evidence above was accepted, bank B was permanently committed under a separate explicit authorization. The commit changed only the committed-bank selector and did not reboot or rewrite firmware.
+
+Final state after that later action is **active B / committed B / pending none / running_trial=false**. Bank A remains complete and valid with r9. See [V3 completion hardware acceptance](V3-COMPLETION-HARDWARE-ACCEPTANCE.md) for the final lifecycle state.
+
+The private permanent-commit receipt is not published; its public digest is:
+
+`3dbe3fca83ff17569fa186907b7ed18330a1191de5e86c782eadbb22850050eb`

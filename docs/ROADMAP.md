@@ -1,10 +1,22 @@
 # AoTT-8311 roadmap and current development stages
 
+## V3 completion hardware acceptance, November 9, 2026
+
+The exact V3 completion implementation tree `e5ac19d8938ec7cb48a9628f0e4019ae4a6d69b6` has now completed the full guarded release lifecycle on the reference PRX126: inactive-bank stage, exact-bank verification, one-shot trial boot, postboot acceptance, and separately authorized permanent commit.
+
+Final verified live state is **V3r1 active in bank B and committed in bank B**, with no pending selector and `running_trial=false`. The permanent commit did not reboot or rewrite firmware. Post-commit checks passed for exact bank-B integrity, PON O5.1, 10 Gbps host Ethernet, `omcid`, SSH, and HTTPS. Bank A remains complete and valid with the prior r9 image as an alternate verified bank.
+
+Operational performance evidence from the accepted trial includes a UniFi gateway speed test of **2626 Mbps down / 2766 Mbps up / 5 ms latency**. This is useful deployment evidence but is not a controlled laboratory performance qualification.
+
+This hardware acceptance establishes the exact V3 completion image as bootable, operational, and permanently committed on the tested PRX126. It does **not** mark every individual configuration control `FULLY_QUALIFIED`; per-control, alternate-MIB, power-loss, external-firewall, persistent-history, soak, and cross-stick qualification remain separate work.
+
+See [V3 completion hardware acceptance](V3-COMPLETION-HARDWARE-ACCEPTANCE.md).
+
 ## V3 completion hardware trial, November 9, 2026
 
 The exact completion implementation tree `e5ac19d8938ec7cb48a9628f0e4019ae4a6d69b6` has now completed an inactive-bank stage and one-shot hardware trial on the reference PRX126. The trusted V3 runtime profile was used to qualify the staged bank after the r9 installer correctly rejected the new rootfs against its older embedded candidate pins. The corrected stage verified B before selection, then rebooted once with A/r9 still committed.
 
-Current verified live state is **V3r1 active in bank B, r9 committed in bank A, running as a one-shot trial, with no permanent V3 commit**. Postboot checks passed for B-bank integrity, firmware identity, PON O5.1, 10 Gbps host Ethernet, `omcid`, SSH, HTTPS, `root/root` GUI authentication, the first-login advisory, the **Keep root/root** action, and authenticated V3 status JSON. The prior enhanced-r8 bank-B image was overwritten by this authorized V3 stage, but its full verified off-device backup remains retained.
+Historical trial state before commit was **V3r1 active in bank B, r9 committed in bank A, running as a one-shot trial**. That trial was later permanently committed as recorded above. Postboot checks passed for B-bank integrity, firmware identity, PON O5.1, 10 Gbps host Ethernet, `omcid`, SSH, HTTPS, `root/root` GUI authentication, the first-login advisory, the **Keep root/root** action, and authenticated V3 status JSON. The prior enhanced-r8 bank-B image was overwritten by this authorized V3 stage, but its full verified off-device backup remains retained.
 
 This trial establishes the V3 completion image as bootable and operational on the tested PRX126. It does **not** qualify every A-to-Z setter, alternative MIB, power-loss path, external remote-firewall packet path, persistent history mode, or cross-stick target, and it does not authorize permanent commit.
 
@@ -26,25 +38,25 @@ dev/v3 is now the major-version development line based on the hardware-qualified
 
 V3r1 now integrates an opt-in RAM-only local-history worker and authenticated History UI/API on top of the bounded history model/sampler/export and dual-lock handoff primitives. The worker is disabled by default and performs no periodic flash-history write. Post-RC3 A-to-Z development has expanded the Configuration schema to **55 controls** and now routes every field explicitly: **22 live**, **6 guarded management**, **22 guarded PON/OMCI**, **4 guarded one-boot**, and **1 credential**. No high-risk field may silently fall through to generic persistence. Management changes use persistent recovery, exact runtime convergence, reconnect confirmation and rollback; PON/OMCI changes use separate environment/UCI/MIB recovery and never treat local readback as OLT acceptance; boot-only fields use one-boot trials with watchdog rollback. The **Access & servers** page now exposes 22 guarded SSH/uHTTPd/LuCI/remote-HTTPS settings with runtime verification and HTTPS confirmation. These source paths remain hardware-unqualified until the appropriate live apply/effect/revert/reboot or test-OLT evidence exists. TLS generation and operator-owned certificate import now share the guarded candidate activation/rollback path. Optional remote HTTPS firewalling is source-integrated and remains default-off; live external packet-path acceptance remains hardware-gated.
 
-The exact committed r9 image remains the rollback baseline in bank A. The exact V3 completion image is now running from bank B as an accepted one-shot hardware trial; permanent commit remains separately gated. V3 preserves any supported configured root credential before bank mutation, including the documented factory `root/root` default. Read-only local-history resource evidence is recorded in [V3 history runtime qualification](V3-HISTORY-RUNTIME-QUALIFICATION.md); live recovery-storage, native-source, and UCI-plan evidence is recorded in [V3 management preflight qualification](V3-MANAGEMENT-PREFLIGHT-QUALIFICATION.md); HTTPS key-mode and inactive candidate evidence is recorded in [V3 TLS candidate qualification](V3-TLS-CANDIDATE-QUALIFICATION.md).
+The exact V3 completion image is now active and committed in bank B. Bank A remains complete and valid with r9 as an alternate verified bank for an explicitly authorized future switch. V3 preserves any supported configured root credential before bank mutation, including the documented factory `root/root` default. Read-only local-history resource evidence is recorded in [V3 history runtime qualification](V3-HISTORY-RUNTIME-QUALIFICATION.md); live recovery-storage, native-source, and UCI-plan evidence is recorded in [V3 management preflight qualification](V3-MANAGEMENT-PREFLIGHT-QUALIFICATION.md); HTTPS key-mode and inactive candidate evidence is recorded in [V3 TLS candidate qualification](V3-TLS-CANDIDATE-QUALIFICATION.md).
 
 ## Current release integration, November 7, 2026
 
-[AoTT-8311 v2r9](V2R9-INTEGRATED-RELEASE.md) has completed its integrated source regression, reproducible private build, guarded hardware stage, one-shot trial, independent postboot acceptance and permanent commit on one LL-XS1010 / PRX126-SFP-PON device. That was the final verified state before the November 9 V3 trial. Current live state is V3 active from B as a one-shot trial with r9 still committed in A; enhanced r8 is retained off-device rather than on-device. See [r9 hardware acceptance](V2R9-HARDWARE-ACCEPTANCE.md).
+[AoTT-8311 v2r9](V2R9-INTEGRATED-RELEASE.md) has completed its integrated source regression, reproducible private build, guarded hardware stage, one-shot trial, independent postboot acceptance and permanent commit on one LL-XS1010 / PRX126-SFP-PON device. That was the final verified state before the November 9 V3 trial. Current live state is V3 active and committed in B. Bank A remains complete and valid with r9; enhanced r8 is retained off-device rather than on-device. See [r9 hardware acceptance](V2R9-HARDWARE-ACCEPTANCE.md).
 
 The public repository remains source-only. The immutable `release.json` `offline-candidate` value records build-time state; later hardware qualification is documented separately. The MIB-profile build used local source commit `24535e5b6f4393a2a85a23510c9f59e7997356c1`; the public equivalent implementation commit is `6d3032002f4d45b46d36130bfcc0ee8bcc5411df`, with the identical tree `9c3da927c5e914d7284aadd34b2d58ef990d2a1d`. That tree was built independently twice with byte-identical output; rootfs headroom is 372,736 bytes and it remains hardware-unqualified. The exact post-RC3 A-to-Z source checkpoint `023b8865a956b6ff13935e1c703bb7e414b0942e` was independently built twice with identical rootfs/archive output; it retains 380,928 bytes of rootfs-bank headroom and remains hardware-unqualified. MIB selection is now configuration-driven rather than filename-only: the selected runtime profile is parsed for UNI topology, T-CONT/queue/scheduler structure, IP Host/VEIP presence, native defaults, and setter applicability, with the same capability rules rechecked in the guarded PON worker. The next P0 work is **qualification, not another routing rewrite or firmware-version bump**: exercise the source-complete transaction classes on appropriate hardware, capture apply/effect/revert/reboot evidence, qualify each alternative MIB/provider-facing profile on a spare/test OLT, and complete the remaining page-by-page C-017 audit.
 
 Persistent history, live external remote-firewall acceptance, performance qualification and cross-stick support remain follow-on work. C-017 GUI/backend source coverage is complete. The V3 completion source checkpoint `c5bfef831c45eab17739a24dfeb7bd8fb1d0e254` / tree `e5ac19d8938ec7cb48a9628f0e4019ae4a6d69b6` was independently built twice with byte-identical output and retains 364,544 bytes of fixed-bank rootfs headroom.
 
-**Verified project checkpoint:** November 7, 2026. For all work IDs, dependencies and completion gates, see [the delivery plan](DELIVERY-PLAN-AND-ACCEPTANCE.md).
+**Verified project checkpoint:** November 9, 2026. For all work IDs, dependencies and completion gates, see [the delivery plan](DELIVERY-PLAN-AND-ACCEPTANCE.md).
 
 ## Public source versus private hardware
 
 | Stage | Current status |
 | --- | --- |
 | Public source | `dev/v3` contains the sanitized V3 completion source; no public ready-to-flash firmware image |
-| Private V3 completion | Exact image staged and trial-booted from B; currently active B / committed A / running trial; not permanently committed |
-| Private r9 | Permanently committed in A and preserved as the on-device rollback bank during the V3 trial |
+| Private V3 completion | Exact image staged, one-shot trialed, accepted and permanently committed in B; active B / committed B / no pending / not trial |
+| Private r9 | Complete and valid in A as the alternate verified on-device bank after V3 commit |
 | Private security-enhanced r8 | No longer resident in B after the authorized V3 stage; full verified off-device bank-B backup retained |
 | Older releases | r7/r6 and earlier recovery material retained privately as historical evidence |
 | vNext / V3 qualification | Per-control hardware qualification, persistence, performance and cross-stick work continues |

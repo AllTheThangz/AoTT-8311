@@ -11,19 +11,19 @@
 
 The r9 release-integration lifecycle is complete for the tested PRX126 device. The repository remains source-only. Build-time `release.json` metadata intentionally retains `offline-candidate`; later hardware qualification is recorded in the acceptance document rather than rewriting historical build evidence.
 
-## V3 completion hardware-trial checkpoint, November 9, 2026
+## V3 completion hardware acceptance checkpoint, November 9, 2026
 
 | ID | State | Deliverable and evidence |
 | --- | --- | --- |
 | V3-HW-001 | DONE_HARDWARE | Exact V3 completion tree `e5ac19d8938ec7cb48a9628f0e4019ae4a6d69b6` staged into B, verified before boot selection, one-shot trial booted, and accepted on the reference PRX126 while r9 remained committed in A |
 | V3-HW-002 | DONE_HARDWARE | Postboot acceptance: active B / committed A / running trial; B exact-bank verification, V3 identity, PON O5.1, 10 Gbps host link, `omcid`, SSH, HTTPS, root/root GUI login, first-login advisory and authenticated V3 status all passed |
-| V3-HW-003 | IN_PROGRESS | Permanent V3 commit is intentionally not performed; requires separate authorization after remaining desired live qualification |
+| V3-HW-003 | DONE_HARDWARE | Separately authorized permanent commit of the already-running verified V3 bank B; final active B / committed B / no pending / not trial, with no reboot or firmware rewrite |
 
-The first V3 stage attempt failed closed because the live r9 installer used its older candidate runtime pins against the newer V3 rootfs. It left B incomplete and selectors unchanged. The exact V3 release profile was then supplied as volatile trusted qualification policy, read-only rootfs qualification passed, and the corrected stage/trial completed. This is deployment-tooling evidence, not a firmware-content failure.
+The first V3 stage attempt failed closed because the live r9 installer used its older candidate runtime pins against the newer V3 rootfs. It left B incomplete and selectors unchanged. The exact V3 release profile was then supplied as volatile trusted qualification policy, read-only rootfs qualification passed, and the corrected stage/trial completed. This is deployment-tooling evidence, not a firmware-content failure. The accepted trial was subsequently committed without rebooting; post-commit B-bank verification, O5.1, 10 Gbps host link, `omcid`, SSH and HTTPS remained healthy.
 
 Further C-012/C-013/C-014 hardware qualification, history/telemetry deployment, certificate/browser runtime acceptance, external remote-firewall packet-path proof, performance measurement and cross-stick support remain roadmap work. C-016 vendor capability discovery and C-017 GUI/backend source qualification are complete.
 
-**Baseline date:** 2026-11-09. **State:** V3 completion image is hardware-trialed pre-commit, with remaining per-feature qualification explicitly open. This backlog is not a statement that planned functionality exists.
+**Baseline date:** 2026-11-09. **State:** V3 completion image is hardware-trialed and permanently committed on the reference PRX126, with remaining per-feature qualification explicitly open. This backlog is not a statement that planned functionality exists.
 
 Status values: DONE_SOURCE, DONE_HARDWARE, IN_PROGRESS, NOT_STARTED, BLOCKED, CONDITIONAL. A task marked DONE_SOURCE remains unqualified on production hardware until DONE_HARDWARE evidence exists.
 
