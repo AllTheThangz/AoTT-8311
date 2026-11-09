@@ -26,7 +26,7 @@
 - Current real-browser regression: **145/145 Chromium/Playwright tests**, zero failures.
 - Dedicated A-to-Z qualification against host plus extracted vendor-MIPS runtime passes for the new activation, management, PON, boot, credential, VLAN, runtime-helper and effective-readback paths.
 - Release identity and public-source sanitization pass with **170 overlay files**, zero detected secrets, prohibited files, or manifest drift.
-- Exact MIB-profile implementation checkpoint: `24535e5b6f4393a2a85a23510c9f59e7997356c1` / tree `9c3da927c5e914d7284aadd34b2d58ef990d2a1d`.
+- Exact MIB-profile implementation checkpoint: local build-source commit `24535e5b6f4393a2a85a23510c9f59e7997356c1`; public `dev/v3` implementation commit `6d3032002f4d45b46d36130bfcc0ee8bcc5411df`; both resolve to tree `9c3da927c5e914d7284aadd34b2d58ef990d2a1d`.
 - Two independent offline builds are byte-identical. Rootfs: **5,849,088 bytes**, **372,736 bytes** fixed-bank headroom, SHA-256 `4a7148e6beaf69b9b445b13950eb08f1f584bfbc5cced499d94c2a8b80d626a2`. Upgrade archive SHA-256: `742398c7c99ec3d07d18bc315d15bcd944666d61a5aa10bb81a8c6606f132af8`.
 - Independent build-pair audit status: `PRIVATE_INDEPENDENT_RELEASE_PAIR_REPRODUCIBLE`; hardware-qualified remains false and the production device was not modified.
 - Exact post-RC3 A-to-Z source checkpoint built offline: `023b8865a956b6ff13935e1c703bb7e414b0942e` / tree `098cd52047f476667244a2616dd827a2362b209a`.

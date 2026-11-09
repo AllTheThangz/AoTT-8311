@@ -132,8 +132,9 @@ reference on the current BRMEMC/PRX126 deployment remains
 
 ## Offline qualification checkpoint
 
-The exact implementation checkpoint is `24535e5b6f4393a2a85a23510c9f59e7997356c1`
-with tree `9c3da927c5e914d7284aadd34b2d58ef990d2a1d`.
+The reproducible build source commit is `24535e5b6f4393a2a85a23510c9f59e7997356c1`.
+The public equivalent implementation commit is `6d3032002f4d45b46d36130bfcc0ee8bcc5411df`;
+both resolve to tree `9c3da927c5e914d7284aadd34b2d58ef990d2a1d`.
 
 - complete source regression: **1,337 tests**, zero failures/errors;
 - complete real Chromium regression: **145/145 tests**;
