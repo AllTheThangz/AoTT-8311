@@ -5,6 +5,8 @@
     var previous = null;
     var timer = null;
     var running = false;
+    var lastGemRefresh = 0;
+    var gemCadenceMs = 300000; // GEM diagnostics only every five minutes.
     var intervals = {"0":true,"15000":true,"30000":true,"60000":true};
     var locale = (typeof Intl === "object" && Intl.NumberFormat) ? new Intl.NumberFormat() : null;
 
@@ -158,21 +160,34 @@
         put("aott-r5-voltage",formatNumber(optics.module_voltage,3));
         put("aott-r5-tx-bias",formatNumber(optics.tx_bias_mA,1));
         macRows(snapshot);
-        gemRows(snapshot);
+        if (snapshot.gem_collection !== "not_sampled") {
+            gemRows(snapshot);
+            lastGemRefresh = Date.now();
+            put("aott-r5-gem-freshness", "GEM diagnostics checked at " +
+                new Date(snapshot.sampled_at*1000).toLocaleTimeString() + ".");
+        } else if (lastGemRefresh > 0) {
+            put("aott-r5-gem-freshness", "GEM diagnostics shown from the last " +
+                "full sample. Refresh now for current GEM readings.");
+        }
         updateRates(snapshot);
         previous = snapshot;
         put("aott-r5-last-sample","Sampled "+new Date(snapshot.sampled_at*1000).toLocaleTimeString());
         showOk("aott-r5-load-status","Live counters read successfully. "+
-            ((snapshot.counters && snapshot.gem_ports) ?
-            "MAC and GEM data are available." : "Some counter sources are unavailable."));
+            (snapshot.gem_collection === "not_sampled" ?
+             "GEM diagnostics are sampled separately to reduce CPU overhead." :
+             ((snapshot.counters && snapshot.gem_ports) ?
+              "MAC and GEM data are available." : "Some counter sources are unavailable.")));
     }
-    async function refreshTelemetry() {
+    async function refreshTelemetry(forceGem) {
         if (running || !node("aott-r5-load-status")) return;
+        var withGem = forceGem === true || !lastGemRefresh ||
+            Date.now() - lastGemRefresh >= gemCadenceMs;
         running=true;
         var refresh=node("aott-r5-refresh");
         if (refresh) refresh.disabled=true;
         try {
-            var data=await fetchJSON("health_data");
+            var data=await fetchJSON(withGem ? "health_data" :
+                "health_data?detail=basic");
             paintTelemetry(data);
         } catch(error) {
             showError("aott-r5-load-status","Telemetry request failed: "+error.message+
@@ -191,7 +206,7 @@
         try {localStorage.setItem("aott-8311-v2r1-interval",interval);} catch(_) {}
         if (Number(interval)>0) {
             timer=setInterval(function() {
-                if (document.visibilityState !== "hidden") refreshTelemetry();
+                if (document.visibilityState !== "hidden") refreshTelemetry(false);
             },Number(interval));
         }
     }
@@ -203,10 +218,12 @@
             if (intervals[preference]) select.value=preference;
         } catch(_) {}
         select.addEventListener("change",schedule);
-        node("aott-r5-refresh").addEventListener("click",refreshTelemetry);
+        node("aott-r5-refresh").addEventListener("click",function() {
+            refreshTelemetry(true);
+        });
         window.addEventListener("pagehide",function(){if(timer)clearInterval(timer);timer=null;});
         schedule();
-        refreshTelemetry();
+        refreshTelemetry(true);
     }
 
     function renderFindings(list) {

@@ -43,6 +43,42 @@ class DisclosureGateTests(unittest.TestCase):
         hostname = "management." + "unreviewed" + ".com"
         self.assertIn("unreviewed_hostname_or_domain", self.problems("Host: " + hostname))
 
+    def test_lua_primitive_properties_are_not_embedded_hostnames(self):
+        lua = "overlay/usr/lib/lua/8311/synthetic.lua"
+        field = lambda obj, attr: obj + "." + attr
+        code = "\n".join((
+            "return a and b and {}=={} and a.ino==b.ino".format(
+                field("a", "dev"), field("b", "dev")),
+            "if not trusted_dir(store) or {}~={} then return nil end".format(
+                field("store", "dev"), field("root", "dev")),
+            "{}=false".format(field("result", "ca")),
+            "if {}~=false then return nil end".format(field("ext", "ca")),
+            "ca={},public_key=public_key,".format(field("ext", "ca")),
+        ))
+        self.assertNotIn("unreviewed_hostname_or_domain", self.problems(code,lua))
+
+    def test_disclosure_still_rejects_real_lua_domain_literals(self):
+        lua = "overlay/usr/lib/lua/8311/synthetic.lua"
+        field = lambda obj, attr: obj + "." + attr
+        ca_host = field("not-reviewed", "ca")
+        dev_host = field("not-reviewed", "dev")
+        for source in (
+            'remote = "{}"'.format(ca_host),
+            "remote = '{}'".format(dev_host),
+            "-- investigate {}".format(ca_host),
+            'local href = "{}"'.format(dev_host),
+            "{} = true -- visit {}".format(field("result", "ca"), ca_host),
+        ):
+            with self.subTest(source=source):
+                self.assertIn(
+                    "unreviewed_hostname_or_domain",
+                    self.problems(source,lua)
+                )
+        self.assertIn(
+            "unreviewed_hostname_or_domain",
+            self.problems(ca_host,"docs/example.md"),
+        )
+
     def test_embedded_private_home_path_fails(self):
         path = "/home/" + "exampleuser" + "/"
         self.assertIn("personal_home_directory", self.problems("config=" + path))

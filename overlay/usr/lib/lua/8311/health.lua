@@ -101,21 +101,30 @@ local function eth_speed()
     return s and number(s:match("(%d+)"))
 end
 
-function M.performance()
+-- "basic" preserves fast optical/MAC readings without invoking either
+-- heavy GEM diagnostic. Omitted "detail" retains the historical full API.
+-- The caller validates request input before entering this function.
+function M.performance(detail)
+    local with_gem = detail ~= "basic"
     local snapshot = {
         schema=1,
         device="LL-XS1010 / PRX126-SFP-PON",
         sampled_at=os.time(),
         uptime_seconds=uptime(),
-        optics=tools.metrics(),
+        optics=tools.metrics(true),
         eth_speed_mbps=eth_speed(),
         counters=ethtool_mac(),
-        gem_ports=gem_status(),
+        gem_ports=with_gem and gem_status() or nil,
+        gem_collection=with_gem and "sampled" or "not_sampled",
         source="live read-only ONU counters"
     }
-    local by_gem = gem_counters()
-    for _, item in ipairs(snapshot.gem_ports or {}) do
-        item.counters = by_gem and by_gem[item.gem_id] or nil
+    -- If the status probe failed there are no GEM entries to correlate.
+    -- Avoid a second expensive pontop invocation that cannot add data.
+    if with_gem and snapshot.gem_ports then
+        local by_gem = gem_counters()
+        for _, item in ipairs(snapshot.gem_ports) do
+            item.counters = by_gem and by_gem[item.gem_id] or nil
+        end
     end
     -- The optical line terminal provisions GEM/T-CONT bandwidth and encryption.
     -- Do not infer ISP entitlement or packet-level encryption from this field.

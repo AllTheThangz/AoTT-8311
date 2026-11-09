@@ -83,6 +83,34 @@ same(p.rollbacks,1,"absolute_deadline_one_rollback")
 checks=checks+1
 assert(p.clock<=13.5,"FW_TRIAL_FIXTURE:absolute_deadline_exceeded clock="..tostring(p.clock))
 
+-- This is a 180-second synthetic trial with Internet, HTTPS and SSH all
+-- unavailable. No network callback is provided or needed; locally observed
+-- boot state and monotonic time drive rollback to the committed bank.
+p=provider({status("A","B")})
+p.internet_reachable=false
+p.ssh_reachable=false
+p.https_reachable=false
+r=assert(m.run(p))
+same(r.rollback_requested,true,"offline_180sec_rollback")
+same(p.rollbacks,1,"offline_exactly_one_reboot_request")
+same(p.clock,180,"offline_monotonic_deadline")
+same(p.sleeps,90,"offline_two_second_poll_count")
+
+p=provider({status("A","B")})
+p.internet_reachable=false
+p.confirmed={boot_id=BOOT,active="A",committed="B"}
+r=assert(m.run(p))
+same(r.confirmed,true,"offline_local_confirmation")
+same(p.rollbacks,0,"offline_confirmed_no_forced_reboot")
+
+-- A corrupt/unreadable local bank-status contract is NOT considered a
+-- verified rollback. Report this limitation rather than claiming safety.
+p=provider({})
+local missing_status, missing_reason=m.run(p)
+same(missing_status,nil,"unreadable_status_not_proven")
+same(missing_reason,nil,"unreadable_status_without_false_claim")
+same(p.rollbacks,0,"unreadable_status_no_unverified_reboot")
+
 same(m.WAIT_SECONDS,180,"default_timeout")
 same(m.STEP_SECONDS,2,"step_seconds")
 assert(checks>=15,"coverage")

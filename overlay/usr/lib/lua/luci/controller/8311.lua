@@ -828,7 +828,14 @@ function action_r5_health()
 end
 
 function action_r5_health_data()
-    local ok, result = pcall(health.performance)
+    if http.getenv("REQUEST_METHOD") ~= "GET" then
+        return web.reply(http, 405, {success=false,error="Read-only GET required"})
+    end
+    local detail = http.formvalue("detail")
+    if detail ~= nil and detail ~= "basic" and detail ~= "full" then
+        return web.reply(http, 422, {success=false,error="Invalid telemetry detail"})
+    end
+    local ok, result = pcall(health.performance, detail)
     if not ok or type(result) ~= "table" or result.schema ~= 1 then
         return web.reply(http, 503, {success=false,error="Telemetry is unavailable; no values were inferred."})
     end

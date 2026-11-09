@@ -43,6 +43,10 @@ jobs:
           find overlay/www -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
       - name: Validate Lua 5.1 code and gateway regressions
         shell: bash
+        # The source-only overlay is not installed into the CI runner's
+        # system Lua modules. Explicitly load only the checked-out source.
+        env:
+          LUA_PATH: "overlay/usr/lib/lua/?.lua;overlay/usr/lib/lua/?/init.lua;;"
         run: |
           set -euo pipefail
           find overlay -type f -name '*.lua' -print0 | xargs -0 -r -n1 luac5.1 -p
@@ -56,6 +60,11 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get install -y --no-install-recommends libjs-jquery
+          # Existing source browser fixtures expect a vendor-style jQuery
+          # layout. Use packaged public jQuery 3.7.1, never private rootfs.
+          grep -q 'jQuery v3.7.1' /usr/share/javascript/jquery/jquery.min.js
+          install -D -m 0644 /usr/share/javascript/jquery/jquery.min.js \
+            "$RUNNER_TEMP/aott-public-test-vendor/www/luci-static/resources/jquery-3.7.1.min.js"
           python3 -m venv "$RUNNER_TEMP/aott-browser-env"
           "$RUNNER_TEMP/aott-browser-env/bin/python" -m pip install --disable-pip-version-check --no-cache-dir "playwright==1.57.0"
           if ! command -v google-chrome-stable >/dev/null && ! command -v google-chrome >/dev/null && ! command -v chromium >/dev/null; then
@@ -68,4 +77,5 @@ jobs:
           AOTT_REQUIRE_BROWSER: "1"
         run: |
           set -euo pipefail
+          export AOTT_VENDOR_ROOTFS="$RUNNER_TEMP/aott-public-test-vendor"
           "$RUNNER_TEMP/aott-browser-env/bin/python" -m unittest discover -s tests -p 'test_browser_*.py' -v
