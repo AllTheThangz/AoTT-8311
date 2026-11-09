@@ -116,6 +116,19 @@ end
 package.preload["8311.effective_reporting_probe"] = function()
     return {live_reporting=function() return nil,"synthetic_readonly_unavailable" end}
 end
+package.preload["8311.mib_profile"] = function()
+    return {
+        inspect=function(path)
+            return {
+                schema=1,path=path,filename="fixture.ini",profile_kind="single_uni",
+                topology={physical_uni_count=1,tcont_me262_count=16,
+                    iphost_me134_count=1,slot_editable=true},
+                applicability={pon_slot=true,iphost_identity=true},
+                defaults={pon_slot="1"},notes={},
+            }
+        end,
+    }
+end
 package.preload["8311.config"] = function() return {} end
 package.preload["8311.history_config"] = function() return {} end
 package.preload["8311.history_live_snapshot"] = function() return {} end

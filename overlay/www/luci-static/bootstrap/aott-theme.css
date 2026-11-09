@@ -622,3 +622,26 @@
   [data-aott-theme] .aott-first-login-actions .btn,
   [data-aott-theme] .aott-first-login-actions button {width:100%;}
 }
+
+/* V3 MIB profile introspection and applicability prompts. */
+[data-aott-theme] .aott-mib-profile-summary {
+  margin-top:12px;padding:12px 14px;border:1px solid var(--aott-border);
+  border-radius:8px;background:var(--aott-pane-alt);color:var(--aott-text);
+}
+[data-aott-theme] .aott-mib-profile-summary #aott-mib-profile-status {
+  font-weight:700;margin-bottom:8px;
+}
+[data-aott-theme] .aott-mib-profile-table {
+  width:100%;margin:6px 0 8px;border-collapse:collapse;
+}
+[data-aott-theme] .aott-mib-profile-table th,
+[data-aott-theme] .aott-mib-profile-table td {
+  text-align:left;vertical-align:top;padding:5px 8px;border-bottom:1px solid var(--aott-border);
+}
+[data-aott-theme] .aott-mib-rule {
+  margin-top:6px;padding:6px 8px;border-left:3px solid var(--aott-border);
+  color:var(--aott-muted);font-size:.92em;
+}
+[data-aott-theme] [data-mib-applicable="false"] {
+  opacity:.8;
+}

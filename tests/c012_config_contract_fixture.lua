@@ -83,6 +83,26 @@ package.preload["base64"]=function()
     }
 end
 package.preload["luci.jsonc"]=function() return {} end
+package.preload["8311.mib_profile"]=function()
+    return {
+        inspect=function(path)
+            if path~="/etc/mibs/prx300_1U.ini" and path~="/etc/mibs/test_2U.ini" then
+                return nil,"fixture_mib_unknown"
+            end
+            return {
+                schema=1,path=path,
+                topology={slot_editable=true},
+                applicability={
+                    vendor_id=true,hw_ver=true,cp_hw_ver_sync=true,
+                    equipment_id=true,software_reporting=true,
+                    iphost_identity=true,pon_slot=true,
+                },
+                defaults={pon_slot="1"},
+            }
+        end,
+        validate_for_configuration=function() return true end,
+    }
+end
 package.preload["8311.config_activation"]=function()
     return {
         apply=function(changes)

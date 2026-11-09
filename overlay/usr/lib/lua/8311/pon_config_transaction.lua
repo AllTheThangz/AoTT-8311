@@ -9,6 +9,7 @@ local pon_uci=require "8311.pon_config_uci"
 local pon_mib=require "8311.pon_mib_runtime"
 local runtime=require "8311.pon_config_runtime"
 local web=require "8311.webutil"
+local mib_profile=require "8311.mib_profile"
 local M={}
 local VERIFY_TICKS=60
 local WAIT_TICKS=90
@@ -153,6 +154,20 @@ local function production_provider()
         if not desired then return nil,why end
         local records,decode_why=environment.decode(desired)
         if not records then return nil,decode_why end
+        local proposed,changed={}, {__pon_transaction=true}
+        for _,id in ipairs(environment.fields) do
+            local row=records[id]
+            proposed[id]=row and row.state=="value" and row.value or ""
+        end
+        for id in pairs(changes) do changed[id]=true end
+        local selected=proposed.mib_file~="" and proposed.mib_file or "/etc/mibs/prx300_1U.ini"
+        local profile,profile_why=mib_profile.inspect(selected)
+        if not profile then return nil,"pon_mib_profile_inspection_failed:"..tostring(profile_why) end
+        local compatible,profile_errors=mib_profile.validate_for_configuration(profile,proposed,changed)
+        if not compatible then
+            local field=next(profile_errors or {})
+            return nil,"pon_mib_profile_incompatible_"..tostring(field or "unknown")
+        end
         return {
             desired_environment=desired,records=records,changes=changes,
             changes_required=desired~=snapshot.environment,

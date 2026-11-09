@@ -93,6 +93,7 @@ local risk_notes = {
  data-pon-apply-url="<%=esc(url('admin/8311/pon_config_apply'))%>"
  data-pon-status-url="<%=esc(url('admin/8311/pon_config_status'))%>"
  data-pon-confirm-url="<%=esc(url('admin/8311/pon_config_confirm'))%>"
+ data-mib-profile-url="<%=esc(url('admin/8311/mib_profile'))%>"
  onsubmit="return saveConfig(this)" method="post" novalidate>
 <input type="hidden" name="token" value="<%=esc(token)%>" />
 <input type="hidden" name="complete" value="8311-v1" />
@@ -156,6 +157,12 @@ local label = named and option.name or option
 <div class="cbi-value-error error" data-error-for="<%=esc(item.id)%>" <% if not stored_invalid then %>style="display:none"<% end %>><% if stored_invalid then %><%=esc(item.stored_error or "The saved value is unsupported. Choose an explicit supported value before reviewing or saving any settings.")%><% end %></div>
 <div id="aott-help-<%=esc(item.id)%>" class="cbi-value-description"><%=nl2br(esc(item.description))%></div>
 <% if risk_notes[item.id] then %><div class="aott-field-warning" role="note"><%=esc(risk_notes[item.id])%></div><% end %>
+<% if item.id == "mib_file" then %>
+<section id="aott-mib-profile-summary" class="aott-mib-profile-summary" aria-live="polite" aria-label="Selected MIB profile capabilities">
+<div id="aott-mib-profile-status">Inspecting selected MIB profile…</div>
+<div id="aott-mib-profile-details" hidden></div>
+</section>
+<% end %>
 <% if item.id == "fix_vlans" then %><button id="edit-hook-script-btn" type="button" class="cbi-button"><%:Edit privileged VLAN hook%></button><% end %>
 </div></div>
 <% end %></div><% end %>

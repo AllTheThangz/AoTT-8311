@@ -5,6 +5,7 @@ local fs = require "nixio.fs"
 local base64 = require "base64"
 local json = require "luci.jsonc"
 local config_route = require "8311.config_route"
+local mib_profile = require "8311.mib_profile"
 local M = {}
 local secret = { gpon_sn=true, reg_id_hex=true, loid=true, lpwd=true, root_pwhash=true }
 local boot_path = "/tmp/8311-config-at-boot.json"
@@ -298,9 +299,13 @@ function M.prepare(snapshot, form)
 		if not known[name] then errors.request = "Unknown form field" end
 		if type(value) ~= "string" then errors[name] = "Duplicate or invalid field" end
 	end
-	local changed_ids={}
-	for _,change in ipairs(changes) do changed_ids[#changed_ids+1]=change.item.id end
+	local changed_ids,changed_map={},{}
+	for _,change in ipairs(changes) do
+		changed_ids[#changed_ids+1]=change.item.id
+		changed_map[change.item.id]=true
+	end
 	local route,route_why=config_route.classify(changed_ids)
+	changed_map.__pon_transaction=route and route.route=="pon" or false
 	if not route then
 		errors.request="Configuration routing failed; no settings were written ("..tostring(route_why)..")"
 	elseif route.route=="mixed" then
@@ -313,10 +318,22 @@ function M.prepare(snapshot, form)
 	   tonumber(v.internet_vlan) and tonumber(v.internet_vlan) == tonumber(v.services_vlan) then
 		errors.services_vlan = "Internet and Services VLANs must differ while automatic VLAN fixes are enabled"
 	end
-	if v.mib_file and v.mib_file ~= "" and v.pon_slot and v.pon_slot ~= "" then
-		local code = web.capture({"/usr/libexec/8311-mib-edit.lua", "check-slot", v.mib_file, v.pon_slot}, 2048)
-		if code ~= 0 then
-			errors.pon_slot = "The selected MIB profile cannot safely apply this UNI slot; use a compatible MIB or leave its native slot mapping unchanged"
+	if v.mib_file and v.mib_file ~= "" then
+		local profile,profile_why=mib_profile.inspect(v.mib_file)
+		if not profile then
+			errors.mib_file="The selected MIB profile could not be safely inspected ("..tostring(profile_why)..")"
+		else
+			local compatible,profile_errors=mib_profile.validate_for_configuration(profile,v,changed_map)
+			if not compatible then
+				for field,message in pairs(profile_errors or {}) do errors[field]=message end
+			end
+			if profile.topology and profile.topology.slot_editable and
+			   v.pon_slot and v.pon_slot ~= "" then
+				local code = web.capture({"/usr/libexec/8311-mib-edit.lua", "check-slot", v.mib_file, v.pon_slot}, 2048)
+				if code ~= 0 then
+					errors.pon_slot = "The selected MIB cannot safely apply this UNI slot. Use its native slot or another compatible profile."
+				end
+			end
 		end
 	end
 	if v.ipaddr and v.netmask then

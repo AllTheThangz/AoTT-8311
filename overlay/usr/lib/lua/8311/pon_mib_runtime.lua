@@ -1,6 +1,7 @@
 -- AoTT-8311 V3 fixed MIB applicator and readback for supported GUI fields.
 local fs=require "nixio.fs"
 local web=require "8311.webutil"
+local mib_profile=require "8311.mib_profile"
 local M={}
 local DEFAULT="/etc/mibs/prx300_1U.ini"
 
@@ -14,7 +15,9 @@ local function path(records)
     if not st or st.type~="reg" or st.uid~=0 or st.gid~=0 or st.nlink~=1 or st.size>131072 then
         return nil,"pon_mib_path_unavailable"
     end
-    return p
+    local profile,why=mib_profile.inspect(p)
+    if not profile then return nil,"pon_mib_profile_unavailable:"..tostring(why) end
+    return p,nil,profile
 end
 local function value(records,id)
     local row=records[id]
@@ -46,7 +49,7 @@ local function set_field(p,class,index,v)
 end
 
 function M.apply(records)
-    local p,why=path(records);if not p then return nil,why end
+    local p,why,profile=path(records);if not p then return nil,why end
     local src,swhy=pristine(p);if not src then return nil,swhy end
     local vendor=value(records,"vendor_id")
     local hw=value(records,"hw_ver")
@@ -73,6 +76,9 @@ function M.apply(records)
         return nil,"pon_mib_equipment_restore_pristine_failed"
     end
     if slot then
+        if not profile.topology or profile.topology.slot_editable~=true then
+            return nil,"pon_mib_slot_not_applicable"
+        end
         if not run({"/usr/libexec/8311-mib-edit.lua","set-slot",p,slot}) then return nil,"pon_mib_slot_apply_failed" end
     elseif not run({"/usr/libexec/8311-mib-edit.lua","copy-slot",src,p}) then
         return nil,"pon_mib_slot_restore_pristine_failed"
@@ -81,7 +87,7 @@ function M.apply(records)
 end
 
 function M.verify(records)
-    local p,why=path(records);if not p then return nil,why end
+    local p,why,profile=path(records);if not p then return nil,why end
     local src,swhy=pristine(p);if not src then return nil,swhy end
     local vendor=value(records,"vendor_id")
     local hw=value(records,"hw_ver")
@@ -117,6 +123,9 @@ function M.verify(records)
         return nil,"pon_mib_equipment_pristine_readback_failed"
     end
     if slot then
+        if not profile.topology or profile.topology.slot_editable~=true then
+            return nil,"pon_mib_slot_not_applicable"
+        end
         if not run({"/usr/libexec/8311-mib-edit.lua","check-slot",p,slot}) then
             return nil,"pon_mib_slot_readback_failed"
         end

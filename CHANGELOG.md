@@ -18,10 +18,14 @@
 - Added guarded PON/OMCI environment, UCI, MIB and auxiliary-runtime transactions with persistent recovery. Sensitive subscriber values remain private and public receipts are redacted.
 - Added the **Access & servers** GUI for **20 additional SSH/uHTTPd/LuCI settings**. It provides validation, exact preview, private recovery snapshots, service reload/runtime verification, HTTPS-only guarded apply, reconnect guidance, timed confirmation, automatic rollback, and boot-time recovery.
 - Added a source-derived routing/inventory contract so future GUI fields must be explicitly assigned to `live`, `management`, `pon`, `boot`, or `credential`; mixed high-risk routes are refused instead of being partially applied.
-- Current exact-tree regression: **1,329 source tests**, zero failures/errors, with environment-dependent tests skipped where their runtime is intentionally unavailable.
-- Current real-browser regression: **143/143 Chromium/Playwright tests**, zero failures.
+- Added runtime MIB profile introspection for every shipped `/etc/mibs/*.ini` profile. The Configuration selector now shows structure-derived labels and a live capability summary instead of treating the filename as opaque.
+- MIB-driven prompts now expose physical UNI topology, T-CONT/queue/scheduler counts, IP Host ME 134 presence, VEIP presence, conditional records, profile-native identity defaults, and whether a single `pon_slot` override is structurally safe.
+- Multi-UNI and VEIP-only profiles no longer accept a generic slot override. Profile switches that would carry an incompatible saved slot require an explicit reviewed clear; the controller, guarded worker, and MIB applicator all re-check that rule.
+- IP-host identity fields are marked non-applicable/read-only when ME 134 is absent, while existing saved overrides are preserved unless explicitly changed.
+- Current exact-tree regression: **1,337 source tests**, zero failures/errors, with environment-dependent tests skipped where their runtime is intentionally unavailable.
+- Current real-browser regression: **145/145 Chromium/Playwright tests**, zero failures.
 - Dedicated A-to-Z qualification against host plus extracted vendor-MIPS runtime passes for the new activation, management, PON, boot, credential, VLAN, runtime-helper and effective-readback paths.
-- Release identity and public-source sanitization pass with **169 overlay files**, zero detected secrets, prohibited files, or manifest drift.
+- Release identity and public-source sanitization pass with **170 overlay files**, zero detected secrets, prohibited files, or manifest drift.
 - Exact post-RC3 A-to-Z source checkpoint built offline: `023b8865a956b6ff13935e1c703bb7e414b0942e` / tree `098cd52047f476667244a2616dd827a2362b209a`.
 - Two independent private builds are byte-identical. Rootfs: **5,840,896 bytes**, **380,928 bytes** fixed-bank headroom, SHA-256 `e5c15033e66ea72f65376040be57fb68e6f2a19f7248e020f1fc888ae1c04505`. Upgrade archive SHA-256: `a40504c7e76adcad0a97a00dee111a2e08f3aa604e679fb88875f4de6bc2489d`.
 - Independent pair audit status: `PRIVATE_INDEPENDENT_RELEASE_PAIR_REPRODUCIBLE`; hardware-qualified remains false and the production device was not modified.

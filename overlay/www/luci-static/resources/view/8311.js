@@ -1410,6 +1410,207 @@ function startSupport(form) {
 	post8311('support', {action: 'generate', full: full}).then(record => { $('#support-message').text(''); monitorJob(record); }).catch(error => { $('#support-message').text(errorMessage(error)); $('#support-start').prop('disabled', false); });
 	return false;
 }
+let currentMibProfile=null;
+let mibProfileGeneration=0;
+
+function mibConfigField(name) {
+    const form=document.getElementById('8311-config');
+    return form && form.elements.namedItem(name);
+}
+function mibRuleContainer(name) {
+    const field=mibConfigField(name);
+    const wrapper=field && field.closest('.cbi-value-field');
+    if (!wrapper) return null;
+    let box=wrapper.querySelector('[data-mib-rule-for="'+name+'"]');
+    if (!box) {
+        box=document.createElement('div');
+        box.className='aott-mib-rule';
+        box.setAttribute('data-mib-rule-for',name);
+        box.setAttribute('role','note');
+        wrapper.appendChild(box);
+    }
+    return box;
+}
+function mibSetReadonly(name,readonly,message) {
+    const field=mibConfigField(name);
+    const box=mibRuleContainer(name);
+    if (!field || !box) return;
+    field.setAttribute('data-mib-applicable',readonly?'false':'true');
+    if (field.tagName==='INPUT' || field.tagName==='TEXTAREA') {
+        field.readOnly=readonly;
+    } else {
+        field.setAttribute('aria-disabled',readonly?'true':'false');
+    }
+    box.textContent=message||'';
+    box.hidden=!message;
+}
+function mibDefaultNote(name,label,value) {
+    const field=mibConfigField(name);
+    const box=mibRuleContainer(name);
+    if (!field || !box) return;
+    if (typeof value!=='string' || value==='') {
+        if (field.getAttribute('data-mib-applicable')!=='false') {
+            box.textContent='';box.hidden=true;
+        }
+        return;
+    }
+    if ((field.value||'')==='') field.placeholder='Profile default: '+value;
+    if (field.getAttribute('data-mib-applicable')!=='false') {
+        box.textContent=label+' profile default: '+value+
+            '. Leave the override blank to keep the profile-native value.';
+        box.hidden=false;
+    }
+}
+function mibAddSummaryRow(table,label,value) {
+    const row=document.createElement('tr');
+    const a=document.createElement('th');a.textContent=label;
+    const b=document.createElement('td');b.textContent=String(value);
+    row.appendChild(a);row.appendChild(b);table.appendChild(row);
+}
+function mibRenderProfile(profile) {
+    if (!profile || profile.schema!==1 || !profile.topology ||
+        !profile.applicability || !profile.defaults) {
+        throw {error:'MIB capability response is incomplete.'};
+    }
+    currentMibProfile=profile;
+    const status=document.getElementById('aott-mib-profile-status');
+    const details=document.getElementById('aott-mib-profile-details');
+    if (status) status.textContent='Selected profile: '+profile.filename+
+        '. Structure inspected from the actual MIB file.';
+    if (details) {
+        details.replaceChildren();
+        const table=document.createElement('table');
+        table.className='table aott-mib-profile-table';
+        mibAddSummaryRow(table,'Profile kind',profile.profile_kind);
+        mibAddSummaryRow(table,'Variant hint',profile.variant_hint);
+        mibAddSummaryRow(table,'Physical UNI relationships',
+            profile.topology.physical_uni_count+
+            (profile.topology.physical_uni_numbers.length?
+                ' ('+profile.topology.physical_uni_numbers.join(', ')+')':''));
+        mibAddSummaryRow(table,'T-CONT ME 262 records',profile.topology.tcont_me262_count);
+        mibAddSummaryRow(table,'Priority Queue ME 277 records',profile.topology.priority_queue_me277_count);
+        mibAddSummaryRow(table,'Traffic Scheduler ME 278 records',profile.topology.traffic_scheduler_me278_count);
+        mibAddSummaryRow(table,'IP Host ME 134 records',profile.topology.iphost_me134_count);
+        mibAddSummaryRow(table,'VEIP ME 329 records',profile.topology.veip_me329_count);
+        mibAddSummaryRow(table,'Conditional records',profile.conditional_records);
+        mibAddSummaryRow(table,'UNI slot override',
+            profile.topology.slot_editable ?
+                'Supported, native slot '+profile.defaults.pon_slot :
+                'Not safely editable ('+profile.topology.slot_reason+')');
+        details.appendChild(table);
+        if (Array.isArray(profile.notes) && profile.notes.length) {
+            const list=document.createElement('ul');
+            profile.notes.forEach(note=>{
+                const li=document.createElement('li');li.textContent=String(note);list.appendChild(li);
+            });
+            details.appendChild(list);
+        }
+        const caveat=document.createElement('p');
+        caveat.className='aott-hint';
+        caveat.textContent='Profile structure and local applicability are verified here. OLT/provider compatibility is not inferred.';
+        details.appendChild(caveat);
+        details.hidden=false;
+    }
+
+    const slot=mibConfigField('pon_slot');
+    const slotBox=mibRuleContainer('pon_slot');
+    if (slot && slotBox) {
+        if (profile.topology.slot_editable) {
+            slot.readOnly=false;
+            slot.setAttribute('data-mib-applicable','true');
+            if (!slot.value && profile.defaults.pon_slot) slot.placeholder=profile.defaults.pon_slot;
+            slotBox.textContent='Single-UNI slot topology detected. Native slot: '+
+                String(profile.defaults.pon_slot||'unknown')+
+                '. A reviewed override may be entered.';
+            slotBox.hidden=false;
+        } else {
+            slot.setAttribute('data-mib-applicable','false');
+            slotBox.replaceChildren();
+            const text=document.createElement('span');
+            text.textContent='This profile does not support a safe single-UNI slot override. Use its native topology.';
+            slotBox.appendChild(text);
+            if (slot.value) {
+                slot.readOnly=false;
+                slotBox.appendChild(document.createTextNode(' The existing saved override must be cleared before applying this profile. '));
+                const clear=document.createElement('button');
+                clear.type='button';clear.className='cbi-button';
+                clear.textContent='Clear incompatible slot override';
+                clear.addEventListener('click',()=>{
+                    slot.value='';
+                    slot.readOnly=true;
+                    slot.dispatchEvent(new Event('input',{bubbles:true}));
+                    slot.dispatchEvent(new Event('change',{bubbles:true}));
+                });
+                slotBox.appendChild(clear);
+            } else {
+                slot.readOnly=true;
+            }
+            slotBox.hidden=false;
+        }
+    }
+
+    const iphost=profile.applicability.iphost_identity===true;
+    ['iphost_mac','iphost_hostname','iphost_domain'].forEach(name=>{
+        mibSetReadonly(name,!iphost,iphost?
+            'IP Host Config Data ME 134 is present in this profile.':
+            'Not applicable: the selected MIB does not contain IP Host Config Data ME 134. Existing saved overrides are preserved but cannot be edited for this profile.');
+    });
+
+    const cp=profile.applicability.cp_hw_ver_sync===true;
+    const cpBox=mibRuleContainer('cp_hw_ver_sync');
+    if (cpBox) {
+        cpBox.textContent=cp?
+            'Circuit Pack ME 6 is present; hardware-version synchronization is structurally applicable.':
+            'Not applicable: this profile has no Circuit Pack ME 6 records.';
+        cpBox.hidden=false;
+    }
+
+    const sw=profile.applicability.software_reporting===true;
+    ['sw_verA','sw_verB','override_active','override_commit'].forEach(name=>{
+        const box=mibRuleContainer(name);
+        const field=mibConfigField(name);
+        if (field) field.setAttribute('data-mib-applicable',sw?'true':'false');
+        if (box) {
+            box.textContent=sw?'Software Image ME 7 is present in this profile.':
+                'Not applicable: this profile has no Software Image ME 7 records.';
+            box.hidden=false;
+        }
+    });
+
+    mibDefaultNote('vendor_id','Vendor ID',profile.defaults.vendor_id);
+    mibDefaultNote('hw_ver','Hardware version',profile.defaults.hw_ver);
+    mibDefaultNote('equipment_id','Equipment ID',profile.defaults.equipment_id);
+}
+function refreshMibProfile() {
+    const form=document.getElementById('8311-config');
+    const select=mibConfigField('mib_file');
+    const status=document.getElementById('aott-mib-profile-status');
+    const details=document.getElementById('aott-mib-profile-details');
+    if (!form || !select || !status || !details) return;
+    const endpoint=sameOriginPath(form.getAttribute('data-mib-profile-url')||'',
+        '/admin/8311/mib_profile');
+    if (!endpoint) {
+        status.textContent='MIB capability endpoint is invalid.';
+        details.hidden=true;return;
+    }
+    const generation=++mibProfileGeneration;
+    const selected=select.value;
+    status.textContent='Inspecting '+selected+'…';
+    details.hidden=true;
+    post8311(endpoint,{mib_file:selected}).then(record=>{
+        if (generation!==mibProfileGeneration || select.value!==selected) return;
+        if (record.success!==true || !record.profile || record.profile.path!==selected) {
+            throw {error:'MIB capability response does not match the selected profile.'};
+        }
+        mibRenderProfile(record.profile);
+    }).catch(error=>{
+        if (generation!==mibProfileGeneration) return;
+        currentMibProfile=null;
+        status.textContent=errorMessage(error);
+        details.hidden=true;
+    });
+}
+
 $(document).ready(function() {
     $(document).on('click', 'a[data-8311-tab]', function(event) {
         event.preventDefault();
@@ -1462,6 +1663,11 @@ $(document).ready(function() {
 	$('#8311-config').on('input change', function() {
 		if (!configWriteStarted) invalidateConfigReview('Values changed. Review the complete form before saving.');
 	});
+	const mibSelect=mibConfigField('mib_file');
+	if (mibSelect) {
+		$(mibSelect).on('change',refreshMibProfile);
+		refreshMibProfile();
+	}
     $('#aott-management-effective-refresh').on('click',function(event) {
         event.preventDefault();
         refreshManagementEffective();

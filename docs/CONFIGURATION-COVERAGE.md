@@ -120,7 +120,7 @@ Every Configuration-page field is assigned to exactly one server-owned path:
 | --- | ---: | --- |
 | Live activation | 22 | Persist, activate fixed native consumer, verify configured/runtime state, rollback on mismatch |
 | Guarded management | 6 | Persistent pre-change recovery, UCI/environment apply, network/firewall reload, exact runtime convergence, reconnect confirmation, timeout/boot rollback |
-| Guarded PON/OMCI | 22 | Persistent environment/UCI/MIB recovery, fixed local apply/readback, confirmation and boot recovery; OLT acceptance remains separate evidence |
+| Guarded PON/OMCI | 22 | Persistent environment/UCI/MIB recovery, profile-driven MIB applicability/introspection, fixed local apply/readback, confirmation and boot recovery; OLT acceptance remains separate evidence |
 | Guarded one-boot | 4 | Stage candidate with persistent previous state, reboot trial, watchdog rollback, explicit postboot confirmation |
 | Credential | 1 | Secret-safe root shadow activation/readback with durable environment rollback on activation failure |
 | **Total** | **55** | No unrouted or generic-fallthrough fields |

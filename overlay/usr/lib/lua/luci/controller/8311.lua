@@ -30,6 +30,7 @@ local effective_vlan_probe = require "8311.effective_vlan_probe"
 local effective_hardware_probe = require "8311.effective_hardware_probe"
 local effective_reporting_probe = require "8311.effective_reporting_probe"
 local config = require "8311.config"
+local mib_profile = require "8311.mib_profile"
 local uploads = require "8311.uploads"
 local jobs = require "8311.jobs"
 
@@ -42,6 +43,7 @@ function index()
 	entry({"admin", "8311", "support"}, call("action_support"), translate("Support"), 5)
 
 	entry({"admin", "8311", "save"}, post("action_save"))
+	entry({"admin", "8311", "mib_profile"}, post("action_mib_profile")).leaf=true
 	entry({"admin", "8311", "boot_config_apply"}, post("action_boot_config_apply")).leaf=true
 	entry({"admin", "8311", "boot_config_status"}, call("action_boot_config_status")).leaf=true
 	entry({"admin", "8311", "boot_config_confirm"}, post("action_boot_config_confirm")).leaf=true
@@ -257,6 +259,30 @@ function pontop_pages()
 	return pages
 end
 
+local function mib_profile_options()
+    local out={}
+    for path in fs.glob("/etc/mibs/*.ini") do
+        if type(path)=="string" then
+            local filename=path:match("([^/]+)$") or path
+            local label=filename
+            local profile=mib_profile.inspect(path)
+            if type(profile)=="table" and type(profile.topology)=="table" then
+                local kind=tostring(profile.profile_kind or "profile"):gsub("_"," ")
+                local tcont=tonumber(profile.topology.tcont_me262_count) or 0
+                local unis=tonumber(profile.topology.physical_uni_count) or 0
+                label=filename.." — "..kind..", "..tostring(tcont).." T-CONT"
+                if unis>0 then label=label..", "..tostring(unis).." physical UNI" end
+                if tonumber(profile.topology.iphost_me134_count or 0)==0 then
+                    label=label..", no IP Host ME"
+                end
+            end
+            out[#out+1]={name=label,value=path}
+        end
+    end
+    table.sort(out,function(a,b)return a.value<b.value end)
+    return out
+end
+
 function language_change(value)
 	util.exec("uci set luci.main.lang=" .. util.shellquote(value) .. " && uci commit luci")
 end
@@ -433,9 +459,9 @@ function fwenvs_8311()
 					id="mib_file",
 					name=translate("OMCI device profile (MIB)"),
 					description=translate("OMCI Managed Information Base profile loaded by omcid. The current prx300_1U.ini profile is verified on this deployment. Other profiles may change UNI and service behavior."),
-					type="select",
+					type="select_named",
 					default="/etc/mibs/prx300_1U.ini",
-					options=tools.iterator2array(fs.glob("/etc/mibs/*.ini"))
+					options=mib_profile_options()
 				},{
 					id="pon_slot",
 					name=translate("Reported ONU UNI slot number"),
@@ -1415,6 +1441,23 @@ end
 
 -- The monitoring and local-history pages are inside the authenticated
 -- admin/8311 route tree; writes also require LuCI's CSRF check.
+function action_mib_profile()
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security() then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    local values=operation_form({mib_file=true})
+    if not values then return end
+    local record,why=mib_profile.inspect(values.mib_file)
+    if not record then
+        return web.reply(http,422,{success=false,error=why or "MIB profile inspection failed"})
+    end
+    http.header("Cache-Control","no-store, private")
+    http.header("X-Content-Type-Options","nosniff")
+    return web.reply(http,200,{success=true,profile=record})
+end
+
 function action_history()
     if http.getenv("REQUEST_METHOD") ~= "GET" then
         return web.reply(http, 405, {success=false,error="GET required"})
