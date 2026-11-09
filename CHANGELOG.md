@@ -1,6 +1,17 @@
 # AoTT-8311 Changelog
 
-## v3r1 (development, post-RC3 A-to-Z configuration work)
+## v3r1 (development, hardware trial active; not permanently committed)
+
+### V3 completion hardware trial, November 9, 2026
+- Exact completion implementation tree `e5ac19d8938ec7cb48a9628f0e4019ae4a6d69b6` was staged into bank B from archive SHA-256 `c1204f07b88c231251208b870de0f7dacaad303278e42be122f7139f4129ad82`; rootfs SHA-256 is `3b0e20115c8e01d65feade99794e3bd90e31a98df0a6e997ce980cf968687907`.
+- The first stage attempt correctly failed closed after writing B because the running r9 installer compared the new V3 rootfs against r9-era candidate runtime pins. B remained marked incomplete, boot selectors were unchanged, and committed r9 A continued running.
+- The exact V3 runtime profile, SHA-256 `b5f97a253533e8c76c64ed01fddc1c9afb961ed7fed01b0e049da79573ea87a4`, was then used as volatile trusted qualification policy. A read-only candidate-scope mount/hash qualification of B passed before the corrected stage.
+- Corrected staging completed with A/r9 preserved, B marked complete, and post-stage `check-json B` verification successful before any boot selector change.
+- B was selected for one boot while A remained committed. The reboot returned on **AoTT-8311-v3r1**, with live state **active B / committed A / running_trial=true / no pending selector**.
+- Postboot hardware acceptance passed: PON **O5.1**, host Ethernet **10 Gbps**, `omcid` running, pinned-key SSH healthy, external HTTPS healthy, and postboot bank-B verification successful.
+- Factory `root/root` GUI authentication succeeded. The first-login password advisory appeared and the explicit **Keep root/root** action was present. Authenticated V3 status returned HTTP 200 JSON.
+- No permanent V3 commit has been authorized or performed. Bank A/r9 remains the committed recovery bank. The former r8 bank-B recovery image is retained off-device in the previously verified full-bank backup set.
+- Private trial receipt SHA-256: `1b499882e0653144810c9b203f5c322a3849645e0223cd7288575a64bd3c43af`.
 
 ### Post-RC3 A-to-Z configuration development
 - Expanded the canonical Configuration-page schema from **54 to 55 controls** by repairing and re-enabling `lct_vlan`; all 55 fields now belong to exactly one server-owned mutation route and **no field can silently fall through to generic environment persistence**.
@@ -38,7 +49,7 @@
 - Exact post-RC3 A-to-Z source checkpoint built offline: `023b8865a956b6ff13935e1c703bb7e414b0942e` / tree `098cd52047f476667244a2616dd827a2362b209a`.
 - Two independent private builds are byte-identical. Rootfs: **5,840,896 bytes**, **380,928 bytes** fixed-bank headroom, SHA-256 `e5c15033e66ea72f65376040be57fb68e6f2a19f7248e020f1fc888ae1c04505`. Upgrade archive SHA-256: `a40504c7e76adcad0a97a00dee111a2e08f3aa604e679fb88875f4de6bc2489d`.
 - Independent pair audit status: `PRIVATE_INDEPENDENT_RELEASE_PAIR_REPRODUCIBLE`; hardware-qualified remains false and the production device was not modified.
-- This remains substantive `dev/v3` source development, **not a new RC**. The live ONU remains committed r9 A/A. No V3 firmware stage, live A-to-Z mutation, reboot trial, or commit was performed by this source-development batch.
+- The source-development batch is now hardware-trialed on the reference PRX126. V3 is running as a one-shot bank-B trial while bank A/r9 remains committed; no permanent V3 commit has been performed.
 - Hardware qualification remains separate from source completion: disruptive management, PON/OMCI, boot, host-link and provider-facing controls still require the appropriate recovery route, spare/test OLT, reboot, and live effect/revert evidence before being marked `FULLY_QUALIFIED`.
 
 ### RC3 first-login and hardware-stage readiness
