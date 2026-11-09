@@ -105,6 +105,52 @@ def upstream_notice(path, line, mail):
         return False
     return mail.rsplit("@", 1)[-1].lower() in THIRD_PARTY_NOTICE_DOMAINS
 
+def lua_property_access(relative, text, match):
+    """Distinguish a Lua table field from a .dev/.ca domain in literal text.
+
+    This exception is narrowly restricted to actual two-token Lua expressions
+    outside ordinary quoted strings and line comments. Documentation, Lua
+    quoted hostnames, comments and other top-level domains remain checked.
+    """
+    if not relative.endswith(".lua"):
+        return False
+    candidate = match.group().lower()
+    if candidate.count(".") != 1 or candidate.rsplit(".", 1)[-1] not in {"dev", "ca"}:
+        return False
+    line_start = text.rfind("\n", 0, match.start()) + 1
+    line_end = text.find("\n", match.end())
+    if line_end == -1:
+        line_end = len(text)
+    line = text[line_start:line_end]
+    location = match.start() - line_start
+    # Fail closed on Lua long strings rather than guessing lexical scope.
+    if "[[" in line or "]]" in line:
+        return False
+    quote = None
+    escaped = False
+    i = 0
+    while i < location:
+        char = line[i]
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+        elif line[i:i+2] == "--":
+            return False
+        elif char in ("'", '"'):
+            quote = char
+        i += 1
+    if quote is not None:
+        return False
+    # Field access followed by a Lua operator, separator or condition, not
+    # an unquoted free-text hostname. These are syntactic access sites.
+    suffix = line[match.end()-line_start:]
+    return bool(re.match(r"(?:\s*(?:==|~=|=|\)|,|\]|\+|\-|\*|/|<|>|\band\b|\bor\b|\bthen\b))", suffix))
+
+
 def check_text(relative, text):
     """Return (category, 1-based line) findings. Never include matched values."""
     errors = set()
@@ -146,6 +192,8 @@ def check_text(relative, text):
         else:
             flag("embedded_personal_email", match.start())
     for match in HOST.finditer(text):
+        if lua_property_access(relative, text, match):
+            continue
         host = match.group().lower()
         if host.rsplit(".", 1)[-1] not in DOMAIN_TLDS:
             continue
