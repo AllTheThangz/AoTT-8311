@@ -1,7 +1,7 @@
 #!/bin/sh
 _lib_8311 2>/dev/null || . /lib/8311.sh
 
-STATE_DIR=/run/aott-runtime
+STATE_DIR=/var/run/aott-runtime
 STATE_FILE=$STATE_DIR/rarpd.state
 STATE_LAST=
 

@@ -35,7 +35,9 @@ Keeping <strong>root / root</strong> is allowed and does not block firmware upda
 staging, trial boots, or normal operation.
 </p>
 <div class="aott-first-login-actions">
-<a id="change" class="btn aott-primary-action" href="/admin/system/admin/password">Change password now</a>
+<form method="get" action="/admin/system/admin/password">
+<button id="change" class="btn aott-primary-action" type="submit">Change password now</button>
+</form>
 <form method="post" action="/admin/8311/factory_password_ack">
 <input type="hidden" name="token" value="fixture">
 <button id="keep" class="cbi-button" type="submit">Keep root/root</button>
@@ -85,10 +87,11 @@ class FirstLoginPromptBrowserTests(unittest.TestCase):
         context,page,requests=self.render(1024,768)
         try:
             self.assertTrue(page.locator('[role="dialog"]').is_visible())
-            self.assertEqual(page.locator("#change").get_attribute("href"),
-                             "/admin/system/admin/password")
-            self.assertEqual(page.locator("form").get_attribute("action"),
-                             "/admin/8311/factory_password_ack")
+            forms=page.locator(".aott-first-login-actions form")
+            self.assertEqual(forms.nth(0).get_attribute("method"),"get")
+            self.assertEqual(forms.nth(0).get_attribute("action"),"/admin/system/admin/password")
+            self.assertEqual(forms.nth(1).get_attribute("method"),"post")
+            self.assertEqual(forms.nth(1).get_attribute("action"),"/admin/8311/factory_password_ack")
             self.assertTrue(page.locator("#change").is_visible())
             self.assertTrue(page.locator("#keep").is_visible())
             page.locator("#change").focus()

@@ -80,10 +80,10 @@
       "sha256": "563b085da82448f8b76fb51d5b93cbf406e3aa9686599f3b9cebb60c41e3b40f"
     },
     {
-      "bytes": 6351,
+      "bytes": 6947,
       "executable": true,
       "path": "etc/init.d/_8311-sysinit.sh",
-      "sha256": "ccdbe889c7a50a68764f5e1b72126ee7fef23e99fb47d9346a2ff7eb1fb44053"
+      "sha256": "6905770090a976f1e4a897357797ee1a26a1d7ceb885bbbbf7009c5de41689a8"
     },
     {
       "bytes": 1552,
@@ -224,22 +224,22 @@
       "sha256": "d8fea02204f41bac7667fb9cf032e3cd57c2b154863416ce0aba41d35b8438ec"
     },
     {
-      "bytes": 3279,
+      "bytes": 3283,
       "executable": false,
       "path": "usr/lib/lua/8311/daemon_state.lua",
-      "sha256": "0aa9d85929b056248d599239cbae56885c760f849df7aabe37e1113dd5158e81"
+      "sha256": "65f5fb7563c9c9298efee14ce39e11e042e4a38ece5e556ace00a773cd09fa89"
     },
     {
-      "bytes": 7127,
+      "bytes": 7113,
       "executable": false,
       "path": "usr/lib/lua/8311/effective_device_probe.lua",
-      "sha256": "abca936e5a4fc1ebd2489c45b21c1b5f946dc4d5cc73c49af3a7d1a298799c10"
+      "sha256": "cbc63e559830ac67a703130673f05f0802cb33047d5d17158995ee84e07f2ed4"
     },
     {
-      "bytes": 9147,
+      "bytes": 9375,
       "executable": false,
       "path": "usr/lib/lua/8311/effective_device_state.lua",
-      "sha256": "6348bb3f6269e9a31f1cbeb7903a9631f89f24812cc885f25698630a1ca74eca"
+      "sha256": "518f25151615aba10c5c86b0bb3748bafce7b1988e50d8392edd1051376773d9"
     },
     {
       "bytes": 4112,
@@ -312,6 +312,12 @@
       "executable": false,
       "path": "usr/lib/lua/8311/effective_vlan_state.lua",
       "sha256": "b4e3f1f4c5376d336164666c54099f2befc858ddf166a9492abe792dcb26c16e"
+    },
+    {
+      "bytes": 10604,
+      "executable": false,
+      "path": "usr/lib/lua/8311/firmware_trial_watchdog.lua",
+      "sha256": "dd4a4dcc25347b43f6ada0c2ced4a9282ecf999d00deebb060cc126218e0cbe4"
     },
     {
       "bytes": 3871,
@@ -620,10 +626,10 @@
       "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
     },
     {
-      "bytes": 93689,
+      "bytes": 94297,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "595d54a673f7db1069746a0d1501a23dde991964eb0b44d84abf0a686d6cd587"
+      "sha256": "d100501bd231c734e3fde76a75f1a33b12227421c9c76d07149d4263ecc3925b"
     },
     {
       "bytes": 6721,
@@ -722,10 +728,10 @@
       "sha256": "9bd5f0c0c085bfd3c50fd409712744e541ed1de0b175945011f1a14a5c4c3215"
     },
     {
-      "bytes": 17390,
+      "bytes": 17552,
       "executable": false,
       "path": "usr/lib/lua/luci/view/themes/bootstrap/header.htm",
-      "sha256": "05c8724082ec5dedcae619629c422dd361ab2c0d919a4777cf90e19a728069a4"
+      "sha256": "e817163b2657e1e451c8247388f07717001c717d765b488dad169f40132236ed"
     },
     {
       "bytes": 235,
@@ -780,6 +786,18 @@
       "executable": true,
       "path": "usr/libexec/8311-config-apply.lua",
       "sha256": "167e62f51239c5ff7d173c3f5558c02875fcecc89e5c3f65a6bd062edbd9ec85"
+    },
+    {
+      "bytes": 294,
+      "executable": true,
+      "path": "usr/libexec/8311-firmware-trial-confirm",
+      "sha256": "f2d295f7d91da920fa5ddd19a11c9883e31deaf09021be157a3bf703945c323d"
+    },
+    {
+      "bytes": 274,
+      "executable": true,
+      "path": "usr/libexec/8311-firmware-trial-watchdog",
+      "sha256": "666481846ecf888f4900f04bb076829e6b2a8d1265f6ab7d677e3c89d088a54e"
     },
     {
       "bytes": 3191,
@@ -950,22 +968,22 @@
       "sha256": "161d2ba6000454ff1d69395f11439aee7d900bb5a20ba63467fd642d71d915f0"
     },
     {
-      "bytes": 2029,
+      "bytes": 2033,
       "executable": true,
       "path": "usr/sbin/8311-pingd.sh",
-      "sha256": "06c3e1d1227120b17155c3e102b151780087c33d992231a8bc26b592bb41a936"
+      "sha256": "371eadea99bca83df89e27d4b7afe1f22ee6b26417c0e8f4b208c9af8570b14a"
     },
     {
-      "bytes": 3257,
+      "bytes": 3261,
       "executable": true,
       "path": "usr/sbin/8311-rarpd.sh",
-      "sha256": "e574a13b97f9cece8ea69ee707f74f18983354610bf2bbded7b05265d9182c23"
+      "sha256": "c7e6e7e020698a29e7ee70d2f283ee4faad96fb08fe1fe3bf956969267bae6a5"
     },
     {
-      "bytes": 2644,
+      "bytes": 2648,
       "executable": true,
       "path": "usr/sbin/8311-rx_los.sh",
-      "sha256": "8177999a014629fc7c3cb549936daf7ef9c5827692d68d23a593da900b331631"
+      "sha256": "e12440b7fd1cf9ef01afa0f9c71ed1de798be8a3b5ce340e357ba7519aa45d07"
     },
     {
       "bytes": 6941,

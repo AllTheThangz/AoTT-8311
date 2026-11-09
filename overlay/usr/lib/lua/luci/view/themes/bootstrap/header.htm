@@ -240,12 +240,14 @@
                     staging, trial boots, or normal operation.
                 </p>
                 <div class="aott-first-login-actions">
-                    <a class="btn aott-primary-action" href="<%=url('admin/system/admin/password')%>">
-                        Change password now
-                    </a>
+                    <form method="get" action="<%=url('admin/system/admin/password')%>">
+                        <button id="aott-first-login-change" class="btn aott-primary-action" type="submit">
+                            Change password now
+                        </button>
+                    </form>
                     <form method="post" action="<%=url('admin/8311/factory_password_ack')%>">
                         <input type="hidden" name="token" value="<%=pcdata(disp.context.authtoken or '')%>">
-                        <button class="cbi-button" type="submit">Keep root/root</button>
+                        <button id="aott-first-login-keep" class="cbi-button" type="submit">Keep root/root</button>
                     </form>
                 </div>
             </section>

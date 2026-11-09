@@ -130,7 +130,7 @@ function M.live_device(request_language)
                 local link=fs.readlink("/tmp/localtime")
                 local prefix="/usr/share/zoneinfo/"
                 if type(link)=="string" and link:sub(1,#prefix)==prefix then
-                    return link:sub(#prefix+1):gsub("_"," ")
+                    return link:sub(#prefix+1)
                 end
                 local fallback=fs.readfile("/tmp/TZ",128)
                 if type(fallback)=="string" then

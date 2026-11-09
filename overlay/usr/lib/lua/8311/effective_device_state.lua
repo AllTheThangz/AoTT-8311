@@ -47,7 +47,10 @@ end
 
 local function timezone_text(value)
     local text=clean(value,128)
-    return text and text:gsub("_"," ") or nil
+    -- UCI stores POSIX-friendly zonenames with spaces while the persistent
+    -- environment and /tmp/localtime use canonical IANA identifiers with
+    -- underscores. Normalize every source back to the IANA-style identifier.
+    return text and text:gsub(" ","_") or nil
 end
 
 local function ntp_equal(a,b)

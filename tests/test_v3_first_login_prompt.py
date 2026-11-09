@@ -60,6 +60,20 @@ class V3FirstLoginPromptTests(unittest.TestCase):
         self.assertIn("Keep root/root",s)
         self.assertIn("disp.context.authtoken",s)
         self.assertIn("factory_password_ack",s)
+        self.assertIn('method="get"',s)
+        self.assertIn("action=\"<%=url('admin/system/admin/password')%>\"",s)
+        self.assertIn('id="aott-first-login-change"',s)
+        self.assertIn('id="aott-first-login-keep"',s)
+
+    def test_ack_response_is_complete_html_not_empty_redirect(self):
+        s=CONTROLLER.read_text()
+        start=s.index("function action_factory_password_ack()")
+        end=s.index("\nend\n",start)+5
+        block=s[start:end]
+        self.assertIn('http.prepare_content("text/html; charset=utf-8")',block)
+        self.assertIn("Factory login choice saved",block)
+        self.assertIn("No password was changed",block)
+        self.assertNotIn("http.redirect",block)
 
     def test_prompt_is_modal_responsive_and_not_javascript_dependent(self):
         css=CSS.read_text()

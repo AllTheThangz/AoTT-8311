@@ -35,7 +35,7 @@ class V3DaemonRuntimeReceiptTests(unittest.TestCase):
 
     def test_receipts_are_ram_only_bounded_and_process_bound(self):
         state=MODULE.read_text()
-        self.assertIn('local ROOT="/run/aott-runtime"',state)
+        self.assertIn('local ROOT="/var/run/aott-runtime"',state)
         self.assertIn('modedec~=600',state)
         self.assertIn('boot_id',state)
         self.assertIn('process_identity_verified=true',state)
@@ -44,7 +44,7 @@ class V3DaemonRuntimeReceiptTests(unittest.TestCase):
         self.assertNotIn("fwenv_set",state)
         for script in (PING,RARP):
             s=script.read_text()
-            self.assertIn("STATE_DIR=/run/aott-runtime",s)
+            self.assertIn("STATE_DIR=/var/run/aott-runtime",s)
             self.assertIn("chmod 600",s)
             self.assertIn("boot_id=",s)
             self.assertNotIn("/ptconf",s)

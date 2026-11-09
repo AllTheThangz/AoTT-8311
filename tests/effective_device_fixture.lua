@@ -117,6 +117,30 @@ same(baseline.fields.timezone.observed_value,"UTC","timezone_runtime")
 same(baseline.fields.timezone.observed_source,"tmp_localtime_zoneinfo_target",
      "timezone_runtime_source")
 same(baseline.fields.timezone.runtime_effect_proven,true,"timezone_effect")
+
+-- UCI stores zonenames with spaces while persistent/runtime IANA identifiers
+-- use underscores. They must compare as the same canonical timezone.
+saved.timezone="America/New_York"
+config.timezone="America/New York"
+local saved_active_timezone=adapter.active_timezone
+adapter.active_timezone=function()
+    reads[#reads+1]="runtime:timezone"
+    return "America/New_York"
+end
+local tzcanonical=assert(probe.capture(adapter))
+same(tzcanonical.fields.timezone.saved_value,"America/New_York",
+     "timezone_saved_canonical")
+same(tzcanonical.fields.timezone.configured_value,"America/New_York",
+     "timezone_uci_canonical")
+same(tzcanonical.fields.timezone.observed_value,"America/New_York",
+     "timezone_runtime_canonical")
+same(tzcanonical.fields.timezone.saved_to_configured,"match",
+     "timezone_saved_config_match")
+same(tzcanonical.fields.timezone.configured_to_observed,"match",
+     "timezone_config_runtime_match")
+saved.timezone="UTC"
+config.timezone="UTC"
+adapter.active_timezone=saved_active_timezone
 same(baseline.fields.ntp_servers.observed_value,
      "ntp1.example ntp2.example","ntp_runtime_peers")
 same(baseline.fields.ntp_servers.observed_source,
@@ -127,7 +151,7 @@ same(baseline.fields.sfp_serial.sensitivity,"potential_device_identity",
 same(baseline.fields.sfp_serial.configured_source,
      "uci_virtual_sfp_eeprom","virtual_sfp_is_configuration")
 same(baseline.fields.sfp_vendor.observed_value,nil,"no_claim_host_eeprom")
-same(#reads,26,"fixed_read_calls_total")
+same(#reads,52,"fixed_read_calls_total")
 for _,read in ipairs(reads) do
     verify(not read:find("reg_id") and not read:find("gpon_sn") and
            not read:find("root_pwhash") and not read:find("loid") and

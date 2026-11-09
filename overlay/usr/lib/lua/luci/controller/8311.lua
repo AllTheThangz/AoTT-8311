@@ -262,23 +262,14 @@ function pontop_pages()
 end
 
 local function mib_profile_options()
+    -- Keep initial Configuration rendering fast. The selected profile is
+    -- introspected through the authenticated mib_profile endpoint after the
+    -- page loads, so parsing every installed MIB here is redundant and can
+    -- exceed mobile privacy-browser request budgets.
     local out={}
     for path in fs.glob("/etc/mibs/*.ini") do
         if type(path)=="string" then
-            local filename=path:match("([^/]+)$") or path
-            local label=filename
-            local profile=mib_profile.inspect(path)
-            if type(profile)=="table" and type(profile.topology)=="table" then
-                local kind=tostring(profile.profile_kind or "profile"):gsub("_"," ")
-                local tcont=tonumber(profile.topology.tcont_me262_count) or 0
-                local unis=tonumber(profile.topology.physical_uni_count) or 0
-                label=filename.." — "..kind..", "..tostring(tcont).." T-CONT"
-                if unis>0 then label=label..", "..tostring(unis).." physical UNI" end
-                if tonumber(profile.topology.iphost_me134_count or 0)==0 then
-                    label=label..", no IP Host ME"
-                end
-            end
-            out[#out+1]={name=label,value=path}
+            out[#out+1]={name=path:match("([^/]+)$") or path,value=path}
         end
     end
     table.sort(out,function(a,b)return a.value<b.value end)
@@ -1931,7 +1922,23 @@ function action_factory_password_ack()
     if not result then
         return web.reply(http,503,{success=false,error=why or "Factory password prompt acknowledgement failed"})
     end
-    return http.redirect(dispatcher.build_url("admin","status","overview"))
+    -- Some Android privacy browsers treat LuCI's empty POST->302 response as
+    -- an aborted navigation even though the acknowledgement was persisted.
+    -- Return a complete same-origin HTML response instead. Meta refresh is a
+    -- progressive enhancement; the ordinary link works with JavaScript off.
+    local next_url=dispatcher.build_url("admin","status","overview")
+    local safe_url=tools.html_escape(next_url)
+    http.header("Cache-Control","no-store, private")
+    http.header("X-Content-Type-Options","nosniff")
+    http.header("Referrer-Policy","no-referrer")
+    http.prepare_content("text/html; charset=utf-8")
+    http.write('<!doctype html><html><head><meta charset="utf-8">')
+    http.write('<meta name="viewport" content="width=device-width,initial-scale=1">')
+    http.write('<meta http-equiv="refresh" content="0;url='..safe_url..'">')
+    http.write('<title>Factory login choice saved</title></head><body>')
+    http.write('<main><h1>Factory login choice saved</h1>')
+    http.write('<p>Keeping root/root is allowed. No password was changed.</p>')
+    http.write('<p><a href="'..safe_url..'">Continue to Overview</a></p></main></body></html>')
 end
 
 function action_r8_monitoring()

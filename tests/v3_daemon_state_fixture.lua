@@ -8,11 +8,11 @@ local BAD_TARGET=ip("999","0","2","1")
 local current_boot="12345678-1234-1234-1234-123456789abc"
 local files={
  ["/proc/sys/kernel/random/boot_id"]=current_boot.."\n",
- ["/run/aott-runtime/pingd.state"]=table.concat({
+ ["/var/run/aott-runtime/pingd.state"]=table.concat({
    "schema=1","pid=101","boot_id="..current_boot,
    "enabled=1","active=1","target="..TARGET,""
  },"\n"),
- ["/run/aott-runtime/rarpd.state"]=table.concat({
+ ["/var/run/aott-runtime/rarpd.state"]=table.concat({
    "schema=1","pid=102","boot_id="..current_boot,
    "enabled=1","active=0",""
  },"\n"),
@@ -20,9 +20,9 @@ local files={
  ["/proc/102/cmdline"]="/bin/sh\0/usr/sbin/8311-rarpd.sh\0",
 }
 local modes={
- ["/run/aott-runtime"]={type="dir",uid=0,gid=0,modedec=700},
- ["/run/aott-runtime/pingd.state"]={type="reg",uid=0,gid=0,modedec=600,nlink=1,size=#files["/run/aott-runtime/pingd.state"]},
- ["/run/aott-runtime/rarpd.state"]={type="reg",uid=0,gid=0,modedec=600,nlink=1,size=#files["/run/aott-runtime/rarpd.state"]},
+ ["/var/run/aott-runtime"]={type="dir",uid=0,gid=0,modedec=700},
+ ["/var/run/aott-runtime/pingd.state"]={type="reg",uid=0,gid=0,modedec=600,nlink=1,size=#files["/var/run/aott-runtime/pingd.state"]},
+ ["/var/run/aott-runtime/rarpd.state"]={type="reg",uid=0,gid=0,modedec=600,nlink=1,size=#files["/var/run/aott-runtime/rarpd.state"]},
 }
 package.preload["nixio.fs"]=function()
  local M={}
@@ -57,12 +57,12 @@ eq(rarp.active,false,"rarp_idle")
 eq(rarp.target,nil,"rarp_no_target")
 eq(rarp.process_identity_verified,true,"rarp_identity")
 
-local original=files["/run/aott-runtime/pingd.state"]
-files["/run/aott-runtime/pingd.state"]=original:gsub("boot_id=[^\n]+","boot_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",1)
+local original=files["/var/run/aott-runtime/pingd.state"]
+files["/var/run/aott-runtime/pingd.state"]=original:gsub("boot_id=[^\n]+","boot_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",1)
 local bad,why=state.read("pingd")
 eq(bad,nil,"stale_boot_rejected")
 eq(why,"runtime_boot_mismatch","stale_boot_reason")
-files["/run/aott-runtime/pingd.state"]=original
+files["/var/run/aott-runtime/pingd.state"]=original
 
 files["/proc/101/cmdline"]="/bin/sh\0/usr/sbin/not-pingd.sh\0"
 bad,why=state.read("pingd")
@@ -70,18 +70,18 @@ eq(bad,nil,"wrong_process_rejected")
 eq(why,"runtime_process_identity_mismatch","wrong_process_reason")
 files["/proc/101/cmdline"]="/bin/sh\0/usr/sbin/8311-pingd.sh\0"
 
-local oldmode=modes["/run/aott-runtime/pingd.state"].modedec
-modes["/run/aott-runtime/pingd.state"].modedec=644
+local oldmode=modes["/var/run/aott-runtime/pingd.state"].modedec
+modes["/var/run/aott-runtime/pingd.state"].modedec=644
 bad,why=state.read("pingd")
 eq(bad,nil,"unsafe_mode_rejected")
 eq(why,"runtime_state_file_unavailable","unsafe_mode_reason")
-modes["/run/aott-runtime/pingd.state"].modedec=oldmode
+modes["/var/run/aott-runtime/pingd.state"].modedec=oldmode
 
-files["/run/aott-runtime/pingd.state"]=original:gsub("target="..TARGET:gsub("%.","%%."),"target="..BAD_TARGET)
+files["/var/run/aott-runtime/pingd.state"]=original:gsub("target="..TARGET:gsub("%.","%%."),"target="..BAD_TARGET)
 bad,why=state.read("pingd")
 eq(bad,nil,"bad_target_rejected")
 eq(why,"runtime_target_invalid","bad_target_reason")
-files["/run/aott-runtime/pingd.state"]=original
+files["/var/run/aott-runtime/pingd.state"]=original
 
 bad,why=state.read("unknown")
 eq(bad,nil,"unknown_rejected")

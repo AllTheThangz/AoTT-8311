@@ -25,7 +25,7 @@ class DeviceEffectiveSourceTests(unittest.TestCase):
                     str(ROOT/"overlay/usr/lib/lua")],
                   capture_output=True,text=True,timeout=20)
         self.assertEqual(result.returncode,0,result.stderr)
-        self.assertIn("AOTT_C011_DEVICE_SFP_FIXTURE_PASS checks=171",
+        self.assertIn("AOTT_C011_DEVICE_SFP_FIXTURE_PASS checks=202",
                       result.stdout)
 
     def test_vendor_mips_fixture(self):
@@ -37,7 +37,7 @@ class DeviceEffectiveSourceTests(unittest.TestCase):
                 str(ROOT/"overlay/usr/lib/lua")],
                 capture_output=True,text=True,timeout=30)
         self.assertEqual(result.returncode,0,result.stderr)
-        self.assertIn("AOTT_C011_DEVICE_SFP_FIXTURE_PASS checks=171",
+        self.assertIn("AOTT_C011_DEVICE_SFP_FIXTURE_PASS checks=202",
                       result.stdout)
 
     def test_model_and_probe_compile(self):

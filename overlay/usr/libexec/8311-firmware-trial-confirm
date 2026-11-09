@@ -1,0 +1,9 @@
+#!/usr/bin/lua
+local watchdog=require "8311.firmware_trial_watchdog"
+local result,why=watchdog.confirm()
+if not result then
+    io.stderr:write("firmware trial confirm: "..tostring(why).."\n")
+    os.exit(1)
+end
+io.write((result.status or "FIRMWARE_TRIAL_WATCHDOG_CONFIRMED").."\n")
+os.exit(0)

@@ -164,4 +164,15 @@ boot() {
 
 	start "$@"
 
+	# A firmware bank trial is one-shot at the bootloader layer. Add a local
+	# timeout so a trial that boots but loses management does not remain live
+	# indefinitely. The watchdog is RAM-only and rolls back to the committed
+	# bank without Internet, DNS, router or remote-session dependencies.
+	if [ -x /usr/libexec/8311-firmware-trial-watchdog ]; then
+		if ! /sbin/start-stop-daemon -S -b -m 		   -p /tmp/8311-firmware-trial-watchdog.pid 		   -x /usr/bin/lua -- /usr/libexec/8311-firmware-trial-watchdog; then
+			echo "Firmware trial watchdog: failed to start" | to_console
+			return 1
+		fi
+	fi
+
 }

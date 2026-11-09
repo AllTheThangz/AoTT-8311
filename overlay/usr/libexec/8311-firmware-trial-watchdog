@@ -1,0 +1,11 @@
+#!/usr/bin/lua
+local watchdog=require "8311.firmware_trial_watchdog"
+local result,why=watchdog.run()
+if not result then
+    io.stderr:write("firmware trial watchdog: "..tostring(why).."\n")
+    os.exit(1)
+end
+if result.rollback_requested then
+    os.exit(10)
+end
+os.exit(0)

@@ -71,6 +71,16 @@ class V3MibProfileTests(unittest.TestCase):
         self.assertIn('mib_profile.inspect(p)',runtime)
         self.assertIn('"pon_mib_slot_not_applicable"',runtime)
 
+    def test_initial_mib_selector_does_not_parse_every_profile(self):
+        s=CONTROLLER.read_text()
+        start=s.index("local function mib_profile_options()")
+        end=s.index("\nend\n",start)+5
+        block=s[start:end]
+        self.assertIn('fs.glob("/etc/mibs/*.ini")',block)
+        self.assertNotIn("mib_profile.inspect",block)
+        # Selected-profile capability discovery must remain authenticated and live.
+        self.assertIn("mib_profile.inspect(values.mib_file)",s)
+
     def test_configuration_page_is_profile_driven(self):
         v=VIEW.read_text()
         j=JS.read_text()
