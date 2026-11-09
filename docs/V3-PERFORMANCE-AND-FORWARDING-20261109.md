@@ -90,3 +90,39 @@ Related: docs/RESOURCE-ALLOCATION.md,
 docs/PRX126-DEPENDENCY-AND-RESOURCE-AUDIT.md,
 docs/V2R8-STAGE-READINESS.md,
 docs/C-014-V3-GUARDED-MANAGEMENT-TRANSACTION.md.
+
+## Independent PR #56 offline build and recovery audit
+
+The source candidate for draft PR #56 was cloned into a new root-only
+private workspace from its exact GitHub feature branch and built twice,
+independently, against a separately checksum-verified vendor base.
+
+- Both complete SquashFS images were byte-identical: **5,861,376 bytes**.
+- Both five-member firmware upgrade archives were byte-identical.
+- Fixed bank volume: **6,221,824 bytes**.
+- Remaining image headroom: **360,448 bytes (352 KiB)**; the
+  qualification minimum is 65,536 bytes.
+- Kernel, bootcore, source integrity and runtime pin checks passed.
+- Both archives are marked **UNTRIALED_OFFLINE_ONLY**,
+  **safe_for_live_install=false**, and **hardware_qualified=false**.
+- The separate read-only tool tools/audit_firmware_trial_recovery.py
+  passed on both extracted images, checking five required local recovery
+  components, their modes, boot hook, and committed-bank reboot path.
+- A synthetic 180-second watchdog trial with disconnected Internet,
+  SSH and HTTPS still requests local rollback. MIPS Lua fixture passes.
+  This is not a physical reboot, flash or power-cut experiment.
+- A failed local bank-state read cannot be promoted into proof of safe
+  rollback; the negative fixture explicitly records that limitation.
+
+**Important production distinction:** the currently committed
+AoTT-8311-v3r1 in bank B was read-only inspected and did NOT contain
+the new trial-watchdog executable, confirmation executable, Lua module
+or startup hook. The live one-shot boot selection contract is present,
+but the additional independent timed rollback is **not installed** on
+that live release. Do not report the current ONU as protected by the
+new 180-second watchdog. Do not trial/flash until the actual candidate
+recovery path, backup and physical recovery process have been proven
+on independently recoverable hardware.
+
+No live network, password, PON, bank selector, bootcore, active image,
+or persistent configuration was altered by this offline qualification.
