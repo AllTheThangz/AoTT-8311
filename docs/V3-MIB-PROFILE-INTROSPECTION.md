@@ -129,3 +129,21 @@ has a structurally valid target. It does not prove:
 Those remain per-profile hardware qualification tasks. The known-working
 reference on the current BRMEMC/PRX126 deployment remains
 `prx300_1U.ini` until another profile is separately trialed and accepted.
+
+## Offline qualification checkpoint
+
+The exact implementation checkpoint is `24535e5b6f4393a2a85a23510c9f59e7997356c1`
+with tree `9c3da927c5e914d7284aadd34b2d58ef990d2a1d`.
+
+- complete source regression: **1,337 tests**, zero failures/errors;
+- complete real Chromium regression: **145/145 tests**;
+- real seven-profile parser fixture: **121 checks** on host Lua and the extracted vendor-MIPS runtime;
+- public-source sanitization: **170 overlay files**, zero detected secrets or manifest drift;
+- independent build pair: byte-identical;
+- rootfs extent: **5,849,088 bytes**;
+- fixed-bank headroom: **372,736 bytes**;
+- rootfs SHA-256: `4a7148e6beaf69b9b445b13950eb08f1f584bfbc5cced499d94c2a8b80d626a2`;
+- upgrade archive SHA-256: `742398c7c99ec3d07d18bc315d15bcd944666d61a5aa10bb81a8c6606f132af8`.
+
+This is offline/source qualification only. No ONU configuration, firmware bank,
+reboot trial, or OLT profile change was performed.
