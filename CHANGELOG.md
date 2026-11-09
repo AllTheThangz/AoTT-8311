@@ -29,6 +29,9 @@
 - Current real-browser regression: **154/154 Chromium/Playwright tests**, zero failures.
 - Dedicated A-to-Z qualification against host plus extracted vendor-MIPS runtime passes for the new activation, management, PON, boot, credential, VLAN, runtime-helper and effective-readback paths.
 - Release identity and public-source sanitization pass with **172 overlay files**, zero detected secrets, prohibited files, or manifest drift.
+- Exact V3 completion source checkpoint: local build-source commit `c5bfef831c45eab17739a24dfeb7bd8fb1d0e254` / tree `e5ac19d8938ec7cb48a9628f0e4019ae4a6d69b6`.
+- Two independent offline builds are byte-identical. Rootfs: **5,857,280 bytes**, **364,544 bytes** fixed-bank headroom, SHA-256 `3b0e20115c8e01d65feade99794e3bd90e31a98df0a6e997ce980cf968687907`. Upgrade archive SHA-256: `c1204f07b88c231251208b870de0f7dacaad303278e42be122f7139f4129ad82`.
+- Independent build-pair audit status: `PRIVATE_INDEPENDENT_RELEASE_PAIR_REPRODUCIBLE`; hardware-qualified remains false and the production device was not modified.
 - Exact MIB-profile implementation checkpoint: local build-source commit `24535e5b6f4393a2a85a23510c9f59e7997356c1`; public `dev/v3` implementation commit `6d3032002f4d45b46d36130bfcc0ee8bcc5411df`; both resolve to tree `9c3da927c5e914d7284aadd34b2d58ef990d2a1d`.
 - Two independent offline builds are byte-identical. Rootfs: **5,849,088 bytes**, **372,736 bytes** fixed-bank headroom, SHA-256 `4a7148e6beaf69b9b445b13950eb08f1f584bfbc5cced499d94c2a8b80d626a2`. Upgrade archive SHA-256: `742398c7c99ec3d07d18bc315d15bcd944666d61a5aa10bb81a8c6606f132af8`.
 - Independent build-pair audit status: `PRIVATE_INDEPENDENT_RELEASE_PAIR_REPRODUCIBLE`; hardware-qualified remains false and the production device was not modified.

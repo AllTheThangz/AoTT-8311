@@ -94,3 +94,22 @@ Production-source regression covers:
 
 Browser trust, revocation behavior, external CA reachability, and the live
 production HTTPS restart remain hardware/runtime acceptance items.
+
+## Integrated V3 completion build checkpoint
+
+The exact integrated completion source checkpoint is
+`c5bfef831c45eab17739a24dfeb7bd8fb1d0e254` with tree
+`e5ac19d8938ec7cb48a9628f0e4019ae4a6d69b6`.
+
+- Complete source regression: **1,350 tests**, zero failures/errors.
+- Complete real Chromium regression: **154/154 tests**.
+- Public-source sanitization: **172 overlay files**, zero detected secrets or manifest drift.
+- Two independent private builds: byte-identical.
+- Rootfs extent: **5,857,280 bytes**.
+- Fixed-bank headroom: **364,544 bytes**.
+- Rootfs SHA-256: `3b0e20115c8e01d65feade99794e3bd90e31a98df0a6e997ce980cf968687907`.
+- Upgrade archive SHA-256: `c1204f07b88c231251208b870de0f7dacaad303278e42be122f7139f4129ad82`.
+- Pair audit: `PRIVATE_INDEPENDENT_RELEASE_PAIR_REPRODUCIBLE`.
+
+This remains source/offline qualification. The production ONU, active HTTPS pair,
+firewall, PON/OMCI state, and firmware banks were not modified.
