@@ -76,7 +76,8 @@ class V3TlsActivationTests(unittest.TestCase):
         self.assertIn("Confirm this HTTPS certificate",view)
         self.assertIn("180 seconds",view)
         self.assertIn("window.location.reload()",view)
-        self.assertIn("Operator-owned certificate import remains validation-only",view)
+        self.assertIn("Import operator-owned certificate",view)
+        self.assertIn("Generated and imported candidates use the same guarded activation",view)
 
 if __name__=="__main__":
     unittest.main()

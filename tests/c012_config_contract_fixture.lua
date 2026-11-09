@@ -129,6 +129,9 @@ package.preload["8311.config_activation"]=function()
         end
     }
 end
+package.preload["8311.tls_import"]=function()
+    return {receive=function() return nil,"fixture_tls_import_unavailable",503 end}
+end
 package.preload["8311.credential_activation"]=function()
     return {
         apply=function()

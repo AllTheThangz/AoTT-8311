@@ -47,7 +47,8 @@ class V3FoundationTests(unittest.TestCase):
         m=(ROOT/"overlay/usr/lib/lua/8311/v3_capabilities.lua").read_text()
         self.assertIn('remote_management_default=false',m)
         self.assertIn('feature("remote_gui"',m)
-        self.assertIn('"disabled"',m)
+        self.assertIn('"integrated_opt_in_unqualified"',m)
+        self.assertIn("Remote HTTPS remains disabled by default",m)
 
 if __name__=="__main__":
     unittest.main()

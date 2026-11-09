@@ -1,6 +1,6 @@
 # V3 TLS candidate and private-key hardening qualification
 
-**Status:** runtime candidate generation and guarded self-signed activation integrated; operator-owned certificate import remains gated. The production r9 HTTPS service and certificate were not changed.
+**Status:** historical self-signed-candidate qualification milestone. Current `dev/v3` additionally integrates operator-owned PEM/DER import through the same guarded candidate activation/rollback path; see [V3 TLS import qualification](V3-TLS-IMPORT-QUALIFICATION.md). The production r9 HTTPS service and certificate were not changed during either source-development milestone.
 
 AoTT-8311 V3r1 adds three TLS improvements for residential management:
 

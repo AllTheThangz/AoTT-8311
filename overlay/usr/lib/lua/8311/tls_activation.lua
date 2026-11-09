@@ -15,7 +15,7 @@ local MARKER=PERSIST.."/.aott-tls-pending"
 local CANDIDATE_CERT="/tmp/aott-tls-candidate/candidate.crt.der"
 local CANDIDATE_KEY="/tmp/aott-tls-candidate/candidate.key.der"
 local CONFIRM_NAME="tls-confirm"
-local MAX=16384
+local MAX=65536
 local WAIT_TICKS=90
 
 local function root_path(root,path)

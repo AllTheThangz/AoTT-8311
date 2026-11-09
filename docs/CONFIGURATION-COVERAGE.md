@@ -1,7 +1,7 @@
 # AoTT-8311 configuration coverage and functional audit baseline
 
 **Historical baseline:** security-enhanced private r8 source was audited 2026-11-02 with 54 exposed GUI fields. The current V3 development schema exposes **55 controls** after repairing and re-enabling `lct_vlan`. The readback union is now 55 fields: 10 management, 11 device/SFP, 8 advanced hardware, 9 sensitive identity, 4 PON/OMCI, 10 reporting, and 3 ISP/VLAN. The original committed-r9 54-field read-only receipt remains immutable; `lct_vlan` has a separate value-free read-only baseline extension.
-**Current V3 development:** all **55 Configuration-page fields** are explicitly routed and none may silently fall through to generic persistence. The route inventory is **22 live**, **6 guarded management**, **22 guarded PON/OMCI**, **4 guarded one-boot**, and **1 credential**. The Access & servers page adds 20 separately guarded SSH/uHTTPd/LuCI settings. These are source-functional transaction paths with validation, preview, authoritative readback, runtime verification where locally observable, and rollback/recovery appropriate to each risk class. `FULLY_QUALIFIED` remains a hardware evidence state, not a source-completion label.
+**Current V3 development:** all **55 Configuration-page fields** are explicitly routed and none may silently fall through to generic persistence. The route inventory is **22 live**, **6 guarded management**, **22 guarded PON/OMCI**, **4 guarded one-boot**, and **1 credential**. The Access & servers page adds 22 separately guarded SSH/uHTTPd/LuCI/remote-HTTPS settings. These are source-functional transaction paths with validation, preview, authoritative readback, runtime verification where locally observable, and rollback/recovery appropriate to each risk class. `FULLY_QUALIFIED` remains a hardware evidence state, not a source-completion label.
 
 **Important:** This is a static source inventory, not an assertion that every setting works in the real device. Runtime evidence and platform qualification must be added field by field.
 
@@ -125,7 +125,7 @@ Every Configuration-page field is assigned to exactly one server-owned path:
 | Credential | 1 | Secret-safe root shadow activation/readback with durable environment rollback on activation failure |
 | **Total** | **55** | No unrouted or generic-fallthrough fields |
 
-The separate **Access & servers** surface adds 20 guarded Dropbear/uHTTPd/LuCI controls with private recovery, service restart/runtime verification, HTTPS-only apply and timed confirmation.
+The separate **Access & servers** surface adds 22 guarded Dropbear/uHTTPd/LuCI/remote-HTTPS controls with private recovery, service/firewall restart verification, HTTPS-only apply and timed confirmation. Remote HTTPS remains default-off and is restricted to explicit IPv4 /24-/32 allowlists.
 
 ## Coverage states
 

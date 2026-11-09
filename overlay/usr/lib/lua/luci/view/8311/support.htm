@@ -4,7 +4,7 @@
 <script src="<%=resource%>/jquery-3.7.1.min.js?v=3.7.1"></script>
 <script src="<%=resource%>/view/8311.js?v=aott-8311-v1-r3"></script>
 <h2>Diagnostic report & support</h2>
-<input id="8311-token" type="hidden" value="<%=esc(token)%>" />
+<input id="8311-token" name="token" type="hidden" value="<%=esc(token)%>" />
 <p><%:Generate an archive in a background job with a bounded status log. Downloads are tied to this login session and become available only when that job has produced a checked archive.%></p>
 <form id="support-form" onsubmit="return startSupport(this)">
 <label for="support-mode"><%:Export mode%></label>

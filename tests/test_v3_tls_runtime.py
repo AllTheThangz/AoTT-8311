@@ -49,14 +49,19 @@ class V3TlsRuntimeTests(unittest.TestCase):
                           "fw_setenv","fwenv_set","ubiupdatevol","reboot"):
             self.assertNotIn(forbidden,src)
 
-    def test_controller_routes_are_https_authenticated_and_import_remains_blocked(self):
+    def test_controller_routes_are_https_authenticated_and_import_is_guarded(self):
         ctl=(OVERLAY/"usr/lib/lua/luci/controller/8311.lua").read_text()
         self.assertIn('entry({"admin", "8311", "tls"}',ctl)
         self.assertIn('entry({"admin", "8311", "tls_generate"}',ctl)
         self.assertIn('entry({"admin", "8311", "tls_discard"}',ctl)
         self.assertIn('entry({"admin", "8311", "tls_activate"}',ctl)
         self.assertIn('entry({"admin", "8311", "tls_confirm"}',ctl)
-        self.assertNotIn('"tls_import"',ctl)
+        self.assertIn('entry({"admin", "8311", "tls_import"}',ctl)
+        block=ctl[ctl.index("function action_tls_import()"):ctl.index("function action_tls_discard()")]
+        self.assertIn("tls_https_required()",block)
+        self.assertIn("dispatcher.test_post_security(true)",block)
+        self.assertIn('dispatcher.context.authuser~="root"',block)
+        self.assertIn("tls_import.receive",block)
         self.assertIn("tls_https_required()",ctl)
         self.assertIn("dispatcher.test_post_security(true)",ctl)
         self.assertIn("active_https_changed=false",ctl)
@@ -68,8 +73,22 @@ class V3TlsRuntimeTests(unittest.TestCase):
         self.assertIn("Guarded activation",view)
         self.assertIn("Activate candidate with rollback",view)
         self.assertIn("Confirm this HTTPS certificate",view)
-        self.assertIn("Operator-owned certificate import remains validation-only",view)
+        self.assertIn("Import operator-owned certificate",view)
+        self.assertIn("Validate and stage imported candidate",view)
+        self.assertIn("Generated and imported candidates use the same guarded activation",view)
         self.assertNotIn("private key contents",view.lower())
+
+    def test_import_module_is_bounded_and_never_activates_https(self):
+        src=(LUA/"8311/tls_import.lua").read_text()
+        self.assertIn('MAX_LEAF=16384',src)
+        self.assertIn('MAX_KEY=16384',src)
+        self.assertIn('MAX_CHAIN=49152',src)
+        self.assertIn('"/usr/sbin/uhttpd"',src)
+        self.assertIn('local LOOPBACK="127"..".0.0.1"',src)
+        self.assertIn('"/bin/uclient-fetch"',src)
+        self.assertIn('candidate.install_material',src)
+        self.assertNotIn('/ptconf/8311/uhttpd/uhttpd.crt',src)
+        self.assertNotIn('/etc/init.d/uhttpd","restart"',src)
 
     def test_vendor_px5g_offline_generator_still_qualifies(self):
         if not VENDOR.is_dir() or not shutil.which("qemu-mips-static"):

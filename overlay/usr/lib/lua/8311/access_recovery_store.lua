@@ -10,6 +10,7 @@ local FILES={
     dropbear={path=ROOT.."/dropbear.before",max=65536},
     uhttpd={path=ROOT.."/uhttpd.before",max=65536},
     luci={path=ROOT.."/luci.before",max=65536},
+    firewall={path=ROOT.."/firewall.before",max=65536},
 }
 local MARKER=ROOT.."/pending"
 local CONFIRM=ROOT.."/confirmed"
@@ -86,19 +87,21 @@ local function marker(job,hashes)
     return table.concat({
         "AOTT-ACCESS-PENDING-1","job="..job,
         "dropbear="..hashes.dropbear,"uhttpd="..hashes.uhttpd,
-        "luci="..hashes.luci,""
+        "luci="..hashes.luci,"firewall="..hashes.firewall,""
     },"\n")
 end
 local function parse(raw)
     if type(raw)~="string" or #raw>512 then return nil end
-    local job,d,u,l=raw:match(
-        "^AOTT%-ACCESS%-PENDING%-1\njob=([0-9a-f]+)\ndropbear=([0-9a-f]+)\nuhttpd=([0-9a-f]+)\nluci=([0-9a-f]+)\n$")
-    if not valid_job(job) or #d~=64 or #u~=64 or #l~=64 then return nil end
-    return {job_id=job,dropbear_sha256=d,uhttpd_sha256=u,luci_sha256=l}
+    local job,d,u,l,f=raw:match(
+        "^AOTT%-ACCESS%-PENDING%-1\njob=([0-9a-f]+)\ndropbear=([0-9a-f]+)\nuhttpd=([0-9a-f]+)\nluci=([0-9a-f]+)\nfirewall=([0-9a-f]+)\n$")
+    if not valid_job(job) or not d or not u or not l or not f or
+       #d~=64 or #u~=64 or #l~=64 or #f~=64 then return nil end
+    return {job_id=job,dropbear_sha256=d,uhttpd_sha256=u,
+            luci_sha256=l,firewall_sha256=f}
 end
 local function backups(mark)
     local out={}
-    for _,pkg in ipairs({"dropbear","uhttpd","luci"}) do
+    for _,pkg in ipairs({"dropbear","uhttpd","luci","firewall"}) do
         local spec=FILES[pkg]
         local st=fs.lstat(spec.path)
         if not private_file(st,spec.max) or digest(spec.path)~=mark[pkg.."_sha256"] then
@@ -117,7 +120,7 @@ function M.arm(job,raw)
     if fs.lstat(MARKER) then return nil,"access_recovery_already_pending" end
     if fs.lstat(CONFIRM) and not unlink(CONFIRM,512) then return nil,"access_confirmation_unsafe" end
     local hashes={}
-    for _,pkg in ipairs({"dropbear","uhttpd","luci"}) do
+    for _,pkg in ipairs({"dropbear","uhttpd","luci","firewall"}) do
         local spec=FILES[pkg]
         if fs.lstat(spec.path) and not unlink(spec.path,spec.max) then
             return nil,"access_recovery_stale_backup_unsafe"
@@ -176,7 +179,7 @@ function M.clear(job)
     if mark.pending~=true or mark.job_id~=job then return nil,"access_recovery_job_mismatch" end
     if not unlink(MARKER,512) or not sync_dir(ROOT) then return nil,"access_recovery_disarm_failed" end
     if not unlink(CONFIRM,512) then return nil,"access_confirmation_cleanup_failed" end
-    for _,pkg in ipairs({"dropbear","uhttpd","luci"}) do
+    for _,pkg in ipairs({"dropbear","uhttpd","luci","firewall"}) do
         local spec=FILES[pkg]
         if not unlink(spec.path,spec.max) then return nil,"access_recovery_cleanup_failed_"..pkg end
     end

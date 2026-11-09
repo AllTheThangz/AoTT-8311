@@ -1,0 +1,322 @@
+{
+  "audit_kind": "V3_C017_GUI_BACKEND_AUDIT",
+  "controller_sha256": "595d54a673f7db1069746a0d1501a23dde991964eb0b44d84abf0a686d6cd587",
+  "device_configuration_modified": false,
+  "live_device_queried": false,
+  "pages": [
+    {
+      "browser_evidence": [
+        "test_browser_v3_mib_profile.py",
+        "test_browser_v3_boot_config.py"
+      ],
+      "handler": "action_config",
+      "route": "config",
+      "status": "COVERED",
+      "view": "8311/config"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_c017_core_pages.py"
+      ],
+      "handler": "action_pon_status",
+      "route": "pon_status",
+      "status": "COVERED",
+      "view": "8311/pon_status"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_pon_explorer.py"
+      ],
+      "handler": "action_pon_explorer",
+      "route": "pon_explorer",
+      "status": "COVERED",
+      "view": "8311/pon_me"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_c017_core_pages.py"
+      ],
+      "handler": "action_vlans",
+      "route": "vlans",
+      "status": "COVERED",
+      "view": "8311/vlans"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_c017_core_pages.py"
+      ],
+      "handler": "action_support",
+      "route": "support",
+      "status": "COVERED",
+      "view": "8311/support"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_firmware_boot_plan.py"
+      ],
+      "handler": "action_firmware",
+      "route": "firmware",
+      "status": "COVERED",
+      "view": "8311/firmware"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_c017_core_pages.py"
+      ],
+      "handler": "action_r5_health",
+      "route": "health",
+      "status": "COVERED",
+      "view": "8311/health"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_security_tls_key.py"
+      ],
+      "handler": "action_r5_security",
+      "route": "security",
+      "status": "COVERED",
+      "view": "8311/security"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_monitoring.py"
+      ],
+      "handler": "action_r8_monitoring",
+      "route": "monitoring",
+      "status": "COVERED",
+      "view": "8311/monitoring"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_history_ui.py",
+        "test_browser_history_settings.py"
+      ],
+      "handler": "action_history",
+      "route": "history",
+      "status": "COVERED",
+      "view": "8311/history"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_v3_management_config.py",
+        "test_browser_v3_management_confirm.py"
+      ],
+      "handler": "action_management_preflight",
+      "route": "management_preflight",
+      "status": "COVERED",
+      "view": "8311/management_preflight"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_v3_tls_import.py"
+      ],
+      "handler": "action_tls",
+      "route": "tls",
+      "status": "COVERED",
+      "view": "8311/tls"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_c017_core_pages.py"
+      ],
+      "handler": "action_v3",
+      "route": "v3",
+      "status": "COVERED",
+      "view": "8311/v3"
+    },
+    {
+      "browser_evidence": [
+        "test_browser_v3_access.py"
+      ],
+      "handler": "action_access",
+      "route": "access",
+      "status": "COVERED",
+      "view": "8311/access"
+    }
+  ],
+  "policy": {
+    "all_write_actions_require_explicit_session_and_csrf_gate": true,
+    "browser_evidence_required_for_every_menu_page": true,
+    "generic_continue_authorizes_live_mutation": false,
+    "source_audit_is_not_hardware_qualification": true
+  },
+  "schema": 1,
+  "summary": {
+    "menu_pages": 14,
+    "menu_pages_with_real_chromium_evidence": 14,
+    "mixed_or_multipart_write_handlers": 4,
+    "post_write_handlers": 24,
+    "uncovered_menu_pages": 0,
+    "write_handlers_missing_session_or_csrf_gate": 0
+  },
+  "write_actions": [
+    {
+      "csrf_gate": true,
+      "handler": "action_access_apply",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_access_confirm",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_access_preview",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_boot_config_apply",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_boot_config_confirm",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_factory_password_ack",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_history_save",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_job_cancel",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_management_apply",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_management_confirm",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_management_preview",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_management_vlan_preview",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_mib_profile",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_pon_config_apply",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_pon_config_confirm",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_r8_monitoring_credential",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_r8_monitoring_save",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_r8_monitoring_test",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_save",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_save_hook_script",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_tls_activate",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_tls_confirm",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_tls_discard",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_tls_generate",
+      "route_gate": "post",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_firmware",
+      "route_gate": "call_mixed_or_multipart",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_firmware_upload",
+      "route_gate": "call_mixed_or_multipart",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_support",
+      "route_gate": "call_mixed_or_multipart",
+      "session_gate": true
+    },
+    {
+      "csrf_gate": true,
+      "handler": "action_tls_import",
+      "route_gate": "call_mixed_or_multipart",
+      "session_gate": true
+    }
+  ]
+}

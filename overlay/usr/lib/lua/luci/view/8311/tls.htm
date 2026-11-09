@@ -63,6 +63,34 @@ local p=pending or {}
     </div>
     <button class="cbi-button cbi-button-apply" id="tls-generate-button" type="submit" <% if c.candidate_ready==true then %>disabled<% end %>>Generate inactive candidate</button>
   </form>
+  <hr>
+  <h4>Import operator-owned certificate</h4>
+  <p>Import an existing server certificate and matching unencrypted private key. PEM or DER leaf/key material is accepted. An optional PEM chain may contain up to three CA certificates. Import validates the requested SANs, current validity, CA/leaf structure, chain ordering, and the exact pair with a native uhttpd TLS handshake bound only to loopback. It does not change the active HTTPS certificate.</p>
+  <form id="tls-candidate-import" action="<%=url('admin/8311/tls_import')%>" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="token" value="<%=esc(token)%>">
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="tls-import-cert">Server certificate</label>
+      <div class="cbi-value-field"><input id="tls-import-cert" name="certificate_file" type="file" accept=".pem,.crt,.cer,.der" required></div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="tls-import-key">Private key</label>
+      <div class="cbi-value-field"><input id="tls-import-key" name="private_key_file" type="file" accept=".pem,.key,.der" required></div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="tls-import-chain">CA chain</label>
+      <div class="cbi-value-field"><input id="tls-import-chain" name="chain_file" type="file" accept=".pem,.crt,.cer,.der"><p class="aott-hint">Required for a non-self-signed leaf. Supply a complete ordered issuer chain ending in a self-signed root so V3 can fail closed on missing issuers.</p></div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="tls-import-dns">Required DNS SANs</label>
+      <div class="cbi-value-field"><input id="tls-import-dns" name="dns_sans" type="text" maxlength="1024" placeholder="onu.example.net"><p class="aott-hint">Every name entered here must be covered by the imported certificate SAN.</p></div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="tls-import-ip">Required IPv4 SANs</label>
+      <div class="cbi-value-field"><input id="tls-import-ip" name="ip_sans" type="text" maxlength="1024" placeholder="management IPv4 address"></div>
+    </div>
+    <button class="cbi-button cbi-button-apply" id="tls-import-button" type="submit" <% if c.candidate_ready==true then %>disabled<% end %>>Validate and stage imported candidate</button>
+  </form>
+
   <form id="tls-candidate-discard" action="<%=url('admin/8311/tls_discard')%>" method="post">
     <input type="hidden" name="token" value="<%=esc(token)%>">
     <button class="cbi-button" id="tls-discard-button" type="submit" <% if c.candidate_ready~=true then %>disabled<% end %>>Discard inactive candidate</button>
@@ -90,7 +118,7 @@ local p=pending or {}
   <% else %>
     <p>Generate and review an inactive candidate before activation becomes available.</p>
   <% end %>
-  <p>Operator-owned certificate import remains validation-only until equivalent native key/chain validation is integrated into this same rollback transaction.</p>
+  <p>Generated and imported candidates use the same guarded activation and rollback transaction. Browser trust remains a final confirmation check after uhttpd restarts with the candidate.</p>
 </section>
 
 <script>
@@ -98,6 +126,7 @@ local p=pending or {}
   "use strict";
   var generate=document.getElementById("tls-candidate-generate");
   var discard=document.getElementById("tls-candidate-discard");
+  var importForm=document.getElementById("tls-candidate-import");
   var activate=document.getElementById("tls-candidate-activate");
   var confirmActivation=document.getElementById("tls-activation-confirm");
   var status=document.getElementById("tls-operation-status");
@@ -105,10 +134,12 @@ local p=pending or {}
     var g=document.getElementById("tls-generate-button");
     var d=document.getElementById("tls-discard-button");
     var a=document.getElementById("tls-activate-button");
+    var i=document.getElementById("tls-import-button");
     var c=document.getElementById("tls-confirm-button");
     if(g)g.disabled=value;
     if(d)d.disabled=value;
     if(a)a.disabled=value;
+    if(i)i.disabled=value;
     if(c)c.disabled=value;
   }
   async function post(form){
@@ -133,6 +164,31 @@ local p=pending or {}
     }finally{
       document.getElementById("tls-generate-button").disabled=
         document.getElementById("tls-candidate-state").textContent==="ready";
+    }
+  });
+  if(importForm)importForm.addEventListener("submit",async function(event){
+    event.preventDefault();setBusy(true);
+    status.textContent="Validating imported certificate, chain, private key, and native uhttpd compatibility...";
+    try{
+      var response=await fetch(importForm.action,{
+        method:"POST",credentials:"same-origin",cache:"no-store",
+        headers:{"Accept":"application/json","X-CSRF-Token":(importForm.querySelector('input[name="token"]')||{}).value||""},
+        body:new FormData(importForm)
+      });
+      var data=await response.json();
+      if(!response.ok||!data||data.success!==true)throw new Error(data&&data.error?data.error:"TLS import failed");
+      status.textContent="Imported candidate validated and staged. HTTPS remains unchanged. Certificate SHA-256: "+data.certificate_sha256+
+        ". Native uhttpd pair check passed; browser trust is confirmed only during guarded activation.";
+      document.getElementById("tls-candidate-state").textContent="ready";
+      document.getElementById("tls-candidate-fingerprint").textContent=data.certificate_sha256;
+      document.getElementById("tls-discard-button").disabled=false;
+      importForm.reset();
+    }catch(error){
+      status.textContent="TLS import refused: "+error.message;
+    }finally{
+      var ready=document.getElementById("tls-candidate-state").textContent==="ready";
+      document.getElementById("tls-import-button").disabled=ready;
+      document.getElementById("tls-generate-button").disabled=ready;
     }
   });
   if(discard)discard.addEventListener("submit",async function(event){

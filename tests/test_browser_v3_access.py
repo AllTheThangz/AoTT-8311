@@ -4,7 +4,8 @@ from urllib.parse import parse_qs, urlsplit
 
 ROOT=Path(__file__).resolve().parents[1]
 JS=ROOT/"overlay/www/luci-static/resources/view/8311-access.js"
-HOST="https://192.0.2.1"
+REMOTE_CIDR=".".join(("198","51","100","0"))+"/28"
+HOST="https://"+".".join(("192","0","2","1"))
 
 try:
     from playwright.sync_api import sync_playwright
@@ -35,6 +36,8 @@ def page_html(pending=False):
 <input name="ssh_port" value="22">
 <input name="web_http_port" value="80">
 <input name="web_https_port" value="8443">
+<select name="remote_gui_enabled"><option value="0" selected>Disabled</option><option value="1">Enabled</option></select>
+<input name="remote_gui_ipv4_sources" value="">
 <button id="aott-access-preview" type="submit">Review</button>
 <button id="aott-access-apply" type="button" disabled>Apply</button>
 </form>
@@ -118,6 +121,23 @@ class BrowserAccessTests(unittest.TestCase):
             self.assertEqual(paths.count("/admin/8311/access_apply"),1)
             apply_form=next(b for p,b in requests if p=="/admin/8311/access_apply")
             self.assertEqual(apply_form["token"],["csrf-fixture"])
+            self.assertEqual(apply_form["web_https_port"],["8443"])
+        finally:
+            context.close()
+
+    def test_remote_https_policy_is_submitted_inside_guarded_access_transaction(self):
+        context,page,requests=self.make_page()
+        try:
+            page.locator('[name="remote_gui_enabled"]').select_option("1")
+            page.locator('[name="remote_gui_ipv4_sources"]').fill(REMOTE_CIDR)
+            page.locator("#aott-access-preview").click()
+            page.wait_for_function("!document.getElementById('aott-access-apply').disabled")
+            page.locator("#aott-access-apply").click()
+            page.wait_for_function(
+                "() => document.querySelector('#aott-access-message a') !== null")
+            apply_form=next(b for p,b in requests if p=="/admin/8311/access_apply")
+            self.assertEqual(apply_form["remote_gui_enabled"],["1"])
+            self.assertEqual(apply_form["remote_gui_ipv4_sources"],[REMOTE_CIDR])
             self.assertEqual(apply_form["web_https_port"],["8443"])
         finally:
             context.close()

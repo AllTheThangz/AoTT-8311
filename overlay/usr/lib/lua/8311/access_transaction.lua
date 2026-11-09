@@ -31,6 +31,8 @@ local function reload(snapshot)
     if code~=0 or overflow then return nil,"uhttpd_stop_failed" end
     code,_,overflow=web.capture({"/etc/init.d/uhttpd","start"},4096)
     if code~=0 or overflow then return nil,"uhttpd_start_failed" end
+    code,_,overflow=web.capture({"/etc/init.d/firewall","restart"},8192)
+    if code~=0 or overflow then return nil,"firewall_restart_failed" end
     return true
 end
 local function convergence(snapshot)

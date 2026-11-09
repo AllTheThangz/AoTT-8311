@@ -3,9 +3,10 @@ local fs=require "nixio.fs"
 local web=require "8311.webutil"
 local uci_lib=require "luci.model.uci"
 local config=require "8311.access_config"
+local remote_firewall=require "8311.remote_firewall"
 local M={}
 
-local PACKAGES={dropbear=true,uhttpd=true,luci=true}
+local PACKAGES={dropbear=true,uhttpd=true,luci=true,firewall=true}
 local BACKUP_ROOT="/ptconf/8311/aott-recovery/v1/access"
 
 local function export(package)
@@ -19,7 +20,7 @@ end
 
 function M.raw_snapshot()
     local out={}
-    for _,pkg in ipairs({"dropbear","uhttpd","luci"}) do
+    for _,pkg in ipairs({"dropbear","uhttpd","luci","firewall"}) do
         local raw,why=export(pkg)
         if not raw then return nil,why end
         out[pkg]=raw
@@ -87,6 +88,11 @@ function M.apply(snapshot,desired)
     if cursor:set("luci","sauth","sessiontime",desired.luci_sessiontime)~=true or
        cursor:commit("luci")~=true then return nil,"luci_session_commit_failed" end
 
+    local fw,fw_why=remote_firewall.apply(cursor,snapshot.management_ip,
+        desired.web_https_port,desired.remote_gui_enabled,
+        desired.remote_gui_ipv4_sources)
+    if not fw then return nil,fw_why end
+
     local after,after_why=config.snapshot()
     if not after then return nil,after_why end
     for _,field in ipairs(config.fields) do
@@ -117,7 +123,7 @@ function M.restore_package(package)
 end
 
 function M.restore_all()
-    for _,pkg in ipairs({"dropbear","uhttpd","luci"}) do
+    for _,pkg in ipairs({"dropbear","uhttpd","luci","firewall"}) do
         local ok,why=M.restore_package(pkg)
         if not ok then return nil,why end
     end

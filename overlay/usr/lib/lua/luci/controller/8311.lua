@@ -23,6 +23,7 @@ local history_snapshot = require "8311.history_live_snapshot"
 local management_preflight = require "8311.management_preflight"
 local tls_candidate = require "8311.tls_candidate"
 local tls_activation = require "8311.tls_activation"
+local tls_import = require "8311.tls_import"
 local effective_probe = require "8311.effective_probe"
 local effective_device_probe = require "8311.effective_device_probe"
 local effective_pon_probe = require "8311.effective_pon_probe"
@@ -103,6 +104,7 @@ function index()
           post("action_management_confirm")).leaf=true
     entry({"admin", "8311", "tls"}, call("action_tls"), translate("HTTPS certificates"), 12)
     entry({"admin", "8311", "tls_generate"}, post("action_tls_generate")).leaf=true
+    entry({"admin", "8311", "tls_import"}, call("action_tls_import")).leaf=true
     entry({"admin", "8311", "tls_discard"}, post("action_tls_discard")).leaf=true
     entry({"admin", "8311", "tls_activate"}, post("action_tls_activate")).leaf=true
     entry({"admin", "8311", "tls_confirm"}, post("action_tls_confirm")).leaf=true
@@ -1129,6 +1131,8 @@ local function checked_worker(kind, values)
 end
 
 function action_save_hook_script()
+	if not dispatcher.context.authsession or
+	   not dispatcher.test_post_security() then return end
 	checked_worker("hook", http.formvalue())
 end
 
@@ -1189,6 +1193,8 @@ function action_config()
 end
 
 function action_save()
+	if not dispatcher.context.authsession or
+	   not dispatcher.test_post_security() then return end
 	checked_worker("config", http.formvalue())
 end
 
@@ -1629,7 +1635,8 @@ local function access_values()
         web_http_port=true,web_https_port=true,web_script_timeout=true,
         web_network_timeout=true,web_http_keepalive=true,
         web_tcp_keepalive=true,web_max_requests=true,
-        web_max_connections=true,web_rfc1918_filter=true
+        web_max_connections=true,web_rfc1918_filter=true,
+        remote_gui_enabled=true,remote_gui_ipv4_sources=true
     })
 end
 
@@ -1790,6 +1797,38 @@ function action_tls_generate()
             active_https_changed=false,
             install_available=false
         } or {success=false,error=why or "TLS candidate generation failed"})
+end
+
+function action_tls_import()
+    if not tls_https_required() then
+        return web.reply(http,403,{success=false,error="HTTPS is required for TLS import"})
+    end
+    if not dispatcher.context.authsession or
+       not dispatcher.test_post_security(true) then return end
+    if dispatcher.context.authuser~="root" then
+        return web.reply(http,403,{success=false,error="Root administrator session required"})
+    end
+    http.header("Cache-Control","no-store, private")
+    http.header("X-Content-Type-Options","nosniff")
+    http.header("Referrer-Policy","no-referrer")
+    local state,why,status=tls_import.receive(http,dispatcher.context.authsession)
+    return web.reply(http,status or 503,
+        state and {
+            success=true,status=state.status,
+            candidate_ready=state.candidate_ready,
+            certificate_sha256=state.certificate_sha256,
+            certificate_bytes=state.certificate_bytes,
+            private_key_bytes=state.private_key_bytes,
+            private_key_mode=state.private_key_mode,
+            expires_utc=state.expires_utc,
+            dns_san_count=state.dns_san_count,
+            ipv4_san_count=state.ipv4_san_count,
+            chain_certificates=state.chain_certificates,
+            native_uhttpd_pair_verified=state.native_uhttpd_pair_verified,
+            chain_name_links_verified=state.chain_name_links_verified,
+            browser_trust_unverified=true,
+            active_https_changed=false,
+        } or {success=false,error=why or "TLS import failed"})
 end
 
 function action_tls_discard()
@@ -1989,6 +2028,8 @@ function action_job_status()
 end
 
 function action_job_cancel()
+	if not dispatcher.context.authsession or
+	   not dispatcher.test_post_security() then return end
 	local values = operation_form({id=true}); if not values then return end
 	local record, err = jobs.cancel(values.id, dispatcher.context.authsession)
 	web.reply(http,record and 200 or 409,record or {success=false,error=err})
@@ -2001,7 +2042,8 @@ function action_firmware()
 		return ltemplate.render("8311/firmware", {version=version,bank_state=state,bank_error=err,
 			uploads=uploads.list(dispatcher.context.authsession),upload_maximum=uploads.maximum})
 	end
-	if not dispatcher.test_post_security() then return end
+	if not dispatcher.context.authsession or
+	   not dispatcher.test_post_security() then return end
 	local values = operation_form({action=true,upload_id=true,sha256=true,bank=true,state_guard=true,expected_active=true,expected_target=true})
 	if not values then return end
 	local action = values.action
@@ -2069,7 +2111,8 @@ end
 
 function action_support()
 	if http.getenv("REQUEST_METHOD") == "GET" then return ltemplate.render("8311/support", {}) end
-	if not dispatcher.test_post_security() then return end
+	if not dispatcher.context.authsession or
+	   not dispatcher.test_post_security() then return end
 	local values = operation_form({action=true,full=true}); if not values then return end
 	if values.action ~= "generate" or (values.full ~= "0" and values.full ~= "1") then
 		return web.reply(http,400,{success=false,error="Choose a diagnostic export mode"})

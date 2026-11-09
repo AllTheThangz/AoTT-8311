@@ -1,6 +1,8 @@
 -- AoTT-8311 V3 independent runtime verifier for access/server settings.
 local util=require "luci.util"
 local web=require "8311.webutil"
+local uci_lib=require "luci.model.uci"
+local remote_firewall=require "8311.remote_firewall"
 local M={}
 
 local function running_instance(name)
@@ -151,10 +153,19 @@ function M.verify(snapshot)
     local ssh,why=dropbear(snapshot);if not ssh then return nil,why end
     local webrec,wwhy=uhttpd(snapshot);if not webrec then return nil,wwhy end
     local session,swhy=sessiontime(snapshot);if not session then return nil,swhy end
+    local firewall,fwhy=remote_firewall.verify(uci_lib.cursor(),
+        snapshot.management_ip,snapshot.values.web_https_port,
+        snapshot.values.remote_gui_enabled,
+        snapshot.values.remote_gui_ipv4_sources)
+    if not firewall then return nil,fwhy end
     return {
         schema=1,status="ACCESS_RUNTIME_VERIFIED",
         ssh_runtime_verified=true,web_runtime_verified=true,
         luci_session_runtime_verified=true,
+        remote_firewall_verified=true,
+        remote_firewall_enabled=firewall.enabled,
+        remote_firewall_rule_count=firewall.rule_count,
+        firewall_kernel_packet_path_unverified=true,
         contains_configuration_values=false,
     }
 end

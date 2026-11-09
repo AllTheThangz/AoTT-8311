@@ -2,6 +2,7 @@
 -- Fixed UCI mappings only. No arbitrary package/section/option input.
 local uci_lib=require "luci.model.uci"
 local web=require "8311.webutil"
+local remote_firewall=require "8311.remote_firewall"
 local M={}
 
 local FIELDS={
@@ -25,6 +26,8 @@ local FIELDS={
     {id="web_max_requests",type="uint",min=1,max=100,default="3"},
     {id="web_max_connections",type="uint",min=1,max=1024,default="100"},
     {id="web_rfc1918_filter",type="bool",default="1"},
+    {id="remote_gui_enabled",type="bool",default="0"},
+    {id="remote_gui_ipv4_sources",type="cidr4_list",default=""},
 }
 local FIELD={}
 for _,row in ipairs(FIELDS) do FIELD[row.id]=row end
@@ -168,6 +171,10 @@ function M.snapshot(adapter)
         "https_listener_required" or https_state end
     values.web_http_port=http
     values.web_https_port=https
+    local remote,remote_why=remote_firewall.snapshot(cursor,ip,https)
+    if not remote then return nil,remote_why end
+    values.remote_gui_enabled=remote.enabled
+    values.remote_gui_ipv4_sources=remote.sources
     local function scope(list,port)
         if #list==0 then return "disabled" end
         if #list==1 and list[1]==ip..":"..port then return "management_ipv4_only" end
@@ -212,6 +219,9 @@ function M.validate(id,value)
     elseif f.type=="uint" then
         local v=uint(value,nil,f.min,f.max)
         return v,v and nil or ("Enter a whole number from "..f.min.." to "..f.max)
+    elseif f.type=="cidr4_list" then
+        local v,why=remote_firewall.normalize_sources(value)
+        return v,v and nil or (why or "Enter one or more IPv4 CIDRs")
     end
     return nil,"Unsupported field"
 end
@@ -220,6 +230,7 @@ local LOCKOUT={
     ssh_enabled=true,ssh_port=true,ssh_password_auth=true,
     ssh_root_password_auth=true,ssh_root_login=true,
     web_http_port=true,web_https_port=true,
+    remote_gui_enabled=true,remote_gui_ipv4_sources=true,
 }
 
 function M.prepare(snapshot,form)
@@ -257,6 +268,9 @@ function M.prepare(snapshot,form)
     if desired.ssh_enabled=="1" then
         if sp==tp then errors.ssh_port="SSH and HTTPS ports must differ" end
         if hp~="" and sp==hp then errors.ssh_port="SSH and HTTP ports must differ" end
+    end
+    if desired.remote_gui_enabled=="1" and desired.remote_gui_ipv4_sources=="" then
+        errors.remote_gui_ipv4_sources="Remote HTTPS requires at least one explicit IPv4 source CIDR"
     end
     if next(errors) then return nil,errors,422 end
     local disruptive=false

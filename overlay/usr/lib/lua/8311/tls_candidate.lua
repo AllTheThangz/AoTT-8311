@@ -8,14 +8,16 @@ local CERT=DIR.."/candidate.crt.der"
 local KEY=DIR.."/candidate.key.der"
 local CERT_NEW=CERT..".new"
 local KEY_NEW=KEY..".new"
-local MAX=16384
+local MAX_CERT=65536
+local MAX_KEY=16384
 
 local function dir_ok(st)
     return type(st)=="table" and st.type=="dir" and st.uid==0 and st.gid==0 and st.modedec==700
 end
 local function file_ok(st,key)
+    local maximum=key and MAX_KEY or MAX_CERT
     return type(st)=="table" and st.type=="reg" and st.uid==0 and st.gid==0 and
-        st.nlink==1 and type(st.size)=="number" and st.size>=1 and st.size<=MAX and
+        st.nlink==1 and type(st.size)=="number" and st.size>=1 and st.size<=maximum and
         st.modedec==(key and 600 or 644)
 end
 local function same(a,b)
@@ -102,7 +104,8 @@ local function safe_unlink(path,key,stage)
     if not st then return true end
     local safe=file_ok(st,key)
     if stage and type(st)=="table" and st.type=="reg" and st.uid==0 and st.gid==0 and
-       st.nlink==1 and type(st.size)=="number" and st.size>=1 and st.size<=MAX and
+       st.nlink==1 and type(st.size)=="number" and st.size>=1 and
+       st.size<=(key and MAX_KEY or MAX_CERT) and
        (st.modedec==600 or st.modedec==644) then
         safe=true
     end
@@ -136,6 +139,43 @@ function M.status()
         private_key_mode="0600",active_https_changed=false,
         install_available=false,
     }
+end
+
+function M.install_material(cert_data,key_data)
+    if type(cert_data)~="string" or #cert_data<1 or #cert_data>MAX_CERT or
+       type(key_data)~="string" or #key_data<1 or #key_data>MAX_KEY then
+        return nil,"TLS import material exceeds candidate limits",422
+    end
+    local guard=web.lock("/tmp/8311-tls-candidate.lock")
+    if not guard then return nil,"TLS candidate operation is busy",409 end
+    local function finish(a,b,c) guard:close(); return a,b,c end
+    local dir,dir_why=ensure_dir(); if not dir then return finish(nil,dir_why,503) end
+    for _,path in ipairs({CERT,KEY,CERT_NEW,KEY_NEW}) do
+        if fs.lstat(path) then
+            return finish(nil,"Discard the existing TLS candidate before importing another",409)
+        end
+    end
+    local wrote,why=web.write(CERT_NEW,cert_data,644)
+    if not wrote then return finish(nil,why or "TLS certificate staging failed",503) end
+    wrote,why=web.write(KEY_NEW,key_data,600)
+    if not wrote then
+        safe_unlink(CERT_NEW,false,true)
+        return finish(nil,why or "TLS private-key staging failed",503)
+    end
+    local cert,key=fs.lstat(CERT_NEW),fs.lstat(KEY_NEW)
+    if not file_ok(cert,false) or not file_ok(key,true) or not same(dir,fs.lstat(DIR)) then
+        safe_unlink(CERT_NEW,false,true);safe_unlink(KEY_NEW,true,true)
+        return finish(nil,"Imported TLS material failed candidate verification",503)
+    end
+    if fs.rename(KEY_NEW,KEY)~=true or fs.rename(CERT_NEW,CERT)~=true then
+        safe_unlink(CERT_NEW,false,true);safe_unlink(KEY_NEW,true,true)
+        safe_unlink(KEY,true,false)
+        return finish(nil,"Imported TLS material could not enter the inactive candidate slot",503)
+    end
+    local state,status_why=M.status()
+    if not state then return finish(nil,status_why,503) end
+    state.imported=true
+    return finish(state,nil,200)
 end
 
 function M.generate(form)
@@ -205,4 +245,8 @@ function M.discard()
 end
 
 M.DIRECTORY=DIR
+M.CERTIFICATE= CERT
+M.PRIVATE_KEY=KEY
+M.MAX_CERT_BYTES=MAX_CERT
+M.MAX_KEY_BYTES=MAX_KEY
 return M

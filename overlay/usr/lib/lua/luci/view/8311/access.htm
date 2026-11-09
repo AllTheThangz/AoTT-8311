@@ -22,6 +22,8 @@ web_tcp_keepalive="TCP keepalive",
 web_max_requests="Maximum requests per process",
 web_max_connections="Maximum web connections",
 web_rfc1918_filter="RFC1918 host filter",
+remote_gui_enabled="Remote HTTPS management",
+remote_gui_ipv4_sources="Allowed remote IPv4 source CIDRs",
 }
 local desc={
 ssh_enabled="Disable only if another recovery path exists.",
@@ -44,9 +46,12 @@ web_tcp_keepalive="Kernel TCP keepalive toggle used by uHTTPd.",
 web_max_requests="Maximum requests handled by a worker before recycling.",
 web_max_connections="Maximum simultaneous uHTTPd connections.",
 web_rfc1918_filter="Reject Host headers that violate the local RFC1918 policy.",
+remote_gui_enabled="Explicit opt-in for inbound HTTPS through the fixed WAN firewall zone. Disabled by default. This does not expose SSH.",
+remote_gui_ipv4_sources="Space- or comma-separated IPv4 CIDRs, /24 through /32 only. These become named AoTT HTTPS INPUT rules; broad or overlapping ranges are refused.",
 }
 local bool={ssh_enabled=true,ssh_password_auth=true,ssh_root_password_auth=true,
-ssh_root_login=true,ssh_gateway_ports=true,ssh_mdns=true,web_rfc1918_filter=true}
+ssh_root_login=true,ssh_gateway_ports=true,ssh_mdns=true,web_rfc1918_filter=true,
+remote_gui_enabled=true}
 -%>
 <%+header%>
 <link rel="stylesheet" href="<%=resource%>/view/8311.css?v=aott-8311-v3-az" />
@@ -75,6 +80,9 @@ local value=access.values[field.id] or ""
 <option value="1" <% if value=="1" then %>selected<% end %>>Enabled</option>
 <option value="0" <% if value=="0" then %>selected<% end %>>Disabled</option>
 </select>
+<% elseif field.type=="cidr4_list" then %>
+<input id="aott-access-<%=esc(field.id)%>" name="<%=esc(field.id)%>" type="text"
+ value="<%=esc(value)%>" maxlength="1024" placeholder="trusted IPv4 /32 or narrow CIDR allowlist">
 <% else %>
 <input id="aott-access-<%=esc(field.id)%>" name="<%=esc(field.id)%>" type="number"
  value="<%=esc(value)%>" <% if field.type=="optional_port" then %>placeholder="disabled"<% end %>
@@ -86,6 +94,10 @@ local value=access.values[field.id] or ""
 </div>
 </div>
 <% end %>
+<div class="aott-section-intro" role="note">
+<strong>Remote management remains opt-in</strong>
+<p>Enabling remote HTTPS creates only fixed-name inbound TCP rules for this ONU's management IPv4 address and current HTTPS port. The policy does not modify forwarding, NAT, PON, OMCI, or SSH exposure. The access transaction keeps automatic rollback armed until you confirm the surviving HTTPS path.</p>
+</div>
 <div class="aott-config-actions">
 <button id="aott-access-preview" type="submit" class="cbi-button">Review access changes</button>
 <button id="aott-access-apply" type="button" class="cbi-button cbi-button-save" disabled>Apply reviewed changes</button>

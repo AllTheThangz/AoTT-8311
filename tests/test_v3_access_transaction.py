@@ -9,6 +9,7 @@ MODULES=[
  ROOT/"overlay/usr/lib/lua/8311/access_transaction.lua",
  ROOT/"overlay/usr/lib/lua/8311/access_uci.lua",
  ROOT/"overlay/usr/lib/lua/8311/management_access.lua",
+ ROOT/"overlay/usr/lib/lua/8311/remote_firewall.lua",
 ]
 CONTROLLER=ROOT/"overlay/usr/lib/lua/luci/controller/8311.lua"
 VIEW=ROOT/"overlay/usr/lib/lua/luci/view/8311/access.htm"
@@ -31,16 +32,30 @@ class V3AccessTransactionTests(unittest.TestCase):
                 ],capture_output=True,text=True,timeout=10)
                 self.assertEqual(p.returncode,0,p.stderr)
 
-    def test_exact_twenty_access_fields(self):
+    def test_exact_twenty_two_access_fields(self):
         s=MODULES[0].read_text()
         block=s[s.index("local FIELDS={"):s.index("local FIELD={")]
         ids=re.findall(r'id="([a-z0-9_]+)"',block)
-        self.assertEqual(len(ids),20)
-        self.assertEqual(len(set(ids)),20)
+        self.assertEqual(len(ids),22)
+        self.assertEqual(len(set(ids)),22)
         for required in ("ssh_enabled","ssh_port","ssh_root_login","luci_sessiontime",
                          "web_http_port","web_https_port","web_max_connections",
-                         "web_rfc1918_filter"):
+                         "web_rfc1918_filter","remote_gui_enabled",
+                         "remote_gui_ipv4_sources"):
             self.assertIn(required,ids)
+
+    def test_remote_firewall_is_inside_access_recovery_transaction(self):
+        recovery=(ROOT/"overlay/usr/lib/lua/8311/access_recovery_store.lua").read_text()
+        writer=(ROOT/"overlay/usr/lib/lua/8311/access_uci.lua").read_text()
+        runtime=(ROOT/"overlay/usr/lib/lua/8311/access_runtime.lua").read_text()
+        tx=(ROOT/"overlay/usr/lib/lua/8311/access_transaction.lua").read_text()
+        self.assertIn('firewall={path=ROOT.."/firewall.before"',recovery)
+        self.assertIn('firewall_sha256',recovery)
+        self.assertIn('remote_firewall.apply',writer)
+        self.assertIn('"firewall"',writer)
+        self.assertIn('remote_firewall.verify',runtime)
+        self.assertIn('{"/etc/init.d/firewall","restart"}',tx)
+        self.assertIn("kernel_packet_path_unverified",runtime)
 
     def test_recovery_is_armed_before_access_mutation(self):
         s=(ROOT/"overlay/usr/lib/lua/8311/access_transaction.lua").read_text()
