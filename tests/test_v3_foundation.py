@@ -5,9 +5,9 @@ ROOT=Path(__file__).resolve().parents[1]
 class V3FoundationTests(unittest.TestCase):
     def test_release_identity(self):
         r=json.loads((ROOT/"release.json").read_text())
-        self.assertEqual((r["version"],r["revision"]),("v3","r1"))
-        self.assertIn("AoTT-8311-v3r1",(ROOT/"overlay/etc/8311_version").read_text())
-        self.assertIn("AoTT-8311-v3 r1",(ROOT/"overlay/etc/banner").read_text())
+        self.assertEqual((r["version"],r["revision"]),("v3","r2"))
+        self.assertIn("AoTT-8311-v3r2",(ROOT/"overlay/etc/8311_version").read_text())
+        self.assertIn("AoTT-8311-v3 r2",(ROOT/"overlay/etc/banner").read_text())
 
     def test_runtime_history_primitives_ship(self):
         needed=[
