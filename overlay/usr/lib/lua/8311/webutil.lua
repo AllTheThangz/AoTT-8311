@@ -59,10 +59,13 @@ function M.write(path, data, mode)
 	local fd = nixio.open(stage, nixio.open_flags("wronly","creat","excl"), "0600")
 	if not fd then return nil, "Unable to create private temporary file" end
 	local wrote = fd:writeall(data)
+	-- Verify that file data has reached the kernel's durability boundary
+	-- before renaming over an already valid configuration or private key.
+	local synced = wrote == #data and fd:sync()
 	local closed = fd:close()
-	if wrote ~= #data or not closed then
+	if wrote ~= #data or synced ~= true or closed ~= true then
 		fs.unlink(stage)
-		return nil, "Temporary file write failed"
+		return nil, "Temporary file write or sync failed"
 	end
 	local temporary = fs.lstat(stage)
 	if not temporary or temporary.type ~= "reg" or temporary.uid ~= 0 or
@@ -70,6 +73,12 @@ function M.write(path, data, mode)
 	   temporary.size ~= #data then
 		fs.unlink(stage)
 		return nil, "Temporary file verification failed"
+	end
+	-- Same-length corruption must not be mistaken for a successful write.
+	-- The caller-provided data is already in memory and capped at 1 MiB.
+	if fs.readfile(stage,#data+1) ~= data then
+		fs.unlink(stage)
+		return nil, "Temporary file contents failed readback verification"
 	end
 	if not fs.chmod(stage,mode) then
 		fs.unlink(stage)

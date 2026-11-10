@@ -19,13 +19,24 @@ end
 package.preload["luci.jsonc"]=function() return {parse=function() return nil end} end
 local web=require "8311.webutil"
 local created_mode={}
+local synced_count=0
+local force_sync_failure=false
 local original_open=nixio.open
 nixio.open=function(path,flags,mode)
     local f=original_open(path,flags,mode)
-    if f and path:find(".aott-write-",1,true) then
+    if f and mode=="0600" and path:find(".aott-write-",1,true) then
         local st=fs.lstat(path)
         assert(st and st.modedec==600,"private-stage-must-start-0600")
         created_mode[#created_mode+1]=st.modedec
+        local wrapped={}
+        function wrapped:writeall(bytes) return f:writeall(bytes) end
+        function wrapped:sync()
+            synced_count=synced_count+1
+            if force_sync_failure then return nil end
+            return f:sync()
+        end
+        function wrapped:close() return f:close() end
+        return wrapped
     end
     return f
 end
@@ -36,6 +47,7 @@ assert(ok,why)
 assert(fs.readfile(p)=="SUPER-PRIVATE-KEY\n")
 assert(fs.lstat(p).modedec==600)
 assert(#created_mode==1 and created_mode[1]==600)
+assert(synced_count==1)
 
 ok,why=web.write(p,"REPLACEMENT-SECRET\n",600)
 assert(ok,why)
@@ -67,6 +79,29 @@ assert(not ok and type(why)=="string")
 fs.rename=saved_rename
 assert(fs.readfile(p)=="REPLACEMENT-SECRET\n")
 assert(fs.lstat(p).modedec==600)
+
+-- A simulated sync failure may never publish the staged secret.
+force_sync_failure=true
+ok,why=web.write(p,"FAILED-SYNC-REPLACEMENT",600)
+assert(not ok and type(why)=="string")
+force_sync_failure=false
+assert(fs.readfile(p)=="REPLACEMENT-SECRET\n")
+
+-- Even same-size data corruption before atomic rename is rejected.
+local actual_readfile=fs.readfile
+local force_corrupted_readback=true
+fs.readfile=function(name,...)
+    local result=actual_readfile(name,...)
+    if force_corrupted_readback and name:find(".aott-write-",1,true)
+       and type(result)=="string" then
+        return string.rep("Q",#result)
+    end
+    return result
+end
+ok,why=web.write(p,"READBACK-CORRUPT",600)
+assert(not ok and type(why)=="string")
+fs.readfile=actual_readfile
+assert(fs.readfile(p)=="REPLACEMENT-SECRET\n")
 local iterator=fs.dir(dir)
 for name in iterator do
     assert(not name:find(".aott-write-",1,true),"temp-file-leaked")
