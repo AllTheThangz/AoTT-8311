@@ -18,13 +18,13 @@ preserve_admin_credential() {
 }
 
 usage() {
-	printf 'Usage: %s [--validate] [--install] [--yes] [--trial|--no-commit] [--expect-active BANK --expect-target BANK --expect-state-guard SHA256] [--reboot] FILE\n' "$0"
+	printf 'Usage: %s [--validate] [--install] [--yes] [--trial|--no-commit] [--expect-active BANK --expect-target BANK --expect-state-guard SHA256] [--expect-candidate-profile-sha SHA256] [--reboot] FILE\n' "$0"
 	printf '%s\n' 'With no mode, validates and installs. Default install stages a qualified bank without changing boot selection.' \
 		'--trial selects one boot without changing the committed bank.' \
 		'--no-commit is a compatibility alias for the default stage-only behavior.' \
 		'Reboot is never automatic unless --reboot is given.'
 }
-INSTALL=false VALIDATE=false YES=false TRIAL=false NO_COMMIT=true REBOOT=false TAR= EXPECT_ACTIVE= EXPECT_TARGET= EXPECT_STATE_GUARD=
+INSTALL=false VALIDATE=false YES=false TRIAL=false NO_COMMIT=true REBOOT=false TAR= EXPECT_ACTIVE= EXPECT_TARGET= EXPECT_STATE_GUARD= EXPECT_CANDIDATE_PROFILE_SHA=
 while [ "$#" -gt 0 ]; do
 	case "$1" in
 		-h|--help) usage; exit 0 ;;
@@ -43,6 +43,9 @@ while [ "$#" -gt 0 ]; do
         --expect-state-guard)
             [ "$#" -ge 2 ] && [ -z "$EXPECT_STATE_GUARD" ] || exit 2
             EXPECT_STATE_GUARD=$2; shift ;;
+        --expect-candidate-profile-sha)
+            [ "$#" -ge 2 ] && [ -z "$EXPECT_CANDIDATE_PROFILE_SHA" ] || exit 2
+            EXPECT_CANDIDATE_PROFILE_SHA=$2; shift ;;
 		--) [ "$#" -eq 2 ] && [ -z "$TAR" ] || exit 2; TAR=$2; break ;;
 		-*) usage >&2; exit 2 ;;
 		*) [ -z "$TAR" ] || exit 2; TAR=$1 ;;
@@ -59,6 +62,14 @@ if [ -n "$EXPECT_ACTIVE$EXPECT_TARGET" ]; then
     case "$EXPECT_STATE_GUARD" in *[!0-9a-f]*) fail "Invalid expected bank-state fingerprint." ;; esac
 elif [ -n "$EXPECT_STATE_GUARD" ]; then
     fail "A bank-state fingerprint requires both exact A/B installation selectors."
+fi
+# A reviewed candidate pin is an explicit operator action. It is never
+# accepted without a fresh guard bound to both exact banks.
+if [ -n "$EXPECT_CANDIDATE_PROFILE_SHA" ]; then
+    [ "${#EXPECT_CANDIDATE_PROFILE_SHA}" -eq 64 ] || fail "Reviewed profile SHA-256 must contain 64 lowercase hex characters."
+    case "$EXPECT_CANDIDATE_PROFILE_SHA" in *[!0-9a-f]*) fail "Invalid reviewed profile SHA-256." ;; esac
+    $INSTALL && [ -n "$EXPECT_STATE_GUARD" ] && [ -n "$EXPECT_ACTIVE" ] && [ -n "$EXPECT_TARGET" ] ||
+        fail "Reviewed candidate profiles require a guarded, exact-bank install."
 fi
 if $REBOOT && { ! $INSTALL || ! $TRIAL; }; then fail "--reboot requires an install that selects the new bank."; fi
 [ -n "$TAR" ] && [ -f "$TAR" ] && [ ! -L "$TAR" ] && [ -r "$TAR" ] || fail "Upgrade must be a readable regular file."
@@ -196,7 +207,7 @@ install_image bootcore.bin "$SIZE_BOOTCORE" "$SHA256_BOOTCORE" "$BOOTCORE_UBI"
 install_image rootfs.img "$SIZE_ROOTFS" "$SHA256_ROOTFS" "$ROOTFS_UBI"
 # Keep the incomplete receipt and img_valid=false throughout qualification.
 # Neither a passing header nor matching flash hash establishes mountability.
-qualify_rootfs "$INSTALL_BANK" candidate || fail "Written rootfs failed boot/runtime qualification; target remains incomplete and selectors are unchanged."
+qualify_rootfs "$INSTALL_BANK" candidate "$EXPECT_CANDIDATE_PROFILE_SHA" || fail "Written rootfs failed boot/runtime qualification against the pinned or independently reviewed profile; target remains incomplete and selectors are unchanged."
 persist_receipt "$INSTALL_BANK" complete || fail "Cannot persist the verified-bank receipt."
 set_environment "img_valid$INSTALL_BANK" true || fail "Cannot mark installed bank complete."
 if $TRIAL; then

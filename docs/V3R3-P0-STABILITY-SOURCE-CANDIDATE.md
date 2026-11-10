@@ -11,7 +11,7 @@ Tracking: GitHub Issues #59 and #60.
 | 01 History runtime directory | Use vendor-existing `/var/run/aott-history` consistently in init, locks, publication gate and fixtures; fail closed on wrong owner/mode and symlinks | Opt-in history enable, disable, restart and hours-long collection on actual target |
 | 02 Canonical release identity | V3 capability module imports generated `8311.version`; no stale hard-coded revision | Check web/API/SSH/banner on staged V3r3 firmware |
 | 03 Service restart policy | Four peripheral daemons use procd `respawn 300 10 5` instead of unlimited retries | Failure injection, recovery with real procd, and log-rate/availability regression |
-| 04 Cross-version rootfs qualification | Add off-device read-only embedded-profile comparison with separately reviewed profile and protected common pins | Complete version-aware installer trust contract and field test on independent hardware |
+| 04 Cross-version rootfs qualification | Add off-device read-only embedded-profile comparison with separately reviewed profile and protected common pins | Version-aware installer source path now validates independently approved candidate profile SHA-256 against protected board/common pins; field test on independent hardware remains |
 | 05 Saved/effective state | Existing source transactions identified and retained | Per-field live consumer proof with test record |
 | 06 LuCI workflows | Existing browser fixtures retained; no runtime view rewrite | Full authenticated browser/device matrix including previously failing actions |
 | 07 API security | Existing authenticated controller and source safety tests retained | Negative network ingress/CSRF/rate testing on qualified hardware |
@@ -39,6 +39,14 @@ The V3 status source previously reported revision r1 independently of the genera
 ### Bounded peripheral respawn
 
 Previous `procd_set_param respawn 5 10 0` used 0 retries, meaning infinite restarts under OpenWrt procd. Revised peripheral scripts use a 300-second threshold, 10-second restart delay and 5 failed retries. This may reduce crash loops but can leave a daemon stopped after repeated real failures. Validate service recovery behavior on spare/independently recovered hardware before deployment. The PON core and vendor forward path are unchanged.
+
+## P0-04: Explicitly reviewed candidate profile qualification
+
+The V3r3 installer source now supports an optional `--expect-candidate-profile-sha` argument to a guarded, exact-bank installation. It rejects malformed hashes and rejects use without `--expect-active`, `--expect-target` and a fresh `--expect-state-guard`. After mounting the newly written inactive-bank rootfs read-only, it checks that the embedded profile has the separately approved exact SHA-256, retains all protected board/target/variant/kernel/bootcore/common records from the trusted running profile, keeps previously required candidate file paths, and verifies the actual filesystem bytes before completing the bank receipt. Without the new flag the original running-profile requirement remains strict.
+
+**Compatibility caveat:** this capability is source-only in V3r3. It does not exist in the already running V3r2 installer, so it cannot silently authorize a V3r2-to-V3r3 upgrade. Any such future stage requires an independently reviewed compatible deployment method and separate device-write approval. The optional flag is not sufficient as a trust source by itself: the operator must obtain the reviewed hash from an independent build/review, not merely copy a claim from a downloaded firmware archive.
+
+Source-only negative tests cover wrong reviewed hash, protected-board mismatch, duplicate and removed records, symlink and corrupted file contents. A real board installation and uninterrupted service observation remain outstanding.
 
 ## Local-only tools
 

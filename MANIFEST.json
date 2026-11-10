@@ -128,10 +128,10 @@
       "sha256": "241b4ca7840e3d9698498d23f70b97eb73f99df99cc52eb8abbbb43e9d223206"
     },
     {
-      "bytes": 20614,
+      "bytes": 24843,
       "executable": false,
       "path": "lib/8311-upgrade-lib.sh",
-      "sha256": "ae817e2347da8635c2e87e99a743bb2b8a56b2d6887b4af501eda3c548b4d7eb"
+      "sha256": "b84411ef92e612c52e288e4bd261851432394ab158c1441b87ce7f21bcb71354"
     },
     {
       "bytes": 6936,
@@ -950,10 +950,10 @@
       "sha256": "94729cc57e44bafc4c4883d075b5e453e668c1f61d77cda4865e65073dcbf2e9"
     },
     {
-      "bytes": 13452,
+      "bytes": 14379,
       "executable": true,
       "path": "usr/sbin/8311-firmware-upgrade.sh",
-      "sha256": "f261bdfe68d6252c0519b7facbfcfccbdabd2cd2398d7120a192d394b6dcd75b"
+      "sha256": "209ebc4fa2cd4d2a95e123da544668d1542031da7c975fe20b125c3aa8c38e4f"
     },
     {
       "bytes": 7407,

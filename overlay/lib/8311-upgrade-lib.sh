@@ -348,8 +348,80 @@ profile_path() {
 	printf '%s/%s\n' "$root" "$relative"
 }
 
+# A separately reviewed candidate profile may authorize changed candidate-only
+# runtime records. The embedded bytes must match the operator-reviewed digest,
+# and every protected board/component/common record must still match local
+# trusted policy. Never execute content from a mounted candidate filesystem.
+check_reviewed_candidate_profile() (
+    local root="$1" expected="$2" work="$3" trusted="$MAINT_LIBDIR/8311-release-profile"           proposed actual
+    [ "${#expected}" -eq 64 ] || exit 1
+    case "$expected" in *[!0-9a-f]*) exit 1 ;; esac
+    [ -f "$trusted" ] && [ -r "$trusted" ] && [ ! -L "$trusted" ] || exit 1
+    proposed=$(profile_path "$root" "lib/8311-release-profile") || exit 1
+    [ -f "$proposed" ] && [ -r "$proposed" ] && [ ! -L "$proposed" ] || exit 1
+    [ "$(wc -c < "$proposed")" -le 65536 ] && [ "$(wc -c < "$proposed")" -ge 256 ] || exit 1
+    actual=$(sha_file "$proposed") || exit 1
+    [ "$actual" = "$expected" ] || { echo "Candidate runtime profile does not match the independently reviewed SHA-256." >&2; exit 1; }
+    # Both profiles have exactly one board/target/variant and both component
+    # pins. Unknown records, duplicate paths, empty values and large entries
+    # are rejected. The candidate profile is never evaluated as shell input.
+    for candidate in "$trusted" "$proposed"; do
+        awk '
+          NF == 0 || length($0) > 512 {exit 1}
+          $1=="profile" || $1=="target" || $1=="variant" {
+            if(NF!=2) exit 1
+            key=$1
+            if(++seen[key]!=1) exit 1
+            next
+          }
+          $1=="component" {
+            if(NF!=4 || ($2!="kernel" && $2!="bootcore") ||
+               $3 !~ /^[1-9][0-9]*$/ || length($4)!=64 ||
+               $4 ~ /[^0-9a-f]/) exit 1
+            if(++seen[$1":"$2]!=1) exit 1
+            next
+          }
+          $1=="file" || $1=="link" {
+            if(($1=="file" && NF!=5) || ($1=="link" && NF!=4)) exit 1
+            if($2!="common" && $2!="candidate") exit 1
+            if(length($3)>200 || $3=="" || $3 ~ /[[:space:]]/) exit 1
+            key="item:"$3
+            if(++seen[key]!=1) exit 1
+            if($1=="file" &&
+               ($4 !~ /^[1-9][0-9]*$/ || length($5)!=64 || $5 ~ /[^0-9a-f]/)) exit 1
+            next
+          }
+          {exit 1}
+          END {if(seen["profile"]!=1 || seen["target"]!=1 || seen["variant"]!=1 ||
+                  seen["component:kernel"]!=1 || seen["component:bootcore"]!=1) exit 1}
+        ' "$candidate" || { echo "Invalid runtime profile record structure." >&2; exit 1; }
+    done
+    awk '$1=="profile" || $1=="target" || $1=="variant" || $1=="component" ||
+         (($1=="file" || $1=="link") && $2=="common") {print}' "$trusted" |
+         LC_ALL=C sort > "$work/trusted-common" || exit 1
+    awk '$1=="profile" || $1=="target" || $1=="variant" || $1=="component" ||
+         (($1=="file" || $1=="link") && $2=="common") {print}' "$proposed" |
+         LC_ALL=C sort > "$work/reviewed-common" || exit 1
+    cmp -s "$work/trusted-common" "$work/reviewed-common" || {
+        echo "Candidate attempts to change protected board or common runtime records." >&2
+        exit 1
+    }
+    # Keep every previously required candidate runtime path represented.
+    awk '($1=="file" || $1=="link") && $2=="candidate" {print $1 " " $3}' "$trusted" |
+         LC_ALL=C sort > "$work/trusted-candidate-keys" || exit 1
+    awk '($1=="file" || $1=="link") && $2=="candidate" {print $1 " " $3}' "$proposed" |
+         LC_ALL=C sort > "$work/reviewed-candidate-keys" || exit 1
+    while IFS= read -r line; do
+        grep -F -x "$line" "$work/reviewed-candidate-keys" >/dev/null || {
+            echo "Candidate is missing a required runtime path." >&2
+            exit 1
+        }
+    done < "$work/trusted-candidate-keys"
+    echo "Independently reviewed candidate profile accepted; board and common policy unchanged."
+)
+
 check_runtime_profile() {
-	local root="$1" scope="$2" kind applies relative size expected extra path actual count=0
+	local root="$1" scope="$2" selected_profile="${3:-$MAINT_LIBDIR/8311-release-profile}" kind applies relative size expected extra path actual count=0
 	while read -r kind applies relative size expected extra; do
 		case "$kind" in
 			profile|target|variant|component) continue ;;
@@ -376,7 +448,7 @@ check_runtime_profile() {
 			[ -z "$expected$extra" ] && [ -L "$path" ] && [ "$(readlink "$path")" = "$size" ] || return 1
 		fi
 		count=$((count + 1))
-	done < "$MAINT_LIBDIR/8311-release-profile"
+	done < "$selected_profile"
 	[ "$count" -ge 11 ]
 }
 
@@ -384,7 +456,7 @@ check_runtime_profile() {
 # This does not execute any candidate code and does not consult img_valid or a
 # complete receipt, so it can run while a newly written target remains invalid.
 qualify_rootfs() (
-	local bank="$1" scope="${2:-common}" work root mtd mounted=false
+	local bank="$1" scope="${2:-common}" reviewed_sha="${3:-}" selected_profile="$MAINT_LIBDIR/8311-release-profile" work root mtd mounted=false
 	case "$bank:$scope" in A:common|B:common|A:candidate|B:candidate) ;; *) exit 1 ;; esac
 	work=$(mktemp -d "$WORKDIR/qualify.XXXXXX") || exit 1
 	root="$work/root"
@@ -400,7 +472,12 @@ qualify_rootfs() (
 	mkdir "$root" || exit 1
 	mount -t squashfs -o ro "/dev/mtdblock$mtd" "$root" || exit 1
 	mounted=true
-	check_runtime_profile "$root" "$scope" || { echo "Bank $bank failed required boot/runtime content qualification." >&2; exit 1; }
+	if [ -n "$reviewed_sha" ]; then
+		[ "$scope" = candidate ] || exit 1
+		check_reviewed_candidate_profile "$root" "$reviewed_sha" "$work" || exit 1
+		selected_profile="$root/lib/8311-release-profile"
+	fi
+	check_runtime_profile "$root" "$scope" "$selected_profile" || { echo "Bank $bank failed required boot/runtime content qualification." >&2; exit 1; }
 	umount "$root" || exit 1
 	mounted=false
 	printf 'Bank %s rootfs mounted read-only and required boot/runtime bytes verified.\n' "$bank"
