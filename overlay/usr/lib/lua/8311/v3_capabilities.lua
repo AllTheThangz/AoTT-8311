@@ -1,6 +1,7 @@
 -- AoTT-8311 v3 runtime capability summary.
 -- Reports installed versus activated/qualified state. No writes or services.
 local fs = require "nixio.fs"
+local version_meta = require "8311.version"
 local M = {}
 local function exists(path)
     local st = fs.stat(path)
@@ -55,7 +56,10 @@ function M.snapshot()
         exists("/usr/lib/lua/8311/effective_vlan_probe.lua")
     local bank_guard = exists("/usr/sbin/8311-bankctl.sh")
     return {
-        schema=1, product="AoTT-8311", release="v3", revision="r1",
+        schema=1, product="AoTT-8311",
+        release=(version_meta.version or ""):match("^AoTT%-8311%-(v%d+)r%d+$") or "unavailable",
+        revision=version_meta.revision or "unavailable",
+        firmware_version=version_meta.version or "unavailable",
         baseline="v2r9 hardware-qualified RC",
         residential_profile=true, remote_management_default=false,
         features={

@@ -40,7 +40,7 @@ class CrossProcessLockTests(unittest.TestCase):
         self.assertIn("history_process_lock.lua",
                       (ROOT/"MANIFEST.json").read_text())
         for required in (
-            'local PRODUCTION_DIR="/run/aott-history"',
+            'local PRODUCTION_DIR="/var/run/aott-history"',
             'local LOCK_BASENAME="collector.lock"',
             'local HELD={}',
             '"collector_held_by_other_process"',

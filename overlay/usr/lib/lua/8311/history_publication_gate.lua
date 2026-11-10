@@ -6,7 +6,7 @@
 -- NOT installed, no procd, firmware, PON, network or flash operation.
 local M={}
 local NAME="publication.lock"
-local PRODUCTION_DIR="/run/aott-history"
+local PRODUCTION_DIR="/var/run/aott-history"
 local HELD={}
 local TOKENS=setmetatable({}, {__mode="k"})
 

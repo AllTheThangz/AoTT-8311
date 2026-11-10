@@ -31,9 +31,9 @@ class V3HistoryRuntimeTests(unittest.TestCase):
             self.skipTest("Production lock fixture requires root-owned /run")
         if not shutil.which("qemu-mips-static") or not (VENDOR/"usr/bin/lua").is_file():
             self.skipTest("Vendor MIPS runtime unavailable")
-        runtime=Path("/run/aott-history")
+        runtime=Path("/var/run/aott-history")
         if runtime.exists():
-            self.skipTest("/run/aott-history already exists")
+            self.skipTest("/var/run/aott-history already exists")
         runtime.mkdir(mode=0o700)
         try:
             p=subprocess.run([
@@ -75,7 +75,7 @@ class V3HistoryRuntimeTests(unittest.TestCase):
         live=(LUA/"8311/history_live_snapshot.lua").read_text()
         gate=(LUA/"8311/history_publication_gate.lua").read_text()
         lock=(LUA/"8311/history_process_lock.lua").read_text()
-        self.assertIn('local PRODUCTION_DIR="/run/aott-history"',lock)
+        self.assertIn('local PRODUCTION_DIR="/var/run/aott-history"',lock)
         self.assertIn('mode=="production_runtime" and directory==PRODUCTION_DIR',gate)
         self.assertIn('lock.writer_present(DIR)',live)
         self.assertGreaterEqual(live.count('gate.reader_admitted(DIR,"production_runtime")'),2)

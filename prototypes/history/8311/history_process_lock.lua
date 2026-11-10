@@ -5,7 +5,7 @@ local M={}
 local HELD={}
 local TOKENS=setmetatable({}, {__mode="k"})
 local LOCK_BASENAME="collector.lock"
-local PRODUCTION_DIR="/run/aott-history"
+local PRODUCTION_DIR="/var/run/aott-history"
 
 local function allowed(dir)
     if type(dir)~="string" or #dir<8 or #dir>110 then return false end

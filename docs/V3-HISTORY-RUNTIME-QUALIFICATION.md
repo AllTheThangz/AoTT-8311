@@ -23,7 +23,7 @@ The current combined V3 source suite passes 1,217 tests with zero failures or er
 
 The V3 history-specific fixture also passes under both host Lua 5.1 and the extracted PRX126 vendor MIPS Lua/nixio runtime. An affected-component vendor-runtime regression passed 157 substantive tests, including H-011 through H-027 history primitives, the H-024 supervisor, cross-process lock/restart cases, and the V3 live-history paths.
 
-A dedicated vendor-MIPS production-path fixture also exercises the exact fixed /run/aott-history directory: it acquires the collector fcntl lock, atomically publishes and reads back a local-runtime snapshot, proves the snapshot is unreadable before publication admission, acquires the independent publication lock, verifies guarded reads, revokes publication, proves stale bytes are denied, invalidates the snapshot, and releases the collector lock. The fixture runs on Hermes only and does not contact or modify the ONU.
+A dedicated vendor-MIPS production-path fixture also exercises the exact fixed /var/run/aott-history directory: it acquires the collector fcntl lock, atomically publishes and reads back a local-runtime snapshot, proves the snapshot is unreadable before publication admission, acquires the independent publication lock, verifies guarded reads, revokes publication, proves stale bytes are denied, invalidates the snapshot, and releases the collector lock. The fixture runs on Hermes only and does not contact or modify the ONU.
 
 ## Read-only PRX126 resource reference
 

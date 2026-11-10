@@ -80,7 +80,7 @@ directory itself.
 **Storage limitation:** Hermes's offline /var/tmp test directories
 may be disk-backed. This test does not prove an on-device RAM-backed
 snapshot or flash durability. A future qualified runtime must use
-a verified root-only volatile directory such as /run/aott-history.
+a verified root-only volatile directory such as /var/run/aott-history.
 The separate H-015 journal remains uninstalled and unqualified.
 
 ## Authenticated read-only response
