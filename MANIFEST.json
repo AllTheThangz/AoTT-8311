@@ -620,10 +620,10 @@
       "sha256": "7931067dba54a74ff532b4bdd52c7db3d5dd3f2fd3500a01d87f428e21421294"
     },
     {
-      "bytes": 3440,
+      "bytes": 5891,
       "executable": false,
       "path": "usr/lib/lua/8311/webutil.lua",
-      "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
+      "sha256": "735f52b871fb422430ac9be60a83ce3303a1856c3d473c6419a1481390c80323"
     },
     {
       "bytes": 94655,
