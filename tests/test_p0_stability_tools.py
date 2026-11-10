@@ -58,7 +58,9 @@ class P0SoakUnitTests(unittest.TestCase):
         return ("uptime="+uptime+"\nspeed=10000\ncarrier=1\n"
                 +"rx_errors="+str(errors)+"\ntx_errors=0\n"
                 +"rx_dropped=0\ntx_dropped=0\n"
-                +"thermal0=52080\nthermal1=50880\navailable_kb=395716\npon_state=51\n")
+                +"thermal0=52080\nthermal1=50880\navailable_kb=395716\npon_state=51\n"
+                +"ubi_bad_peb_count=0\nubi_max_ec=11\n"
+                +"ubi_reserved_for_bad=20\nubi_avail_eraseblocks=307\n")
     def test_decoding_and_no_invented_pon_state(self):
         x=soak.decode(self.row())
         self.assertEqual(x["pon_state"],51)
@@ -79,6 +81,9 @@ class P0SoakUnitTests(unittest.TestCase):
         self.assertEqual(s["pon_state_transitions_observed"],1)
         self.assertEqual(s["ethernet_error_drop_deltas"]["rx_errors"],2)
         self.assertEqual(s["peak_thermal_c"],[52.08,50.88])
+        self.assertEqual(s["ubi_bad_peb_growth_observed"],0)
+        self.assertEqual(s["ubi_peak_erase_count_observed"],11)
+        self.assertEqual(s["ubi_min_available_eraseblocks_observed"],307)
         self.assertFalse(s["three_layer_internet_verified"])
     def test_reboot_resets_counters_not_negative_deltas(self):
         a=soak.decode(self.row(uptime="800",errors=60))
@@ -89,6 +94,29 @@ class P0SoakUnitTests(unittest.TestCase):
         self.assertEqual(s["reboots_observed"],1)
         self.assertEqual(s["probe_gaps"],1)
         self.assertEqual(s["ethernet_error_drop_deltas"]["rx_errors"],0)
+    def test_ubi_bad_peb_growth_and_missing_sysfs(self):
+        a=soak.decode(self.row())
+        b=soak.decode(self.row(uptime="22.25").replace(
+            "ubi_bad_peb_count=0","ubi_bad_peb_count=2").replace(
+            "ubi_max_ec=11","ubi_max_ec=13").replace(
+            "ubi_avail_eraseblocks=307","ubi_avail_eraseblocks=301"))
+        c=soak.decode(self.row(uptime="34.25").replace(
+            "ubi_bad_peb_count=0","ubi_bad_peb_count="))
+        records=[{"state":"observed","metrics":i} for i in (a,b,c)]
+        summary=soak.analyze(records)
+        self.assertEqual(summary["ubi_bad_peb_growth_observed"],2)
+        self.assertEqual(summary["ubi_peak_erase_count_observed"],13)
+        self.assertEqual(summary["ubi_min_available_eraseblocks_observed"],301)
+        self.assertEqual(summary["ubi_bad_peb_samples_unavailable"],1)
+        self.assertIsNone(c["ubi_bad_peb_count"])
+    def test_ubi_reboot_does_not_invent_bad_peb_growth(self):
+        a=soak.decode(self.row(uptime="800").replace(
+            "ubi_bad_peb_count=0","ubi_bad_peb_count=4"))
+        b=soak.decode(self.row(uptime="12.5"))
+        summary=soak.analyze([
+            {"state":"observed","metrics":a},{"state":"observed","metrics":b}])
+        self.assertEqual(summary["reboots_observed"],1)
+        self.assertEqual(summary["ubi_bad_peb_growth_observed"],0)
 
 if __name__=="__main__":
     unittest.main()

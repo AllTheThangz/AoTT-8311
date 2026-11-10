@@ -18,8 +18,8 @@ Tracking: GitHub Issues #59 and #60.
 | 08 Boot sequencing | No changes to vendor boot/PON/init order | Cold start and failure injection evidence |
 | 09 Config transaction consistency | Existing guarded writers preserved | Interrupted-save, stale revision, real consumer, multi-client tests |
 | 10 Clock correctness | Soak collector records UTC host time and device monotonic uptime separately | NTP jump/outage reconstruction and device-history hardware tests |
-| 11 UBI/thermal/resource safety | Read-only soak collector with thermal and available memory; no device writes | UBI health/wear sampling and bounded fault testing |
-| 12 Soak reliability | Read-only private off-device JSONL collector with explicit probe gaps, reboot and transition counts | 24-hour and 7-day completed runs, reports and acceptance |
+| 11 UBI/thermal/resource safety | Read-only off-device soak now includes UBI bad PEB count, maximum erase count, spare eraseblocks and reserve plus thermals/memory; accepts missing values as unavailable | Extended flash-health observation, fault testing and device-specific acceptance |
+| 12 Soak reliability | Read-only off-device JSONL collector with explicit probe gaps, reboot and link-state changes plus UBI wear indicators | 24-hour and 7-day completed runs, reports and acceptance |
 | 13 Release integrity | New source-only release identity, source tests and profile preflight | Two independent identical complete firmware builds and compatibility/negative-image checks |
 | 14 Privacy/support | TLS private keys and sensitive write payloads now begin in root-only mode 0600; symlinks and changed destinations are refused | Device end-to-end security, support bundle redaction and negative fixture proof |
 | 15 Resource limits | Shared write helper rejects inputs above 1 MiB; all staged writes use exclusive creation and size/mode verification | Concurrent management load, memory/CPU/timeout testing and truthful error display |
@@ -79,6 +79,12 @@ python3 tools/p0_soak_readonly.py --target root@your-onu \
 ```
 
 A 7-day 60-second series would use `--samples 10081`. Running either duration is separate work, and the capture tool's output must not be called a completed soak merely because a command was prepared.
+
+## P0-11: Read-only UBI storage-health tracking
+
+The host-side soak collector now samples kernel sysfs `/sys/class/ubi/ubi0` without invoking flash writers or storage maintenance. It records `bad_peb_count`, `max_ec`, `reserved_for_bad` and `avail_eraseblocks` as raw numeric measurements. Missing attributes remain unavailable, not zero. The analysis reports observed growth in bad eraseblocks, highest erase count, and lowest available eraseblocks, with counter resets across a detected boot boundary excluded from growth estimates. These observations are sampling-limited and do not prove flash health between measurements.
+
+The initial three-sample read-only V3r2 device check found zero observed bad-PEB growth, maximum erase count 11, minimum available eraseblocks 307, no new Ethernet errors/drops, no O-state/carrier transitions, zero missed probes, and peak sensor values 52.28°C / 51.09°C. This is **not** a long-duration soak or a stress/wear test, and no UBI writes were performed.
 
 ## Source and device acceptance
 

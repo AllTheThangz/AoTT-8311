@@ -22,9 +22,16 @@ printf 'available_kb='; awk '/^MemAvailable:/ {print $2;found=1;exit} END {if(!f
 printf 'pon_state='
 /usr/bin/timeout -k 1 3 /usr/bin/pon psg 2>/dev/null |
   grep -o 'current=[0-9]*' | head -1 | cut -d '=' -f2
+# All UBI values come from the kernel sysfs and are read-only. Missing
+# attributes are returned as empty fields, never fabricated zeros.
+for item in bad_peb_count max_ec reserved_for_bad avail_eraseblocks; do
+  value=$(cat "/sys/class/ubi/ubi0/$item" 2>/dev/null) || value=
+  printf 'ubi_%s=%s\n' "$item" "$value"
+done
 """
 COLUMNS={"uptime","speed","carrier","rx_errors","tx_errors","rx_dropped",
-         "tx_dropped","thermal0","thermal1","available_kb","pon_state"}
+         "tx_dropped","thermal0","thermal1","available_kb","pon_state",
+         "ubi_bad_peb_count","ubi_max_ec","ubi_reserved_for_bad","ubi_avail_eraseblocks"}
 INTEGERS=COLUMNS-{"uptime"}
 def decode(raw):
     if len(raw)>4096:raise ValueError("output_too_large")
@@ -57,7 +64,7 @@ def sample(target):
 def analyze(records):
     good=[r for r in records if r["state"]=="observed"]
     lost=sum(r["state"]!="observed" for r in records)
-    reboot=0; pon_changes=0; link_changes=0; errors={k:0 for k in
+    reboot=0; pon_changes=0; link_changes=0; bad_peb_growth=0; errors={k:0 for k in
           ("rx_errors","tx_errors","rx_dropped","tx_dropped")}
     for prev,cur in zip(good,good[1:]):
         a,b=prev["metrics"],cur["metrics"]
@@ -71,11 +78,22 @@ def analyze(records):
         for k in errors:
             if a[k] is not None and b[k] is not None and b[k]>=a[k]:
                 errors[k]+=b[k]-a[k]
+        if a["ubi_bad_peb_count"] is not None and b["ubi_bad_peb_count"] is not None:
+            bad_peb_growth+=max(0,b["ubi_bad_peb_count"]-a["ubi_bad_peb_count"])
     return {"samples_total":len(records),"observed":len(good),
             "probe_gaps":lost,"reboots_observed":reboot,
             "pon_state_transitions_observed":pon_changes,
             "carrier_transitions_observed":link_changes,
             "ethernet_error_drop_deltas":errors,
+            "ubi_bad_peb_growth_observed":bad_peb_growth,
+            "ubi_peak_erase_count_observed":max(
+                (r["metrics"]["ubi_max_ec"] for r in good if
+                 r["metrics"]["ubi_max_ec"] is not None),default=None),
+            "ubi_min_available_eraseblocks_observed":min(
+                (r["metrics"]["ubi_avail_eraseblocks"] for r in good if
+                 r["metrics"]["ubi_avail_eraseblocks"] is not None),default=None),
+            "ubi_bad_peb_samples_unavailable":sum(
+                r["metrics"]["ubi_bad_peb_count"] is None for r in good),
             "peak_thermal_c":[(round(v/1000,2) if v is not None else None)
                 for v in (max((r["metrics"][k] for r in good if r["metrics"][k] is not None),default=None)
                 for k in ("thermal0","thermal1"))],
