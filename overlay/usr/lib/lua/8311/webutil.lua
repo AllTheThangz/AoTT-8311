@@ -28,13 +28,79 @@ function M.private_dir(prefix)
 	return nil, "Unable to allocate private directory"
 end
 
+-- Data is created under a root-owned temporary name at mode 0600 before
+-- any bytes are written. Only a fully checked file is renamed into place.
+-- This is especially important for imported TLS private keys, temporary
+-- configuration snapshots, and upload metadata. Never follow a destination
+-- symlink and never delete a previously valid file when staging fails.
 function M.write(path, data, mode)
-	local file, err = io.open(path, "wb")
-	if not file then return nil, "Unable to open temporary file" end
-	local wrote = file:write(data)
-	local closed = file:close()
-	if not wrote or not closed or not fs.chmod(path, mode or 600) then
-		fs.unlink(path); return nil, "Unable to complete file write"
+	mode = mode or 600
+	if type(path) ~= "string" or #path < 2 or #path > 512 or
+	   path:sub(1,1) ~= "/" or path:find("[%z\r\n]") or
+	   path:find("//",1,true) or path:find("/../",1,true) or
+	   path:sub(-3) == "/.." or path:find("/./",1,true) or
+	   path:sub(-2) == "/." or type(data) ~= "string" or
+	   #data > 1048576 or
+	   (mode ~= 600 and mode ~= 644 and mode ~= 755) then
+		return nil, "Invalid bounded file write request"
+	end
+	local existing = fs.lstat(path)
+	if existing and (existing.type ~= "reg" or existing.uid ~= 0 or
+	                 existing.nlink ~= 1) then
+		return nil, "Unsafe existing write destination"
+	end
+	local random = sys.uniqueid(16)
+	if type(random) ~= "string" or #random ~= 32 or
+	   not random:match("^[a-f0-9]+$") then
+		return nil, "Temporary write identifier unavailable"
+	end
+	local stage = path .. ".aott-write-" .. random
+	if fs.lstat(stage) then return nil, "Temporary write path exists" end
+	local fd = nixio.open(stage, nixio.open_flags("wronly","creat","excl"), "0600")
+	if not fd then return nil, "Unable to create private temporary file" end
+	local wrote = fd:writeall(data)
+	-- Verify that file data has reached the kernel's durability boundary
+	-- before renaming over an already valid configuration or private key.
+	local synced = wrote == #data and fd:sync()
+	local closed = fd:close()
+	if wrote ~= #data or synced ~= true or closed ~= true then
+		fs.unlink(stage)
+		return nil, "Temporary file write or sync failed"
+	end
+	local temporary = fs.lstat(stage)
+	if not temporary or temporary.type ~= "reg" or temporary.uid ~= 0 or
+	   temporary.nlink ~= 1 or temporary.modedec ~= 600 or
+	   temporary.size ~= #data then
+		fs.unlink(stage)
+		return nil, "Temporary file verification failed"
+	end
+	-- Same-length corruption must not be mistaken for a successful write.
+	-- The caller-provided data is already in memory and capped at 1 MiB.
+	if fs.readfile(stage,#data+1) ~= data then
+		fs.unlink(stage)
+		return nil, "Temporary file contents failed readback verification"
+	end
+	if not fs.chmod(stage,mode) then
+		fs.unlink(stage)
+		return nil, "Unable to set final file permissions"
+	end
+	-- Do not replace a path that changed to a link while staging.
+	local current = fs.lstat(path)
+	if current and (current.type ~= "reg" or current.uid ~= 0 or
+	                current.nlink ~= 1 or
+	                (existing and (current.ino ~= existing.ino or
+	                               current.dev ~= existing.dev))) then
+		fs.unlink(stage)
+		return nil, "Destination changed during file write"
+	end
+	if not fs.rename(stage,path) then
+		fs.unlink(stage)
+		return nil, "Unable to complete atomic file write"
+	end
+	local saved = fs.lstat(path)
+	if not saved or saved.type ~= "reg" or saved.uid ~= 0 or
+	   saved.nlink ~= 1 or saved.modedec ~= mode or saved.size ~= #data then
+		return nil, "Completed file did not pass readback verification"
 	end
 	return true
 end

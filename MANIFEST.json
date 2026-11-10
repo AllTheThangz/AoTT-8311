@@ -5,19 +5,19 @@
       "bytes": 138,
       "executable": false,
       "path": "etc/8311_version",
-      "sha256": "5d0e047697df778e738b74015c992ddf1ac897224a74ed88bc0db3135ef89103"
+      "sha256": "450db99c5c0c6369a4b6c679f56daaca1ff8db4f218ca34ae1f33e77571d2176"
     },
     {
       "bytes": 238,
       "executable": false,
       "path": "etc/aott_release",
-      "sha256": "092b2dde4c1279e1bbd986aa4e6f637a1e6bd53ae83a9d32257f09f835cea179"
+      "sha256": "a577499d78c464449b56a6979e2c57b6f475e32113f40834a92ef574285ee5ac"
     },
     {
       "bytes": 288,
       "executable": false,
       "path": "etc/banner",
-      "sha256": "72db78cb0af429de51ba059178effd8e80c75f35bded84319134fedbf6063306"
+      "sha256": "de3dfdbdd92c66204a556af04a5f65831beb3c179fb7641eb2fc5a46d3438962"
     },
     {
       "bytes": 248,
@@ -32,28 +32,28 @@
       "sha256": "161a2636aa1a984b1a00abc01e7ee0da341cfaba4f156d22d134b442c8eaefd2"
     },
     {
-      "bytes": 602,
+      "bytes": 1036,
       "executable": true,
       "path": "etc/init.d/8311-history",
-      "sha256": "bc5034d89f348b9ef4bf0b77ac67d83264f3020480966d915c09fdb0e6c70e16"
+      "sha256": "cef72eeac8992545882070ba9fd08805f28eb2fda0f130d44297a29bc662dc05"
     },
     {
-      "bytes": 251,
+      "bytes": 253,
       "executable": true,
       "path": "etc/init.d/8311-pingd",
-      "sha256": "dc870b8f05d0827bd3f3af4a37288381519fe051a087724496cfe175c072164e"
+      "sha256": "8bbd3a6e2db73ce8a3c1852dfa298e7e3e88beb2ab807910b97ab923905fb926"
     },
     {
-      "bytes": 251,
+      "bytes": 253,
       "executable": true,
       "path": "etc/init.d/8311-rarpd",
-      "sha256": "9e24d4589628d60e66a8594da05fb621618c984a02a52c6627c9224b4e78f6b7"
+      "sha256": "d170176419e1557df3f7ce3b469f010393273f040902e8516857efbd046b778f"
     },
     {
-      "bytes": 252,
+      "bytes": 254,
       "executable": true,
       "path": "etc/init.d/8311-rx-los",
-      "sha256": "754e30fbedd01a8073b34941f537a7e9d1f3883a2344b81ba9d463e959841c8b"
+      "sha256": "8cb3b20f0ba94aadf7c1ea5ad27ac8a6ca635aea9ea96f9ad36b432d36b29903"
     },
     {
       "bytes": 97,
@@ -62,10 +62,10 @@
       "sha256": "b70f0265dabe9910a40343e01baab12390f176bee16632b723e7999fa35e50ac"
     },
     {
-      "bytes": 252,
+      "bytes": 254,
       "executable": true,
       "path": "etc/init.d/8311-vlansd",
-      "sha256": "c7d1023c0788fdb96645c96d47b006c385f2cfbb6dfe1cd1ded795c860e53f8d"
+      "sha256": "d750829e424ef9d34e6fcbb586ecada8ad9098aa41887250c0b671cc9f135b6b"
     },
     {
       "bytes": 940,
@@ -128,10 +128,10 @@
       "sha256": "241b4ca7840e3d9698498d23f70b97eb73f99df99cc52eb8abbbb43e9d223206"
     },
     {
-      "bytes": 20614,
+      "bytes": 24843,
       "executable": false,
       "path": "lib/8311-upgrade-lib.sh",
-      "sha256": "ae817e2347da8635c2e87e99a743bb2b8a56b2d6887b4af501eda3c548b4d7eb"
+      "sha256": "b84411ef92e612c52e288e4bd261851432394ab158c1441b87ce7f21bcb71354"
     },
     {
       "bytes": 6936,
@@ -380,16 +380,16 @@
       "sha256": "f3176fedcd3799553460af27fce6bccd654c37033d5edff3bda4266581c48081"
     },
     {
-      "bytes": 7637,
+      "bytes": 7641,
       "executable": false,
       "path": "usr/lib/lua/8311/history_process_lock.lua",
-      "sha256": "426518a62381e0c9cf361fa8d1168999de38c137717fea4ba2a8a073eb7083b7"
+      "sha256": "190805e2c79b4c3e60b061a11ef2c764ac329244df2c55326accf6056ee99483"
     },
     {
-      "bytes": 6182,
+      "bytes": 6186,
       "executable": false,
       "path": "usr/lib/lua/8311/history_publication_gate.lua",
-      "sha256": "510bb574c0e42cd0e6d70c8868e733a88f4c59e091aadcaff892c5a82743c681"
+      "sha256": "26a81bd771ae16a6a8f41774364a1fdb0394220e8ebc376f0f3e56855217e124"
     },
     {
       "bytes": 18369,
@@ -596,16 +596,16 @@
       "sha256": "4f1534db7215b38451dfbde68fd021604fbc87260c0e1482d1597b2ce8b33b89"
     },
     {
-      "bytes": 5406,
+      "bytes": 5639,
       "executable": false,
       "path": "usr/lib/lua/8311/v3_capabilities.lua",
-      "sha256": "7bb4fcd20eadc06d61f220aa9f06c9cbd02f53ec1872d5365c75bdbd54fd0244"
+      "sha256": "c609cdb5b85b52ebaaefe21dadf10241e076cbfb8d1ce99a8151559f94caf147"
     },
     {
       "bytes": 112,
       "executable": false,
       "path": "usr/lib/lua/8311/version.lua",
-      "sha256": "7fb3f4e78c1e4ee0982214967ebb22751e79646fff96ba2513a917fbeb54c154"
+      "sha256": "e4b1bdbba62ef3b97cfdffeb8dc61cef8105b17c60cbea17a40e2439f4e44a95"
     },
     {
       "bytes": 4168,
@@ -620,10 +620,10 @@
       "sha256": "7931067dba54a74ff532b4bdd52c7db3d5dd3f2fd3500a01d87f428e21421294"
     },
     {
-      "bytes": 3440,
+      "bytes": 6389,
       "executable": false,
       "path": "usr/lib/lua/8311/webutil.lua",
-      "sha256": "63781d7dadcf71666d70d74c99a565b1afdb64e801be84b6f15ee946ad95774b"
+      "sha256": "36adc365d036f3ebd88a1ab0d3c8e8c925273e55195414b112251f43bfe2312e"
     },
     {
       "bytes": 94655,
@@ -647,7 +647,7 @@
       "bytes": 9109,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/firmware.htm",
-      "sha256": "eb05e761c683f729180ba48f4b67520d340ffd82ced5060df9e910df916cf9af"
+      "sha256": "d785e2a7090bf00c8c317232f9c1964efc5f97a8e380d82c95581cfa3f1ec7d0"
     },
     {
       "bytes": 6041,
@@ -731,7 +731,7 @@
       "bytes": 17552,
       "executable": false,
       "path": "usr/lib/lua/luci/view/themes/bootstrap/header.htm",
-      "sha256": "494ef3a4e1ff4f30a20f37157f5921c51f98b2eacd7f862b2958424b15f3c106"
+      "sha256": "9db0899dadf66a6b044e503302f673bd13602e8b490514d273d7ab429e90f4a3"
     },
     {
       "bytes": 235,
@@ -950,10 +950,10 @@
       "sha256": "94729cc57e44bafc4c4883d075b5e453e668c1f61d77cda4865e65073dcbf2e9"
     },
     {
-      "bytes": 13452,
+      "bytes": 14379,
       "executable": true,
       "path": "usr/sbin/8311-firmware-upgrade.sh",
-      "sha256": "f261bdfe68d6252c0519b7facbfcfccbdabd2cd2398d7120a192d394b6dcd75b"
+      "sha256": "209ebc4fa2cd4d2a95e123da544668d1542031da7c975fe20b125c3aa8c38e4f"
     },
     {
       "bytes": 7407,
@@ -1053,8 +1053,8 @@
     }
   ],
   "product": "AoTT-8311",
-  "release": "AoTT-8311-v3r2",
-  "revision": "r2",
+  "release": "AoTT-8311-v3r3",
+  "revision": "r3",
   "schema": 1,
   "secrets_included": false,
   "source_only": true,

@@ -1,3 +1,4 @@
+import json
 """Regression checks for Overview light/dark cards, graphs and text.
 
 Tests the theme CSS semantics, scoped selectors and WCAG contrast values.
@@ -117,7 +118,7 @@ class OverviewContrastTest(unittest.TestCase):
 
     def test_css_version_cache_refresh(self):
         header=(ROOT/"overlay/usr/lib/lua/luci/view/themes/bootstrap/header.htm").read_text()
-        self.assertIn('aott-theme.css?v=aott-8311-v3r2',header)
+        self.assertIn('aott-theme.css?v=aott-8311-'+json.loads((ROOT/'release.json').read_text())['version']+json.loads((ROOT/'release.json').read_text())['revision'],header)
         self.assertNotIn('aott-theme.css?v=aott-8311-v1-r4',header)
 
     def test_graph_lines_preserve_rx_tx_identity(self):

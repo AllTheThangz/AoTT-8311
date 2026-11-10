@@ -5,7 +5,7 @@ local lock=require "8311.history_process_lock"
 local snapshot=require "8311.history_live_snapshot"
 local sampler=require "8311.history_sampler"
 
-assert(lock.PRODUCTION_DIR=="/run/aott-history")
+assert(lock.PRODUCTION_DIR=="/var/run/aott-history")
 local state=assert(sampler.new({max_samples=30,max_events=16}))
 local function row(t,rx,tx)
     return {

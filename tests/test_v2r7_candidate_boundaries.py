@@ -25,27 +25,27 @@ class V2R7CandidateBoundaries(unittest.TestCase):
 
     def test_original_offline_candidate_metadata_is_historical(self):
         self.assertEqual(self.meta["version"],"v3")
-        self.assertEqual(self.meta["revision"],"r2")
+        self.assertRegex(self.meta["revision"],r"^r[1-9][0-9]*$")
         self.assertEqual(self.meta["status"],"offline-candidate")
-        self.assertEqual(self.manifest["release"],"AoTT-8311-v3r2")
-        self.assertEqual(self.manifest["revision"],"r2")
+        self.assertEqual(self.manifest["release"],"AoTT-8311-"+self.meta["version"]+self.meta["revision"])
+        self.assertEqual(self.manifest["revision"],self.meta["revision"])
         self.assertIn("NOT installed, trialed or committed",self.notes)
         self.assertIn("UNTRIALED_OFFLINE_ONLY",self.notes)
         self.assertIn("safe_for_live_install=false",self.notes)
 
     def test_source_identity_and_cache_tags_are_current(self):
         expected={
-            "etc/8311_version":"FW_VERSION=AoTT-8311-v3r2",
-            "etc/aott_release":"AOTT_REVISION=r2",
-            "etc/banner":"AoTT-8311-v3 r2",
-            "usr/lib/lua/8311/version.lua":'revision = "r2"'
+            "etc/8311_version":"FW_VERSION=AoTT-8311-"+self.meta["version"]+self.meta["revision"],
+            "etc/aott_release":"AOTT_REVISION="+self.meta["revision"],
+            "etc/banner":"AoTT-8311-"+self.meta["version"]+" "+self.meta["revision"],
+            "usr/lib/lua/8311/version.lua":'revision = "'+self.meta["revision"]+'"'
         }
         for path,label in expected.items():
             with self.subTest(file=path):
                 self.assertIn(label,(ROOT/"overlay"/path).read_text())
-        self.assertIn("aott-theme.css?v=aott-8311-v3r2",self.header)
-        self.assertIn("8311.js?v=aott-8311-v3-r2",self.firmware)
-        self.assertIn("8311.css?v=aott-8311-v3-r2",self.firmware)
+        self.assertIn("aott-theme.css?v=aott-8311-"+self.meta["version"]+self.meta["revision"],self.header)
+        self.assertIn("8311.js?v=aott-8311-"+self.meta["version"]+"-"+self.meta["revision"],self.firmware)
+        self.assertIn("8311.css?v=aott-8311-"+self.meta["version"]+"-"+self.meta["revision"],self.firmware)
 
     def test_theme_change_remains_scoped_to_overview_graphs(self):
         selector='#view.aott-overview-live div:is([style*="height:300px"],[style*="height: 300px"])[style*="background"]'

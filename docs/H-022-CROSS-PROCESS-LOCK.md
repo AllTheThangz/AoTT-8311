@@ -28,7 +28,7 @@ read-only collector. Both are outside the deployable firmware overlay.
 ## Lock contract
 
 The source allows only a trusted production directory
-/run/aott-history, or strictly named private /var/tmp directories
+/var/run/aott-history, or strictly named private /var/tmp directories
 reserved for the offline test harness.
 
 A future operator-approved installation must independently provision

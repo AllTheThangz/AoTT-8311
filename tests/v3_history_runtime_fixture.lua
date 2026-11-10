@@ -43,7 +43,7 @@ package.preload["nixio.fs"]=function()
     return {stat=function() return nil end}
 end
 package.preload["8311.history_process_lock"]=function()
-    return {PRODUCTION_DIR="/run/aott-history",
+    return {PRODUCTION_DIR="/var/run/aott-history",
             writer_present=function() return false,"not_started" end}
 end
 local config=require "8311.history_config"
