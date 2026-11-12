@@ -51,12 +51,17 @@ end
 local function set_record(id,row)
     if not FIELDS[id] or type(row)~="table" then return false end
     local setter=FIELDS[id].base and tools.fw_setenv or tools.fw_setenv_8311
-    return setter{id,row.present and row.value or nil}==true
+    -- Setters may modify persistent environment before throwing. The
+    -- prepared recovery plan must remain available until restoration has
+    -- independently passed readback.
+    local ok,wrote=pcall(setter,{id,row.present and row.value or nil})
+    return ok and wrote==true
 end
 
 local function set_bootcmd(row)
     if type(row)~="table" then return false end
-    return tools.fw_setenv{"bootcmd",row.present and row.value or nil}==true
+    local ok,wrote=pcall(tools.fw_setenv,{"bootcmd",row.present and row.value or nil})
+    return ok and wrote==true
 end
 
 local function equal_record(values,id,row)
@@ -66,8 +71,8 @@ local function equal_record(values,id,row)
 end
 
 local function verify(records,bootcmd)
-    local values=tools.fwenv_read_all()
-    if not values then return false end
+    local ok,values=pcall(tools.fwenv_read_all)
+    if not ok or type(values)~="table" then return false end
     for id,row in pairs(records) do
         if not equal_record(values,id,row) then return false end
     end
@@ -89,6 +94,20 @@ local function restore(plan)
     if not set_bootcmd(plan.bootcmd_before) then ok=false end
     if not verify(plan.before,plan.bootcmd_before) then ok=false end
     return ok
+end
+
+-- The marker is a durable recovery obligation, not a temporary staging
+-- artifact. A failed write can be followed by a failed restore. Never clear
+-- that marker unless all prior values (including bootcmd) read back equal.
+local function abort_stage(job,before,bootcmd,reason)
+    if not restore({before=before,bootcmd_before=bootcmd}) then
+        return nil,"boot_config_stage_restore_unverified"
+    end
+    local disarmed,cleared=pcall(store.clear,job)
+    if not disarmed or not cleared then
+        return nil,"boot_config_stage_recovery_disarm_unverified"
+    end
+    return nil,reason
 end
 
 local function random_id()
@@ -129,15 +148,22 @@ function M.stage(request)
     if not armed then return nil,arm_why end
     for _,id in ipairs(ids) do
         if not set_record(id,candidate[id]) then
-            restore({before=before,bootcmd_before=bootcmd})
-            store.clear(job)
-            return nil,"boot_config_candidate_write_failed"
+            return abort_stage(job,before,bootcmd,
+                "boot_config_candidate_write_failed")
         end
     end
     if not verify(candidate,nil) then
-        restore({before=before,bootcmd_before=bootcmd})
-        store.clear(job)
-        return nil,"boot_config_candidate_readback_failed"
+        return abort_stage(job,before,bootcmd,
+            "boot_config_candidate_readback_failed")
+    end
+    -- Commit the trial-ready phase only after every candidate field is
+    -- durable and independently verified. If interrupted earlier, the boot
+    -- recovery hook sees "preparing" and restores, even if a partial
+    -- candidate happens to match all desired values.
+    local promoted,prepared=pcall(store.phase,job,"prepared",nil)
+    if not promoted or not prepared then
+        return abort_stage(job,before,bootcmd,
+            "boot_config_prepare_phase_failed")
     end
     return {
         schema=1,status="BOOT_CONFIG_TRIAL_STAGED",job_id=job,
@@ -156,7 +182,9 @@ function M.status()
     return {
         schema=1,pending=true,job_id=p.job_id,phase=p.phase,
         fields=fields,confirmation_required=p.phase=="trial_running",
-        reboot_required=p.phase=="prepared" or p.phase=="rollback_restored",
+        recovery_required=p.phase=="preparing" or p.phase=="rollback_restored",
+        reboot_required=p.phase=="prepared" or p.phase=="rollback_restored" or
+                        p.phase=="preparing",
         contains_configuration_values=false,
     }
 end
@@ -167,7 +195,17 @@ function M.boot_enter()
     if not p.pending then return {status="NO_PENDING_BOOT_CONFIG_TRIAL",reboot_required=false} end
     local id=boot_id()
     if not id then return nil,"boot_id_unavailable" end
-    if p.phase=="prepared" then
+    if p.phase=="preparing" then
+        -- A prior session died or returned before the write/readback and
+        -- durable phase promotion finished. Never boot its candidate.
+        if not restore(p) then
+            return nil,"boot_config_interrupted_stage_restore_failed"
+        end
+        local ok,phase_why=store.phase(p.job_id,"rollback_restored",id)
+        if not ok then return nil,phase_why end
+        return {status="BOOT_CONFIG_INTERRUPTED_STAGE_RESTORED",
+                reboot_required=true}
+    elseif p.phase=="prepared" then
         if not verify(p.candidate,nil) then
             local restored=restore(p)
             if restored then store.phase(p.job_id,"rollback_restored",id) end

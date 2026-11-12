@@ -64,7 +64,14 @@ local risk_notes = {
 <section id="aott-boot-config-trial" class="cbi-section aott-warning"
  data-job-id="<%=esc(boot_trial.job_id or '')%>"
  data-phase="<%=esc(boot_trial.phase or '')%>">
+<% if boot_trial.phase == "preparing" then %>
+<h3>Boot configuration recovery required</h3>
+<p>An earlier boot-setting save was interrupted or failed. The previous boot settings are preserved for recovery. This is not an approved trial and must not be confirmed as one.</p>
+<p>Reboot only when local recovery access is available. Early startup will attempt to restore the previous boot settings and boot command before normal services run. Check the recovery status after reboot.</p>
+<p><a class="cbi-button" href="<%=esc(url('admin/system/reboot'))%>">Reboot to attempt recovery</a></p>
+<% else %>
 <h3>Boot configuration trial pending</h3>
+<% end %>
 <% if boot_trial.phase == "prepared" then %>
 <p>The reviewed boot-time settings are staged but have not been tested yet. Reboot once to enter the guarded trial. The previous boot settings and boot command are preserved for recovery.</p>
 <p><a class="cbi-button" href="<%=esc(url('admin/system/reboot'))%>">Reboot into the guarded trial</a></p>

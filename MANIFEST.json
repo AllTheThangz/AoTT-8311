@@ -188,16 +188,16 @@
       "sha256": "3a30726d9318aa02677137d063086741d9d792fb3f43eb7efef3cb26c04594a3"
     },
     {
-      "bytes": 5536,
+      "bytes": 5830,
       "executable": false,
       "path": "usr/lib/lua/8311/boot_config_store.lua",
-      "sha256": "c9ce222c69c95d07fd5a3ec320ecd89e0e813279830ef7b5303a16a437d2230f"
+      "sha256": "ef7b06bec7537cdc0d6409e2bc6158f786840a2ded1ca315f26e6a87c6d2ea40"
     },
     {
-      "bytes": 8837,
+      "bytes": 10772,
       "executable": false,
       "path": "usr/lib/lua/8311/boot_config_transaction.lua",
-      "sha256": "1eb46f0c1f70bc217efa8bec94187f4ad9c3f790606e0db582b6d4df1ec504e3"
+      "sha256": "a20888b835bc5ced30aae3db0874c6ce33d221878c0fbe522b1a5d7e3442169b"
     },
     {
       "bytes": 29550,
@@ -458,10 +458,10 @@
       "sha256": "6f6d33a0396d0dcc5f71114d63a433b9ce2d0b96b8d022aaa2b437056b1b7c60"
     },
     {
-      "bytes": 12711,
+      "bytes": 13330,
       "executable": false,
       "path": "usr/lib/lua/8311/management_transaction.lua",
-      "sha256": "e8aceb0073f8bded39affb3d46f6e20aa03f862f98aeee39a65203e3dde6a214"
+      "sha256": "09762b5eb2b42f6460ba9b653326b6bf77e1f777ba0e711dd605391cfe9d13ca"
     },
     {
       "bytes": 5052,
@@ -638,10 +638,10 @@
       "sha256": "436b0fa4cdb1865d2dae49ae49d4651963d0503c04831ee4278b536c2f6923af"
     },
     {
-      "bytes": 21923,
+      "bytes": 22532,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/config.htm",
-      "sha256": "c0ee68615943f0c087a6b130b5dd56ba15f34075b1f1bbc514979f22b4248393"
+      "sha256": "b26cd4a68ff19ccf94694456a6463df6c7c8afe01e0445a9b6e4756466849f8e"
     },
     {
       "bytes": 9109,

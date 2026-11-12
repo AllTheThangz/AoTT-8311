@@ -7,7 +7,7 @@ local ROOT="/ptconf/8311/aott-recovery/v1/boot-config"
 local PLAN=ROOT.."/plan.json"
 local MAX=8192
 local FIELDS={bootdelay=true,uart_select=true,failsafe_delay=true,persist_root=true}
-local PHASE={prepared=true,trial_running=true,rollback_restored=true}
+local PHASE={preparing=true,prepared=true,trial_running=true,rollback_restored=true}
 
 local function dir_ok(st,mode)
     return type(st)=="table" and st.type=="dir" and st.uid==0 and st.gid==0 and st.modedec==mode
@@ -111,7 +111,11 @@ function M.arm(plan)
     if not current then return nil,why end
     if current.pending then return nil,"boot_config_transaction_already_pending" end
     plan.schema=1
-    plan.phase="prepared"
+    -- The initial durable record must never imply that a partially
+    -- completed (or interrupted) candidate was accepted for the next boot.
+    -- Only the staging transaction can promote it to "prepared" after
+    -- all candidate fields have been independently read back.
+    plan.phase="preparing"
     plan.boot_id=nil
     local ok,ewhy=write(plan)
     if not ok then return nil,ewhy end

@@ -50,7 +50,7 @@ package.preload["8311.boot_config_store"]=function()
     end
     function M.arm(p)
         assert(not plan)
-        plan=p;plan.schema=1;plan.phase="prepared";plan.boot_id=nil
+        plan=p;plan.schema=1;plan.phase="preparing";plan.boot_id=nil
         return {status="BOOT_CONFIG_RECOVERY_ARMED",job_id=p.job_id}
     end
     function M.phase(job,phase,id)

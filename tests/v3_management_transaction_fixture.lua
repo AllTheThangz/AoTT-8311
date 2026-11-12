@@ -83,9 +83,12 @@ local function provider(opts)
     end
     function P.restore()
         if not hit("restore") or opts.restore_fail then return nil,"restore_failed" end
-        return {status="restored"}
+        return {status="restored",runtime_verified=not opts.restore_unverified}
     end
-    function P.sleep() hit("sleep") end
+    function P.sleep()
+        hit("sleep")
+        if opts.throw_sleep then error("synthetic private wait error") end
+    end
     return P,calls
 end
 
@@ -136,5 +139,29 @@ assert(nope==nil and why=="management_rollback_failed:restore_failed")
 P,calls=provider({pending=true})
 nope,why=M.fixture_transaction(base,job,request,P,1,1)
 assert(nope==nil and why=="management_transaction_already_pending")
+
+-- A wait exception AFTER the durable rollback marker was armed must not
+-- escape the Lua transaction or abandon the current live network changes.
+P,calls=provider({verify_fail=true,throw_sleep=true})
+result=assert(M.fixture_transaction(base,job,request,P,2,2))
+assert(result.status=="MANAGEMENT_TRANSACTION_ROLLED_BACK" and
+       result.failure_reason=="management_verification_wait_failed",
+       "Verification wait exception bypassed rollback")
+assert(calls[#calls]=="restore","Verification wait did not trigger restore")
+
+P,calls=provider({throw_sleep=true})
+result=assert(M.fixture_transaction(base,job,request,P,2,1))
+assert(result.status=="MANAGEMENT_TRANSACTION_ROLLED_BACK" and
+       result.failure_reason=="management_confirmation_wait_failed",
+       "Confirmation wait exception bypassed rollback")
+assert(calls[#calls]=="restore","Confirmation wait did not trigger restore")
+
+-- Reload or file-import success without actual runtime proof cannot
+-- produce a verified rollback receipt.
+P,calls=provider({verify_fail=true,restore_unverified=true})
+nope,why=M.fixture_transaction(base,job,request,P,1,1)
+assert(nope==nil and why=="management_rollback_runtime_unverified",
+       "Unverified restored runtime was falsely accepted")
+assert(calls[#calls]=="restore","Unverified restore path did not execute")
 
 print("AOTT_V3_MANAGEMENT_TRANSACTION_PASS")
