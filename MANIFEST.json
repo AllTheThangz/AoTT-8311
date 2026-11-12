@@ -5,19 +5,19 @@
       "bytes": 138,
       "executable": false,
       "path": "etc/8311_version",
-      "sha256": "450db99c5c0c6369a4b6c679f56daaca1ff8db4f218ca34ae1f33e77571d2176"
+      "sha256": "2b2e2f8f4057c3a2779b91b1f78865c195d7e2727e34d1b0817a61d7aee1cc85"
     },
     {
       "bytes": 238,
       "executable": false,
       "path": "etc/aott_release",
-      "sha256": "a577499d78c464449b56a6979e2c57b6f475e32113f40834a92ef574285ee5ac"
+      "sha256": "e0d816d575a25da4a95389a7ceddc5a5e0e063ccba1e11e18a18af56cccb6016"
     },
     {
       "bytes": 288,
       "executable": false,
       "path": "etc/banner",
-      "sha256": "de3dfdbdd92c66204a556af04a5f65831beb3c179fb7641eb2fc5a46d3438962"
+      "sha256": "5d146cd46a7de7953120e16e76c7148f4729f02748b63a3b8f21f4a43c83815b"
     },
     {
       "bytes": 248,
@@ -605,7 +605,7 @@
       "bytes": 112,
       "executable": false,
       "path": "usr/lib/lua/8311/version.lua",
-      "sha256": "e4b1bdbba62ef3b97cfdffeb8dc61cef8105b17c60cbea17a40e2439f4e44a95"
+      "sha256": "60c249bdf3770f53448fefabb97c1e0d624f84111d69533886f905dcf88c7ef4"
     },
     {
       "bytes": 4168,
@@ -647,7 +647,7 @@
       "bytes": 9109,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/firmware.htm",
-      "sha256": "d785e2a7090bf00c8c317232f9c1964efc5f97a8e380d82c95581cfa3f1ec7d0"
+      "sha256": "0e867a7ee1837ebf7bdaf827def3e2a0120adfd7ee94b4f18a44aa9a712ce7f5"
     },
     {
       "bytes": 6041,
@@ -731,7 +731,7 @@
       "bytes": 17552,
       "executable": false,
       "path": "usr/lib/lua/luci/view/themes/bootstrap/header.htm",
-      "sha256": "9db0899dadf66a6b044e503302f673bd13602e8b490514d273d7ab429e90f4a3"
+      "sha256": "ae88e6b190559f8cc987d945a61837a6f22cd86ccfeebbd16907995adf10833a"
     },
     {
       "bytes": 235,
@@ -908,6 +908,12 @@
       "sha256": "97ed004891fe4594747e4125d47aee34c30882df34e23004c0d54e0d101259f8"
     },
     {
+      "bytes": 2899,
+      "executable": false,
+      "path": "usr/libexec/8311-support-redact.awk",
+      "sha256": "8267e7151f0ab468c1360dc8ed89b985e58e60e7bc43e9911612c706ddcfc83f"
+    },
+    {
       "bytes": 784,
       "executable": true,
       "path": "usr/libexec/8311-tls-activate.lua",
@@ -986,10 +992,10 @@
       "sha256": "e12440b7fd1cf9ef01afa0f9c71ed1de798be8a3b5ce340e357ba7519aa45d07"
     },
     {
-      "bytes": 6941,
+      "bytes": 8735,
       "executable": true,
       "path": "usr/sbin/8311-support.sh",
-      "sha256": "a57fef010e80d0991c472b0fd101635d924a3f4d13c583331caf1daf4d31b9c3"
+      "sha256": "56a8e06eaf051841f8f533fb459d2d18516786874a25f3fb5b3825c018b4b288"
     },
     {
       "bytes": 474,
@@ -1053,8 +1059,8 @@
     }
   ],
   "product": "AoTT-8311",
-  "release": "AoTT-8311-v3r3",
-  "revision": "r3",
+  "release": "AoTT-8311-v3r4",
+  "revision": "r4",
   "schema": 1,
   "secrets_included": false,
   "source_only": true,
