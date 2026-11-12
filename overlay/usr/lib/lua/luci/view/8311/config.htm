@@ -42,6 +42,7 @@ local risk_notes = {
 <link rel="stylesheet" href="<%=resource%>/view/8311.css?v=aott-8311-v1-r3" />
 <script src="<%=resource%>/jquery-3.7.1.min.js?v=3.7.1"></script>
 <script src="<%=resource%>/view/8311.js?v=aott-8311-v1-r3"></script>
+<script src="<%=resource%>/view/8311-verification-overview.js?v=aott-8311-v3-r4"></script>
 <h2>Connection and device settings</h2>
 <p>Find settings by what they control, rather than by internal variable names. Each change is reviewed and checked against the saved configuration before it is written.</p>
 <div class="aott-section-intro" role="note">
@@ -64,7 +65,14 @@ local risk_notes = {
 <section id="aott-boot-config-trial" class="cbi-section aott-warning"
  data-job-id="<%=esc(boot_trial.job_id or '')%>"
  data-phase="<%=esc(boot_trial.phase or '')%>">
+<% if boot_trial.phase == "preparing" then %>
+<h3>Boot configuration recovery required</h3>
+<p>An earlier boot-setting save was interrupted or failed. The previous boot settings are preserved for recovery. This is not an approved trial and must not be confirmed as one.</p>
+<p>Reboot only when local recovery access is available. Early startup will attempt to restore the previous boot settings and boot command before normal services run. Check the recovery status after reboot.</p>
+<p><a class="cbi-button" href="<%=esc(url('admin/system/reboot'))%>">Reboot to attempt recovery</a></p>
+<% else %>
 <h3>Boot configuration trial pending</h3>
+<% end %>
 <% if boot_trial.phase == "prepared" then %>
 <p>The reviewed boot-time settings are staged but have not been tested yet. Reboot once to enter the guarded trial. The previous boot settings and boot command are preserved for recovery.</p>
 <p><a class="cbi-button" href="<%=esc(url('admin/system/reboot'))%>">Reboot into the guarded trial</a></p>
@@ -169,6 +177,15 @@ local label = named and option.name or option
 </div>
 <div class="aott-config-actions"><span class="aott-hint">Step 1 of 2: Validate every field and review the proposed changes before saving.</span> <button id="save-btn" type="submit" class="cbi-button cbi-button-save">Review changes</button></div>
 </form>
+<section id="aott-verification-overview" class="cbi-section"
+         aria-label="Configuration Verification Overview">
+<h3>Configuration Verification Overview</h3>
+<p>Check all 55 source-backed Configuration controls across seven independent read-only groups. Shows saved/configured differences and actual runtime observations without disclosing IP addresses, MAC addresses, PON identity, passwords, or any saved values. This does not verify ISP Internet service or qualify hardware.</p>
+<button id="aott-verification-refresh" type="button" class="cbi-button">Check all configuration evidence</button>
+<div id="aott-verification-status" role="status" aria-live="polite"></div>
+<div id="aott-verification-results" role="region"
+     aria-label="Redacted configuration verification results" hidden></div>
+</section>
 <section id="aott-management-effective" class="cbi-section"
          data-effective-url="<%=esc(url('admin/8311/effective_management'))%>"
          aria-label="Running management settings">

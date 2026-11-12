@@ -5,19 +5,19 @@
       "bytes": 138,
       "executable": false,
       "path": "etc/8311_version",
-      "sha256": "450db99c5c0c6369a4b6c679f56daaca1ff8db4f218ca34ae1f33e77571d2176"
+      "sha256": "2b2e2f8f4057c3a2779b91b1f78865c195d7e2727e34d1b0817a61d7aee1cc85"
     },
     {
       "bytes": 238,
       "executable": false,
       "path": "etc/aott_release",
-      "sha256": "a577499d78c464449b56a6979e2c57b6f475e32113f40834a92ef574285ee5ac"
+      "sha256": "e0d816d575a25da4a95389a7ceddc5a5e0e063ccba1e11e18a18af56cccb6016"
     },
     {
       "bytes": 288,
       "executable": false,
       "path": "etc/banner",
-      "sha256": "de3dfdbdd92c66204a556af04a5f65831beb3c179fb7641eb2fc5a46d3438962"
+      "sha256": "5d146cd46a7de7953120e16e76c7148f4729f02748b63a3b8f21f4a43c83815b"
     },
     {
       "bytes": 248,
@@ -188,28 +188,28 @@
       "sha256": "3a30726d9318aa02677137d063086741d9d792fb3f43eb7efef3cb26c04594a3"
     },
     {
-      "bytes": 5536,
+      "bytes": 5830,
       "executable": false,
       "path": "usr/lib/lua/8311/boot_config_store.lua",
-      "sha256": "c9ce222c69c95d07fd5a3ec320ecd89e0e813279830ef7b5303a16a437d2230f"
+      "sha256": "ef7b06bec7537cdc0d6409e2bc6158f786840a2ded1ca315f26e6a87c6d2ea40"
     },
     {
-      "bytes": 8837,
+      "bytes": 10772,
       "executable": false,
       "path": "usr/lib/lua/8311/boot_config_transaction.lua",
-      "sha256": "1eb46f0c1f70bc217efa8bec94187f4ad9c3f790606e0db582b6d4df1ec504e3"
+      "sha256": "a20888b835bc5ced30aae3db0874c6ce33d221878c0fbe522b1a5d7e3442169b"
     },
     {
-      "bytes": 27441,
+      "bytes": 29550,
       "executable": false,
       "path": "usr/lib/lua/8311/config.lua",
-      "sha256": "4accd91fdf7a5aa0dd71bc973408062038ec7da221fc967eed7c2ccd69f1105b"
+      "sha256": "3df48e8d7da9b96e0d0f97a710b5e254695a263c231f933a61135bf512a95cf4"
     },
     {
-      "bytes": 24982,
+      "bytes": 27565,
       "executable": false,
       "path": "usr/lib/lua/8311/config_activation.lua",
-      "sha256": "3d63cf764fac46974e55589aea6c882c1291500c14a9882da0b9340d45575b88"
+      "sha256": "cd4fb0659e2fc7fdb0cc0880e670d79eaa76a959202f3ccadeb16b9a2de31973"
     },
     {
       "bytes": 2695,
@@ -338,16 +338,16 @@
       "sha256": "808001ba4f673f93107a6de5ccd51fecb1ede94379db7ef9a3eac28dc03167e1"
     },
     {
-      "bytes": 6020,
+      "bytes": 9601,
       "executable": false,
       "path": "usr/lib/lua/8311/history_config.lua",
-      "sha256": "ef77559fa38d896b37bf536e67b5e7caa6bf061ba25167089a52d4a4f378ddad"
+      "sha256": "29902b47f6bfcf45116d2c894e5474c88fc34eb1e6cae0fad4c62699c7cdb3d0"
     },
     {
-      "bytes": 13375,
+      "bytes": 14482,
       "executable": false,
       "path": "usr/lib/lua/8311/history_export.lua",
-      "sha256": "5312b8462558f178d265cda5c200097144815d1d14715e6f8f1b7c8a75946f01"
+      "sha256": "779aace5a1eef5364ce6dac4d6923e3b859839b2d565a604111c32933e2cfafe"
     },
     {
       "bytes": 4066,
@@ -368,10 +368,16 @@
       "sha256": "51f861066d446a80e695b17f9e931ef052c2d623a61f7b0523cc8c114d2279f3"
     },
     {
-      "bytes": 8342,
+      "bytes": 9277,
       "executable": false,
       "path": "usr/lib/lua/8311/history_native_probe.lua",
-      "sha256": "ca3088be233f9210a9db4f70eceafa7a3ed8a2eb1660636c770d83820154980d"
+      "sha256": "a4e8d99c407e873876981f6e24697fe1d2371540c8be5f7d92e6dfe5d95db227"
+    },
+    {
+      "bytes": 2943,
+      "executable": false,
+      "path": "usr/lib/lua/8311/history_optical_probe.lua",
+      "sha256": "96331143d741d28676c5ce5e3f41305320d85e77fdb21cd861fc6021ea6e5404"
     },
     {
       "bytes": 14179,
@@ -392,10 +398,10 @@
       "sha256": "26a81bd771ae16a6a8f41774364a1fdb0394220e8ebc376f0f3e56855217e124"
     },
     {
-      "bytes": 18369,
+      "bytes": 21327,
       "executable": false,
       "path": "usr/lib/lua/8311/history_sampler.lua",
-      "sha256": "461b2be40983788b63a38ddb9567a9d3c2d70063363575a8882afd7660c4d990"
+      "sha256": "bea659a20e7ee10d21af541895eff9f7fbfa4986973965ab209fd1bacc0d5b85"
     },
     {
       "bytes": 11415,
@@ -404,10 +410,10 @@
       "sha256": "25953573a683e1db8eea575da2e193ba55f8c321f83ed68fb71fd33c99dc8089"
     },
     {
-      "bytes": 8600,
+      "bytes": 10098,
       "executable": false,
       "path": "usr/lib/lua/8311/history_snapshot_shape.lua",
-      "sha256": "f0a8f2b634abd86a06a8491c6a659183aac023d204189be1426eb6ea069164eb"
+      "sha256": "92911df66c43d2ab6389cff071747641f7503e043a051c5d80757411d68b0714"
     },
     {
       "bytes": 3008,
@@ -458,10 +464,10 @@
       "sha256": "6f6d33a0396d0dcc5f71114d63a433b9ce2d0b96b8d022aaa2b437056b1b7c60"
     },
     {
-      "bytes": 12711,
+      "bytes": 13330,
       "executable": false,
       "path": "usr/lib/lua/8311/management_transaction.lua",
-      "sha256": "e8aceb0073f8bded39affb3d46f6e20aa03f862f98aeee39a65203e3dde6a214"
+      "sha256": "09762b5eb2b42f6460ba9b653326b6bf77e1f777ba0e711dd605391cfe9d13ca"
     },
     {
       "bytes": 5052,
@@ -605,7 +611,7 @@
       "bytes": 112,
       "executable": false,
       "path": "usr/lib/lua/8311/version.lua",
-      "sha256": "e4b1bdbba62ef3b97cfdffeb8dc61cef8105b17c60cbea17a40e2439f4e44a95"
+      "sha256": "60c249bdf3770f53448fefabb97c1e0d624f84111d69533886f905dcf88c7ef4"
     },
     {
       "bytes": 4168,
@@ -626,10 +632,10 @@
       "sha256": "36adc365d036f3ebd88a1ab0d3c8e8c925273e55195414b112251f43bfe2312e"
     },
     {
-      "bytes": 94655,
+      "bytes": 94849,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "b41bd6d21af9a0f7458cde515cd63debcaf3517fd1feb823c5799afdabcb3123"
+      "sha256": "9c686635e19f56b0557a55f72f3ebf8960ae8e5c366c1aeaca0ca94a42625761"
     },
     {
       "bytes": 6721,
@@ -638,16 +644,16 @@
       "sha256": "436b0fa4cdb1865d2dae49ae49d4651963d0503c04831ee4278b536c2f6923af"
     },
     {
-      "bytes": 21923,
+      "bytes": 23438,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/config.htm",
-      "sha256": "c0ee68615943f0c087a6b130b5dd56ba15f34075b1f1bbc514979f22b4248393"
+      "sha256": "9fe081266a98d8c92cfd568843e945d45abb2d9d16c106fb53c81cc4ba211b25"
     },
     {
       "bytes": 9109,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/firmware.htm",
-      "sha256": "d785e2a7090bf00c8c317232f9c1964efc5f97a8e380d82c95581cfa3f1ec7d0"
+      "sha256": "0e867a7ee1837ebf7bdaf827def3e2a0120adfd7ee94b4f18a44aa9a712ce7f5"
     },
     {
       "bytes": 6041,
@@ -656,10 +662,10 @@
       "sha256": "2798097d5f63da79b4699d004987c7f505f6867ac8cbcb38467fe903146ed213"
     },
     {
-      "bytes": 9226,
+      "bytes": 13820,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/history.htm",
-      "sha256": "368118421dc1a0a235a26e95fa99a65e5ff6e11352b8dd77077f19737ee78974"
+      "sha256": "d54cfca0a98902d4dd8b81f1fc3c0f21029fdc8eca837718d9a5aad2c7648f46"
     },
     {
       "bytes": 8848,
@@ -731,7 +737,7 @@
       "bytes": 17552,
       "executable": false,
       "path": "usr/lib/lua/luci/view/themes/bootstrap/header.htm",
-      "sha256": "9db0899dadf66a6b044e503302f673bd13602e8b490514d273d7ab429e90f4a3"
+      "sha256": "ae88e6b190559f8cc987d945a61837a6f22cd86ccfeebbd16907995adf10833a"
     },
     {
       "bytes": 235,
@@ -800,10 +806,10 @@
       "sha256": "666481846ecf888f4900f04bb076829e6b2a8d1265f6ab7d677e3c89d088a54e"
     },
     {
-      "bytes": 3191,
+      "bytes": 3659,
       "executable": true,
       "path": "usr/libexec/8311-history-worker.lua",
-      "sha256": "af2af603b04ce9b738e621b6be86b2937f357008746317680edab3d36f04293f"
+      "sha256": "e3ade364892fe93ff8297fd7df6159322eb81d804c99c9105346c28b5d3d9c12"
     },
     {
       "bytes": 145,
@@ -908,6 +914,12 @@
       "sha256": "97ed004891fe4594747e4125d47aee34c30882df34e23004c0d54e0d101259f8"
     },
     {
+      "bytes": 2899,
+      "executable": false,
+      "path": "usr/libexec/8311-support-redact.awk",
+      "sha256": "8267e7151f0ab468c1360dc8ed89b985e58e60e7bc43e9911612c706ddcfc83f"
+    },
+    {
       "bytes": 784,
       "executable": true,
       "path": "usr/libexec/8311-tls-activate.lua",
@@ -986,10 +998,10 @@
       "sha256": "e12440b7fd1cf9ef01afa0f9c71ed1de798be8a3b5ce340e357ba7519aa45d07"
     },
     {
-      "bytes": 6941,
+      "bytes": 8735,
       "executable": true,
       "path": "usr/sbin/8311-support.sh",
-      "sha256": "a57fef010e80d0991c472b0fd101635d924a3f4d13c583331caf1daf4d31b9c3"
+      "sha256": "56a8e06eaf051841f8f533fb459d2d18516786874a25f3fb5b3825c018b4b288"
     },
     {
       "bytes": 474,
@@ -1040,21 +1052,33 @@
       "sha256": "932a9ea78854385187af3f18b6b5d146a8940123e75ab8278b56c30908198a87"
     },
     {
+      "bytes": 14592,
+      "executable": false,
+      "path": "www/luci-static/resources/view/8311-verification-overview.js",
+      "sha256": "69372383e45d12a7efa9c587f8e43d093559f86e731ae49b93c7a6d0e864c712"
+    },
+    {
       "bytes": 104283,
       "executable": false,
       "path": "www/luci-static/resources/view/8311.js",
       "sha256": "a90e8cf958d4730160d48ed5476530cf9d26f6ac5670681a4ee6253da0be5bab"
     },
     {
-      "bytes": 19991,
+      "bytes": 7427,
+      "executable": false,
+      "path": "www/luci-static/resources/view/aott-history-optics.js",
+      "sha256": "22818e1eb22d2c2ff3fe0a49d51ee96760ba50faed5c99fc376af95eada8e78b"
+    },
+    {
+      "bytes": 24243,
       "executable": false,
       "path": "www/luci-static/resources/view/aott-history.js",
-      "sha256": "94d4fd286810abce70d7398623e51d39c4f86ffaa1aedba723b98a6800d133bc"
+      "sha256": "ee500473fb2072303b24eb62e3343acf0c1c295d47092857915f9e51f514e076"
     }
   ],
   "product": "AoTT-8311",
-  "release": "AoTT-8311-v3r3",
-  "revision": "r3",
+  "release": "AoTT-8311-v3r4",
+  "revision": "r4",
   "schema": 1,
   "secrets_included": false,
   "source_only": true,

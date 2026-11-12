@@ -1,6 +1,6 @@
 # AoTT-8311 V3r3 P0 stability source candidate
 
-Status: **source work in progress, not hardware-qualified and not installed on an ONU**.
+Historical status at drafting: source candidate. **Updated 2026-11-12:** V3r3 has since been deployed and committed on the reference ONU, with its 24-hour passive soak complete (1,441/1,441 samples). This document records the original candidate; subsequent changes are developed as V3r4.
 Base: V3r2 source; proposed revision: **V3r3**.
 Tracking: GitHub Issues #59 and #60.
 
@@ -19,12 +19,12 @@ Tracking: GitHub Issues #59 and #60.
 | 09 Config transaction consistency | Existing guarded writers preserved | Interrupted-save, stale revision, real consumer, multi-client tests |
 | 10 Clock correctness | Soak collector records UTC host time and device monotonic uptime separately | NTP jump/outage reconstruction and device-history hardware tests |
 | 11 UBI/thermal/resource safety | Read-only off-device soak now includes UBI bad PEB count, maximum erase count, spare eraseblocks and reserve plus thermals/memory; accepts missing values as unavailable | Extended flash-health observation, fault testing and device-specific acceptance |
-| 12 Soak reliability | Read-only off-device JSONL collector with explicit probe gaps, reboot and link-state changes plus UBI wear indicators | 24-hour and 7-day completed runs, reports and acceptance |
+| 12 Soak reliability | Read-only off-device JSONL collector with explicit probe gaps, reboot and link-state changes plus UBI wear indicators | V3r3 24-hour observation completed; 7-day soak waived by maintainer, targeted hardware tests remain |
 | 13 Release integrity | New source-only release identity, source tests and profile preflight | Two independent identical complete firmware builds and compatibility/negative-image checks |
 | 14 Privacy/support | TLS private keys and sensitive write payloads now begin in root-only mode 0600; symlinks and changed destinations are refused | Device end-to-end security, support bundle redaction and negative fixture proof |
 | 15 Resource limits | Shared write helper rejects inputs above 1 MiB; all staged writes use exclusive creation and size/mode verification | Concurrent management load, memory/CPU/timeout testing and truthful error display |
 
-**P0 is not complete until the remaining hardware and long-duration acceptance criteria are met.** No upgrade, reboot, service restart, credential change, or production configuration change is included in this source patch.
+**P0 remains open for remaining functional/hardware acceptance; the maintainer waived a 7-day soak after the completed 24-hour V3r3 run.** No upgrade, reboot, service restart, credential change, or production configuration change is included in this source patch.
 
 ## First fixed defects
 
@@ -92,7 +92,7 @@ The previously unavailable local browser dependencies were found and connected i
 
 ## Source and device acceptance
 
-Required: `python3 tools/verify_release.py .`, source and Lua/QEMU suites, source privacy gate, runnable Chromium UI scenarios, two independent reproducible rootfs/archive builds, multi-day hardware soak, per-feature hardware qualification, and explicitly authorized deployment. Release image must stay inside the fixed 6,221,824-byte rootfs bank with room for future fixes.
+Required: `python3 tools/verify_release.py .`, source and Lua/QEMU suites, source privacy gate, runnable Chromium UI scenarios, two independent reproducible rootfs/archive builds, completed 24-hour V3r3 hardware soak, per-feature hardware qualification, and explicitly authorized deployment. Release image must stay inside the fixed 6,221,824-byte rootfs bank with room for future fixes.
 
 ## Scope and risk disclosure
 

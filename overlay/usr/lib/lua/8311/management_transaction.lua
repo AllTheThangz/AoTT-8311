@@ -61,6 +61,11 @@ local function rollback(provider,jobid,reason)
     if not restored then
         return nil,"management_rollback_failed:"..tostring(why or reason)
     end
+    -- The adapter must verify actual runtime restoration, not merely
+    -- successful file import or service-reload return codes.
+    if type(restored)~="table" or restored.runtime_verified~=true then
+        return nil,"management_rollback_runtime_unverified"
+    end
     return {
         schema=1,status="MANAGEMENT_TRANSACTION_ROLLED_BACK",
         rollback_verified=true,confirmation_required=false,
@@ -115,7 +120,13 @@ local function transaction(root,jobdir,request,mode,provider,wait_ticks,verify_t
     for attempt=1,verify_ticks do
         verified,verify_why=safe_call(provider.verify,request)
         if verified then break end
-        if attempt<verify_ticks then provider.sleep() end
+        if attempt<verify_ticks then
+            local waited=pcall(provider.sleep)
+            if not waited then
+                return rollback(provider,jobid,
+                    "management_verification_wait_failed")
+            end
+        end
     end
     if not verified then return rollback(provider,jobid,
         verify_why or "management_runtime_convergence_failed") end
@@ -137,7 +148,11 @@ local function transaction(root,jobdir,request,mode,provider,wait_ticks,verify_t
                 rollback_verified=false,contains_configuration_values=false
             }
         end
-        provider.sleep()
+        local waited=pcall(provider.sleep)
+        if not waited then
+            return rollback(provider,jobid,
+                "management_confirmation_wait_failed")
+        end
     end
     return rollback(provider,jobid,"management_confirmation_timeout")
 end

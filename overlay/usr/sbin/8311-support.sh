@@ -87,7 +87,7 @@ collect() {
     rm -f "$work/errors" || exit 74
 }
 
-collect system.txt 10 uname -a
+collect system.txt 10 uname -srm
 collect uptime.txt 10 uptime
 collect memory.txt 10 free
 collect filesystems.txt 10 df -h
@@ -118,11 +118,45 @@ if [ "$full" -eq 1 ]; then
     collect extvlan-tables.txt 30 8311-extvlan-decode.sh -t
     collect extvlan-decoded.txt 30 8311-extvlan-decode.sh
 fi
+# After command-specific secret handling, scrub address and PON identity
+# patterns across every successful default-mode text capture. Traffic filter
+# dumps can contain MACs and subscriber IPs even without sensitive keywords.
+# Never feed the raw capture to the archive if this privacy pass fails.
+if [ "$full" -eq 0 ]; then
+    redactor=/usr/libexec/8311-support-redact.awk
+    [ -r "$redactor" ] && [ -f "$redactor" ] && [ ! -L "$redactor" ] ||
+        { printf '%s\n' 'support: privacy filter unavailable' >&2; exit 74; }
+    sanitized_total=0
+    for item in "$outdir"/*.txt; do
+        [ -f "$item" ] || continue
+        case "$item" in */collection-status.txt) continue;; esac
+        # A malicious or exceptionally long diagnostic must not expand the
+        # sanitizer's output without limit or be emitted unfiltered.
+        (
+            ulimit -c 0 && ulimit -f 8192 || exit 74
+            LC_ALL=C awk -f "$redactor" "$item"
+        ) > "$work/redacted" || exit 74
+        redacted_bytes=$(stat -c '%s' "$work/redacted") || exit 74
+        if [ "$redacted_bytes" -gt 4194304 ] ||
+           [ "$((sanitized_total + redacted_bytes))" -gt 25165824 ]; then
+            # Fail closed: omit oversized content, record an incomplete bundle.
+            rm -f "$work/redacted" "$item" || exit 74
+            partial=1
+            printf '%s=redaction_limit_exceeded\n' "$(basename "$item")" >> "$outdir/collection-status.txt" || exit 74
+            continue
+        fi
+        mv "$work/redacted" "$item" || exit 74
+        sanitized_total=$((sanitized_total + redacted_bytes))
+    done
+fi
 cat > "$outdir/README.txt" <<'INFO'
-Default sanitized mode redacts every environment value and omits log lines
-naming authentication material or subscriber identity. Raw OMCI and extended
-VLAN dumps are collected only with --full. Review before sharing: other logs,
-traffic filters, hostnames and network topology can still identify a system.
+Default sanitized mode redacts every environment value, removes log lines
+naming authentication material or subscriber identity, and masks standard
+IPv4, IPv6, MAC and PON serial formats in every retained text diagnostic.
+uname output omits the hostname. Raw OMCI and extended VLAN dumps are only
+collected with --full. Pattern-based redaction is not a guarantee of anonymity:
+review reports for unusual identity encodings, hostnames and topology before
+sharing. Full mode is deliberately NOT redacted.
 Full mode includes raw environment values and vendor dumps and is sensitive.
 The pontop batch dump is omitted because its fixed /tmp/pontop.txt destination
 cannot safely belong to concurrent jobs. No stale shared dump is imported.

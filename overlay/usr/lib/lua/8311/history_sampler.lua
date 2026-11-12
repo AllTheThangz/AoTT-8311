@@ -51,6 +51,28 @@ local function byte_counter(v)
     return v
 end
 
+local OPTIC_RANGES={
+    rx_power_dbm={-45,15},tx_power_dbm={-45,15},
+    optic_temp_c={-40,110},module_voltage_v={2,4},
+    tx_bias_ma={0,200},cpu0_temp_c={-35,130},cpu1_temp_c={-35,130},
+}
+local function optical_values(raw)
+    if raw==nil then return nil end
+    if type(raw)~="table" then return nil end
+    -- Strict fixed scalar whitelist. Raw EEPROM/serial/private labels
+    -- cannot enter RAM history or the public JSON projection.
+    local out={}
+    for key,bounds in pairs(OPTIC_RANGES) do
+        local n=raw[key]
+        if type(n)=="number" and n==n and
+           n~=math.huge and n~=-math.huge and
+           n>=bounds[1] and n<=bounds[2] then
+            out[key]=n
+        end
+    end
+    return next(out) and out or nil
+end
+
 local function clean(sample)
     if type(sample) ~= "table" or not token(sample.boot, 80) or
        not host_interface(sample.source) or not valid_uptime(sample.uptime) then
@@ -67,10 +89,17 @@ local function clean(sample)
     if integer(sample.ethernet_mbps, 0, 100000) then
         value.ethernet_mbps=sample.ethernet_mbps
     end
+    if sample.optics~=nil then
+        value.optics=optical_values(sample.optics)
+    end
     local counters=type(sample.eth)=="table" and sample.eth or {}
     value.eth={
         RxGoodBytes=byte_counter(counters.RxGoodBytes),
         TxGoodBytes=byte_counter(counters.TxGoodBytes),
+        RxFCSErrorPkts=byte_counter(counters.RxFCSErrorPkts),
+        RxOverflowError=byte_counter(counters.RxOverflowError),
+        RxDroppedPkts=byte_counter(counters.RxDroppedPkts),
+        TxDroppedPkts=byte_counter(counters.TxDroppedPkts),
     }
     return value
 end
@@ -285,15 +314,19 @@ function M.ingest_selected(state,input)
     if type(input)~="table" or type(input.observed)~="table" or
        type(input.observed.pon)~="boolean" or
        type(input.observed.host)~="boolean" or
-       (not input.observed.pon and not input.observed.host) then
+       (input.observed.optical~=nil and
+        type(input.observed.optical)~="boolean") or
+       (not input.observed.pon and not input.observed.host and
+        not input.observed.optical) then
         return nil,"invalid_selected_channels"
     end
     for key in pairs(input.observed) do
-        if key~="pon" and key~="host" then
+        if key~="pon" and key~="host" and key~="optical" then
             return nil,"invalid_selected_channels"
         end
     end
-    if (not input.observed.pon and input.pon_state~=nil) or
+    if (not input.observed.optical and input.optics~=nil) or
+       (not input.observed.pon and input.pon_state~=nil) or
        (not input.observed.host and
         (input.ethernet_mbps~=nil or
          (type(input.eth)=="table" and next(input.eth)~=nil))) then
@@ -307,6 +340,8 @@ function M.ingest_selected(state,input)
     end
     local pon_due=input.observed.pon
     local host_due=input.observed.host
+    local optical_due=input.observed.optical==true
+    local optical_good=optical_due and type(current.optics)=="table"
     local pon_good=pon_due and current.pon_state~=nil
     local host_good=host_due and current.ethernet_mbps~=nil
     local fail_pon=pon_due and not pon_good
@@ -381,6 +416,7 @@ function M.ingest_selected(state,input)
     if host_due then state.selected_failed_host=fail_host end
 
     local rates,rate_error=nil,nil
+    local integrity=nil
     if fail_pon or fail_host then
         state.selected_rate_previous=nil
         if not boundary then status="observation_unavailable" end
@@ -388,6 +424,31 @@ function M.ingest_selected(state,input)
         local old=state.selected_rate_previous
         if old and not boundary then
             rates,rate_error=math_model.eth_rates(old,current)
+            -- Host counters and byte rates share the same native sample
+            -- interval. Reset, wrap, missing values and reboot boundaries
+            -- are unavailable rather than a fabricated zero increment.
+            if rates then
+                local mapping={
+                    {"RxFCSErrorPkts","rx_fcs_error_delta"},
+                    {"RxOverflowError","rx_overflow_delta"},
+                    {"RxDroppedPkts","rx_drop_delta"},
+                    {"TxDroppedPkts","tx_drop_delta"},
+                }
+                integrity={}
+                for _,row in ipairs(mapping) do
+                    local prior=old.eth and old.eth[row[1]]
+                    local latest=current.eth and current.eth[row[1]]
+                    if prior~=nil and latest~=nil then
+                        local d=math_model.counter_delta(prior,latest)
+                        if d and #d<=10 then
+                            local n=tonumber(d)
+                            if n and n<=1000000000 then
+                                integrity[row[2]]=n
+                            end
+                        end
+                    end
+                end
+            end
         end
         -- Only actual sampled counters may form a future baseline.
         if current.eth and (current.eth.RxGoodBytes~=nil or
@@ -413,8 +474,13 @@ function M.ingest_selected(state,input)
             (pon_good and "observed" or "unavailable"),
         host_link_observation=not host_due and "not_sampled" or
             (host_good and "observed" or "unavailable"),
+        optical_observation=not optical_due and "not_sampled" or
+            (optical_good and "observed" or "unavailable"),
         status=status,walltime_trust="unknown",
     }
+    if optical_good then
+        for key,value in pairs(current.optics) do sample[key]=value end
+    end
     if rates then
         sample.elapsed_seconds=rates.elapsed_seconds
         sample.rx_mbps=rates.rx_mbps
@@ -423,6 +489,9 @@ function M.ingest_selected(state,input)
         sample.tx_unavailable=rates.tx_mbps_unavailable
         sample.rate_source=rates.source
         sample.direction=rates.direction
+        if integrity then
+            for key,value in pairs(integrity) do sample[key]=value end
+        end
     else
         sample.rate_unavailable=rate_error or "no_comparable_interval"
     end

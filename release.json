@@ -1,7 +1,7 @@
 {
   "hardware_profile": "potron-prx126-aott-v1",
   "product": "AoTT-8311",
-  "revision": "r3",
+  "revision": "r4",
   "schema": 1,
   "status": "offline-candidate",
   "target": "WAS-110",

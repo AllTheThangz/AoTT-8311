@@ -91,6 +91,18 @@ local function window(raw)
     flag(out,"history_exhausted",raw.history_exhausted)
     return out
 end
+local OPTIC_RANGES={
+    rx_power_dbm={-45,15},tx_power_dbm={-45,15},
+    optic_temp_c={-40,110},module_voltage_v={2,4},
+    tx_bias_ma={0,200},cpu0_temp_c={-35,130},cpu1_temp_c={-35,130},
+}
+local function optical_fields(out,raw)
+    if raw.optical_observation~="observed" then return end
+    for key,bounds in pairs(OPTIC_RANGES) do
+        local n=raw[key]
+        if finite(n,bounds[1],bounds[2]) then out[key]=n end
+    end
+end
 local function sample(raw,cutoff)
     if type(raw)~="table" or not int(raw.epoch_index,1,MAX_EPOCH)
        or not finite(raw.at_uptime,0,1e12) or not interface(raw.source)
@@ -103,6 +115,8 @@ local function sample(raw,cutoff)
     count(row,"host_link_speed_mbps",raw.ethernet_mbps,100000)
     label(row,"pon_observation",raw.pon_observation,MISSING)
     label(row,"host_link_observation",raw.host_link_observation,MISSING)
+    label(row,"optical_observation",raw.optical_observation,MISSING)
+    optical_fields(row,raw)
     -- If an interval reaches outside the requested display window,
     -- remove both rates. The displayed aggregate uses the same rule.
     if finite(raw.elapsed_seconds,0,3600) and raw.elapsed_seconds>0
@@ -113,6 +127,10 @@ local function sample(raw,cutoff)
         num(row,"elapsed_seconds",raw.elapsed_seconds,3600)
         num(row,"rx_mbps",raw.rx_mbps,1e12)
         num(row,"tx_mbps",raw.tx_mbps,1e12)
+        count(row,"rx_fcs_error_delta",raw.rx_fcs_error_delta,1000000000)
+        count(row,"rx_overflow_delta",raw.rx_overflow_delta,1000000000)
+        count(row,"rx_drop_delta",raw.rx_drop_delta,1000000000)
+        count(row,"tx_drop_delta",raw.tx_drop_delta,1000000000)
     end
     return row
 end
@@ -181,6 +199,15 @@ function M.project(state,range,limit,mode)
             events[#events+1]=safe
         end
     end
+    local optics_present=false
+    for _,row in ipairs(samples) do
+        if row.optical_observation=="observed" and
+           (row.rx_power_dbm~=nil or row.tx_power_dbm~=nil or
+            row.optic_temp_c~=nil) then
+            optics_present=true
+            break
+        end
+    end
     local windows={}
     for _,name in ipairs(RANGES) do
         local v=histories[name]
@@ -199,7 +226,7 @@ function M.project(state,range,limit,mode)
         raw_tail_independent_of_selected_range=true,
         history_is_volatile=true,
         actual_isp_uptime_unverified=true,
-        optics_history_unavailable=true,
+        optics_history_unavailable=not optics_present,
         rate_units="Mbps",
         clock_domain="onu_monotonic_uptime",
         calendar_time_unverified=true,

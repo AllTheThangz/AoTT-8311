@@ -1,5 +1,42 @@
 # AoTT-8311 roadmap and current development stages
 
+## V3r4 opt-in optical and thermal history, November 12, 2026
+
+The existing single RAM-only History worker now has independent, configurable
+optical and CPU thermal sampling (default OFF, 60/120/300 seconds when opted
+in), based on the fixed PRX126 read-only SFF-8472 diagnostic bytes. Historical
+RX/TX power, optic/CPU temperatures, laser bias and module voltage are
+range-validated and exported only as numeric values. LuCI adds dual trends,
+recent observations and bounded exports. Optical-only ticks spawn no native
+command processes; missing samples and reboot gaps remain explicit. This is
+source-tested and still needs its own board-level acceptance. No new V3r4
+deployment trial is authorized. See
+[optical and thermal work](V3R4-OPTICAL-THERMAL-HISTORY.md).
+
+## V3r4 current source-only residential diagnostics, November 12, 2026
+
+The V3r4 draft continues without a new deployment trial. Recent development
+adds the **55-field Configuration Verification Overview** and four RAM-only
+host-interface integrity counters (RX FCS errors, RX overflows, RX drops,
+TX drops) to the existing optional History worker, with per-interval
+validated deltas and bounded browser/JSON/CSV presentation. History settings
+now require exact UCI and worker-state readback and distinguish verified
+rollback from an unknown outcome. Earlier V3r4 increments repaired
+activation rollback, interrupted boot-configuration staging, and support
+bundle privacy. These are source-tested, not independently hardware-
+qualified. No additional sampler process, persistent flash history,
+automatic WAN probing or live ONU change was introduced.
+
+**Next material P1:** independently proven optical RX/TX/temperature history,
+a safely authenticated real router-side WAN reachability adapter, and
+qualified bounded flash summaries. Continue A-to-Z per-field live effect
+verification and cross-stick capability work on recoverable hardware.
+The 7-day soak was waived; deployment testing is deferred until enough
+substantive V3r4 changes are assembled.
+
+See [residential diagnostic work](V3R4-RESIDENTIAL-HISTORY-ERRORS-AND-RECOVERY.md)
+and [configuration overview](V3R4-CONFIGURATION-VERIFICATION-OVERVIEW.md).
+
 ## V3 completion hardware acceptance, November 9, 2026
 
 The exact V3 completion implementation tree `e5ac19d8938ec7cb48a9628f0e4019ae4a6d69b6` has now completed the full guarded release lifecycle on the reference PRX126: inactive-bank stage, exact-bank verification, one-shot trial boot, postboot acceptance, and separately authorized permanent commit.

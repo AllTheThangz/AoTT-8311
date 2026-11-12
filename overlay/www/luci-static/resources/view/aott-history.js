@@ -20,6 +20,18 @@
     sampling_gap: "Observation gap",
     observation_unavailable: "Observation unavailable"
   };
+  const OPTICAL_RANGES = {
+    rx_power_dbm:[-45,15],tx_power_dbm:[-45,15],
+    optic_temp_c:[-40,110],module_voltage_v:[2,4],
+    tx_bias_ma:[0,200],cpu0_temp_c:[-35,130],
+    cpu1_temp_c:[-35,130]
+  };
+  const OPTICAL_KEYS = Object.keys(OPTICAL_RANGES);
+  function validOpt(n,key) {
+    const range=OPTICAL_RANGES[key];
+    return range && typeof n==="number" && Number.isFinite(n) &&
+      n>=range[0] && n<=range[1];
+  }
   const NS = "http://www.w3.org/2000/svg";
   const documentRoot = document.documentElement;
   let current = null;
@@ -97,16 +109,39 @@
     };
     safeScalar(src, ["pon_state", "host_link_speed_mbps", "elapsed_seconds",
                      "rx_mbps", "tx_mbps"], out);
+    const integrity=["rx_fcs_error_delta","rx_overflow_delta",
+                     "rx_drop_delta","tx_drop_delta"];
+    for (const key of integrity) {
+      if (src[key]!==undefined && src[key]!==null) {
+        if (!int(src[key],1000000000)) return null;
+        out[key]=src[key];
+      }
+    }
     if (["observed", "unavailable", "not_sampled"].includes(src.pon_observation)) {
       out.pon_observation = src.pon_observation;
     }
     if (["observed", "unavailable", "not_sampled"].includes(src.host_link_observation)) {
       out.host_link_observation = src.host_link_observation;
     }
+    if (src.optical_observation!==undefined) {
+      if (!["observed","unavailable","not_sampled"].includes(src.optical_observation))
+        return null;
+      out.optical_observation=src.optical_observation;
+    }
+    let hasOptic=false;
+    for (const key of OPTICAL_KEYS) {
+      if (src[key]!==undefined && src[key]!==null) {
+        if (!validOpt(src[key],key)) return null;
+        out[key]=src[key];
+        hasOptic=true;
+      }
+    }
+    if (hasOptic && out.optical_observation!=="observed") return null;
     if (out.status !== "valid_interval" || !valid(out.elapsed_seconds, 3600)) {
       delete out.elapsed_seconds;
       delete out.rx_mbps;
       delete out.tx_mbps;
+      if (integrity.some(key=>out[key]!==undefined)) return null;
     }
     return out;
   }
@@ -133,7 +168,7 @@
         src.actual_isp_uptime_unverified !== true ||
         src.calendar_time_unverified !== true ||
         src.history_is_volatile !== true ||
-        src.optics_history_unavailable !== true ||
+        typeof src.optics_history_unavailable !== "boolean" ||
         src.clock_domain !== "onu_monotonic_uptime" ||
         !Array.isArray(src.samples) || !Array.isArray(src.events) ||
         src.samples.length > 100 || src.events.length > 100 ||
@@ -152,13 +187,18 @@
     for (let i=1; i<samples.length; i++) {
       if (samples[i].at_uptime <= samples[i-1].at_uptime) return null;
     }
+    const hasActualOptics=samples.some(v=>v.optical_observation==="observed" &&
+       (validOpt(v.rx_power_dbm,"rx_power_dbm") ||
+        validOpt(v.tx_power_dbm,"tx_power_dbm") ||
+        validOpt(v.optic_temp_c,"optic_temp_c")));
+    if (src.optics_history_unavailable===hasActualOptics) return null;
     return {
       schema: 1, kind: "aott_local_history",
       source_only_not_live: false,
       actual_isp_uptime_unverified: true,
       calendar_time_unverified: true,
       history_is_volatile: true,
-      optics_history_unavailable: true,
+      optics_history_unavailable: src.optics_history_unavailable,
       clock_domain: "onu_monotonic_uptime",
       range: Object.prototype.hasOwnProperty.call(RANGE_SECONDS, src.range)
         ? src.range : "hour",
@@ -263,6 +303,12 @@
     text("chart-caption", plotted+
       " plotted rate readings from at most 100 retained samples. Gaps are not connected.");
   }
+  function integrityInterval(row,cutoff) {
+    return valid(row.at_uptime) && row.at_uptime>=cutoff &&
+      row.status==="valid_interval" &&
+      valid(row.elapsed_seconds,3600) && row.elapsed_seconds>0 &&
+      row.at_uptime-row.elapsed_seconds>=cutoff;
+  }
   function viewSamples(samples,cutoff) {
     const rows = id("history-sample-rows");
     rows.replaceChildren();
@@ -270,7 +316,7 @@
     if (!eligible.length) {
       const tr=document.createElement("tr");
       const td=document.createElement("td");
-      td.colSpan=5;td.textContent="No samples retained for this range";
+      td.colSpan=8;td.textContent="No samples retained for this range";
       tr.appendChild(td);rows.appendChild(tr);return;
     }
     eligible.slice().reverse().forEach(function (item) {
@@ -287,6 +333,10 @@
       const tx=rateInWindow(item,"tx_mbps",cutoff);
       cell(tr,rx===null ? "Unavailable" : rx.toFixed(2));
       cell(tr,tx===null ? "Unavailable" : tx.toFixed(2));
+      for (const key of ["rx_fcs_error_delta","rx_drop_delta","tx_drop_delta"]) {
+        cell(tr,!integrityInterval(item,cutoff) ||
+             !int(item[key],1000000000) ? "Unavailable" : String(item[key]));
+      }
       rows.appendChild(tr);
     });
   }
@@ -337,6 +387,9 @@
       ? range.host_link_speed_mbps+" Mbps host speed" : "Unavailable");
     text("wan-state","Not verified");
     text("optics-state","Not collected");
+    if (window.AoTTOpticalHistory && window.AoTTOpticalHistory.render) {
+      window.AoTTOpticalHistory.render(current.samples,cutoff);
+    }
     text("rx-average",fmt(range.rx.average_mbps));
     text("rx-peak",fmt(range.rx.peak_mbps));
     text("tx-average",fmt(range.tx.average_mbps));
@@ -350,6 +403,35 @@
       " of the requested period. "+
       (range.terminated_at_epoch_boundary ? "History stops at a reboot, link source change, or long gap. " : "")+
       "The full requested time range is not verified.");
+    // Count only retained, comparable host-counter intervals. Missing
+    // counter sources and counter resets must not become false zeros.
+    const integrityFields=[
+      ["rx_fcs_error_delta","history-rx-fcs"],
+      ["rx_overflow_delta","history-rx-overflow"],
+      ["rx_drop_delta","history-rx-drop"],
+      ["tx_drop_delta","history-tx-drop"]
+    ];
+    let observed=0;
+    const totals={};
+    const counts={};
+    integrityFields.forEach(([key])=>{totals[key]=0;counts[key]=0;});
+    for (const item of current.samples) {
+      if (!integrityInterval(item,cutoff)) continue;
+      observed++;
+      for (const [key] of integrityFields) {
+        if (int(item[key],1000000000)) {
+          totals[key]+=item[key];counts[key]++;
+        }
+      }
+    }
+    for (const [key,id] of integrityFields) {
+      text(id,counts[key]>0 ? totals[key].toLocaleString() : "Unavailable");
+    }
+    const coverage=integrityFields.map(([key,id])=>
+      id.replace("history-","").replace(/-/g," ")+" "+counts[key]+"/"+observed).join("; ");
+    text("history-integrity-coverage",observed+" comparable retained host "+
+      "interval(s); counter coverage: "+coverage+
+      ". Missing intervals are not counted as zero. Sampled deltas, not lifetime totals.");
     draw(current.samples,cutoff);
     viewSamples(current.samples,cutoff);
     viewEvents(current.events,cutoff);
@@ -370,6 +452,12 @@
       });
       text("wan-state","Not verified");
       text("optics-state","Not collected");
+      if (window.AoTTOpticalHistory && window.AoTTOpticalHistory.clear) {
+        window.AoTTOpticalHistory.clear();
+      }
+      for (const id of ["history-rx-fcs","history-rx-overflow",
+                        "history-rx-drop","history-tx-drop"]) text(id,"Unavailable");
+      text("history-integrity-coverage","No validated integrity counters.");
       text("chart-caption","No validated history data is loaded.");
       text("coverage-message","No measured history has been loaded.");
       id("history-chart").replaceChildren();
@@ -397,19 +485,28 @@
       ? Math.max(0,range.latest_uptime-RANGE_SECONDS[activeRange]) : 0;
     const columns=[
       "record_type","at_uptime","source","status","pon_state",
-      "host_link_speed_mbps","rx_mbps","tx_mbps","event_kind","from","to",
-      "observation_window_seconds"
+      "host_link_speed_mbps","rx_mbps","tx_mbps",
+      "rx_fcs_error_delta","rx_overflow_delta",
+      "rx_drop_delta","tx_drop_delta",
+      "optical_observation","rx_power_dbm","tx_power_dbm",
+      "optic_temp_c","cpu0_temp_c","cpu1_temp_c",
+      "tx_bias_ma","module_voltage_v",
+      "event_kind","from","to","observation_window_seconds"
     ];
     const lines=[columns.join(",")];
-    current.samples.filter(v => v.at_uptime>=cutoff).forEach(function (v) {
-      const rx=rateInWindow(v,"rx_mbps",cutoff);
-      const tx=rateInWindow(v,"tx_mbps",cutoff);
-      lines.push(["sample",v.at_uptime,v.source,v.status,
-        v.pon_state,v.host_link_speed_mbps,rx,tx,"","","",""].map(quote).join(","));
+    const encodeRow=row=>columns.map(key=>quote(row[key])).join(",");
+    current.samples.filter(v=>v.at_uptime>=cutoff).forEach(function (v) {
+      const row={...v,record_type:"sample",
+        rx_mbps:rateInWindow(v,"rx_mbps",cutoff),
+        tx_mbps:rateInWindow(v,"tx_mbps",cutoff)};
+      if (!integrityInterval(v,cutoff)) {
+        for (const key of ["rx_fcs_error_delta","rx_overflow_delta",
+                           "rx_drop_delta","tx_drop_delta"]) delete row[key];
+      }
+      lines.push(encodeRow(row));
     });
-    current.events.filter(v => v.at_uptime>=cutoff).forEach(function (v) {
-      lines.push(["event",v.at_uptime,"","","","","","",v.kind,
-        v.from,v.to,v.observation_window_seconds].map(quote).join(","));
+    current.events.filter(v=>v.at_uptime>=cutoff).forEach(function (v) {
+      lines.push(encodeRow({...v,record_type:"event",event_kind:v.kind}));
     });
     const result=lines.join("\r\n")+"\r\n";
     return result.length<=65536 ? result : null;

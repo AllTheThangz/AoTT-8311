@@ -1,4 +1,4 @@
-"""V3r3 P0 source invariants, fail closed without a vendor device.
+"""V3r4 P0 source invariants, fail closed without a vendor device.
 
 The tests are static and host-Lua only. They are not hardware acceptance.
 """

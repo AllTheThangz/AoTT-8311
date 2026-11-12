@@ -1480,7 +1480,8 @@ function action_history_save()
        not dispatcher.test_post_security(true) then return end
     local values = operation_form({
         revision=true,enabled=true,pon_interval_seconds=true,
-        host_interval_seconds=true,ram_sample_limit=true,ram_event_limit=true
+        host_interval_seconds=true,optical_enabled=true,
+        optical_interval_seconds=true,ram_sample_limit=true,ram_event_limit=true
     })
     if not values then return end
     local state, err, status = history_config.apply(values)
@@ -1489,6 +1490,8 @@ function action_history_save()
                    enabled=state.enabled,service_running=state.service_running,
                    pon_interval_seconds=state.pon_interval_seconds,
                    host_interval_seconds=state.host_interval_seconds,
+                   optical_enabled=state.optical_enabled,
+                   optical_interval_seconds=state.optical_interval_seconds,
                    ram_sample_limit=state.ram_sample_limit,
                    ram_event_limit=state.ram_event_limit}
             or {success=false,error=err or "History configuration failed"})

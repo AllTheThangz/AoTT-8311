@@ -2307,7 +2307,7 @@
   "schema": 1,
   "source_gui_sha256": "a0b6ec46c18255a2c5c676ec8112c8426745fe5370074bfc18ed843166731977",
   "source_registry_kind": "SOURCE_DERIVED_SETTINGS_INVENTORY_ONLY",
-  "source_server_validator_sha256": "4accd91fdf7a5aa0dd71bc973408062038ec7da221fc967eed7c2ccd69f1105b",
+  "source_server_validator_sha256": "3df48e8d7da9b96e0d0f97a710b5e254695a263c231f933a61135bf512a95cf4",
   "summary": {
     "fields": 55,
     "hardware_qualified_fields": 0,
