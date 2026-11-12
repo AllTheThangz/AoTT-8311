@@ -10,6 +10,7 @@ local function copy(tbl)
 end
 local orig={
     enabled="0",pon_interval_seconds="60",host_interval_seconds="60",
+    optical_enabled="0",optical_interval_seconds="120",
     ram_sample_limit="120",ram_event_limit="128",
 }
 local store=copy(orig)
@@ -145,6 +146,31 @@ same(store.host_interval_seconds,"30","persisted_host_interval")
 same(store.ram_sample_limit,"300","persisted_ram_cap")
 same(writes,1,"one_committed_transaction")
 same(locks,0,"success_unlocks")
+
+-- Optic sampling is explicitly disabled by default. Enabling it only
+-- updates guarded settings and the same existing worker, never a new
+-- process or any periodic flash-history writer.
+reset()
+same(config.snapshot().optical_enabled,"0","optical_disabled_default")
+same(config.snapshot().optical_interval_seconds,"120","optical_default_cadence")
+result=assert(config.apply(form({
+    enabled="1",optical_enabled="1",optical_interval_seconds="60"
+})))
+same(result.optical_enabled,"1","optical_opt_in_persisted")
+same(result.optical_interval_seconds,"60","optical_cadence_persisted")
+same(result.service_running,true,"single_worker_started")
+same(store.optical_enabled,"1","exact_uci_optical_readback")
+same(writes,1,"one_uci_commit_for_opt_in")
+same(locks,0,"opt_in_unlocks")
+
+reset()
+result,why=config.apply(form({optical_enabled="2"}))
+same(result,nil,"invalid_optical_toggle_refused")
+same(writes,0,"invalid_optic_no_writes")
+reset()
+result,why=config.apply(form({optical_interval_seconds="1"}))
+same(result,nil,"invalid_optical_cadence_refused")
+same(writes,0,"invalid_interval_no_writes")
 
 reset()
 fail_commit=true

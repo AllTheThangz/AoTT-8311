@@ -5,6 +5,7 @@
 local history = require "8311.history_sampler"
 local pon_model = require "8311.effective_pon_state"
 local counter_model = require "8311.history_model"
+local optical_probe = require "8311.history_optical_probe"
 local M = {}
 
 local BOOT_PATH = "/proc/sys/kernel/random/boot_id"
@@ -94,11 +95,12 @@ end
 function M.read_selected(provider, selected)
     if type(selected)~="table" or type(selected.pon)~="boolean" or
        type(selected.host)~="boolean" or
-       (not selected.pon and not selected.host) then
+       (selected.optical~=nil and type(selected.optical)~="boolean") or
+       (not selected.pon and not selected.host and not selected.optical) then
         return nil,"invalid_probe_selection"
     end
     for key in pairs(selected) do
-        if key~="pon" and key~="host" then
+        if key~="pon" and key~="host" and key~="optical" then
             return nil,"invalid_probe_selection"
         end
     end
@@ -111,6 +113,14 @@ function M.read_selected(provider, selected)
     local uptime_start = clean_uptime(read(provider, UPTIME_PATH, UPTIME_BYTES))
     if not uptime_start then return nil, "monotonic_time_unavailable" end
 
+    -- Read the fixed optical mailbox and both thermal sensors only on
+    -- their own scheduled cadence. An optical-only tick spawns NO native
+    -- subprocess and does not impersonate a PON or host observation.
+    local optics=nil
+    if selected.optical then
+        local ok,value=pcall(optical_probe.read_once,provider)
+        if ok and type(value)=="table" then optics=value end
+    end
     local speed = selected.host and
         clean_speed(read(provider, SPEED_PATH, SPEED_BYTES)) or nil
     local pon_output = selected.pon and
@@ -144,6 +154,8 @@ function M.read_selected(provider, selected)
             (speed ~= nil and "observed" or "unavailable"),
         host_counters = not selected.host and "not_sampled" or
             (counters ~= nil and "observed" or "unavailable"),
+        optical = not selected.optical and "not_sampled" or
+            (optics~=nil and "observed" or "unavailable"),
         proves_subscriber_internet = false,
         sample_source = "prx126_native_host_interface_eth0_0",
         no_device_write = true,
@@ -152,8 +164,9 @@ function M.read_selected(provider, selected)
     return {
         boot = boot, uptime = uptime_end, source = "eth0_0",
         pon_state = pon, ethernet_mbps = speed,
-        eth = counters or {},
-        observed={pon=selected.pon,host=selected.host},
+        eth = counters or {}, optics=optics,
+        observed={pon=selected.pon,host=selected.host,
+                  optical=selected.optical==true},
     }, availability
 end
 

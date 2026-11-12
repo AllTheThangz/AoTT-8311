@@ -7,9 +7,11 @@ local lock=require "8311.history_process_lock"
 local M={}
 local DEFAULT={
     enabled="0",pon_interval_seconds="60",host_interval_seconds="60",
+    optical_enabled="0",optical_interval_seconds="120",
     ram_sample_limit="120",ram_event_limit="128",
 }
 local KEYS={"enabled","pon_interval_seconds","host_interval_seconds",
+            "optical_enabled","optical_interval_seconds",
             "ram_sample_limit","ram_event_limit"}
 local PON={["60"]=true,["120"]=true,["300"]=true}
 local HOST={["30"]=true,["60"]=true,["120"]=true,["300"]=true}
@@ -44,6 +46,8 @@ function M.snapshot(u)
         schema=1,revision=rev,enabled=values.enabled,
         pon_interval_seconds=values.pon_interval_seconds,
         host_interval_seconds=values.host_interval_seconds,
+        optical_enabled=values.optical_enabled,
+        optical_interval_seconds=values.optical_interval_seconds,
         ram_sample_limit=values.ram_sample_limit,
         ram_event_limit=values.ram_event_limit,
         service_running=active,service_status=status,
@@ -69,6 +73,12 @@ function M.validate(form)
     end
     if not PON[form.pon_interval_seconds] then return nil,"Invalid PON sampling interval" end
     if not HOST[form.host_interval_seconds] then return nil,"Invalid host sampling interval" end
+    if form.optical_enabled~="0" and form.optical_enabled~="1" then
+        return nil,"Invalid optical collection value"
+    end
+    if not PON[form.optical_interval_seconds] then
+        return nil,"Invalid optical sampling interval"
+    end
     local samples=tonumber(form.ram_sample_limit)
     local events=tonumber(form.ram_event_limit)
     if not samples or samples~=math.floor(samples) or samples<30 or samples>720 then
@@ -80,6 +90,8 @@ function M.validate(form)
     return {
         enabled=form.enabled,pon_interval_seconds=form.pon_interval_seconds,
         host_interval_seconds=form.host_interval_seconds,
+        optical_enabled=form.optical_enabled,
+        optical_interval_seconds=form.optical_interval_seconds,
         ram_sample_limit=tostring(samples),ram_event_limit=tostring(events),
     }
 end
@@ -209,6 +221,8 @@ function M.runtime()
     return {
         pon_interval_seconds=tonumber(state.pon_interval_seconds),
         host_interval_seconds=tonumber(state.host_interval_seconds),
+        optical_enabled=state.optical_enabled=="1",
+        optical_interval_seconds=tonumber(state.optical_interval_seconds),
         ram_sample_limit=tonumber(state.ram_sample_limit),
         ram_event_limit=tonumber(state.ram_event_limit),
     }

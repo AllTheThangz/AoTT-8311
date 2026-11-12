@@ -50,6 +50,7 @@ local config=require "8311.history_config"
 local base={
     revision=string.rep("a",64),enabled="1",
     pon_interval_seconds="60",host_interval_seconds="30",
+    optical_enabled="0",optical_interval_seconds="120",
     ram_sample_limit="120",ram_event_limit="128",
 }
 local ok=assert(config.validate(base))

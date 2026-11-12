@@ -4,10 +4,11 @@ local esc=tools.html_escape
 -%>
 <%+header%>
 <link rel="stylesheet" href="<%=media%>/aott-history.css?v=aott-8311-v3-history1">
-<script defer src="<%=resource%>/view/aott-history.js?v=aott-8311-v3-history1"></script>
+<script defer src="<%=resource%>/view/aott-history.js?v=aott-8311-v3r4-optical2"></script>
+<script defer src="<%=resource%>/view/aott-history-optics.js?v=aott-8311-v3r4-optical2"></script>
 
 <h2>Local history</h2>
-<p class="aott-section-intro">Optional, low-overhead local history for PON association, host Ethernet link state and measured host-interface throughput. History is RAM-only in this V3 stage. It does not claim ISP uptime, does not test the public Internet, and does not write periodic history to flash.</p>
+<p class="aott-section-intro">Optional, low-overhead local history for PON association, host Ethernet link, host-interface throughput, and opt-in optical/temperature readings. History is RAM-only in V3r4. It does not claim ISP uptime or test the public Internet, and it does not write periodic history to flash.</p>
 
 <form id="aott-history-settings" action="<%=url('admin/8311/history_save')%>" method="post">
   <input type="hidden" name="token" value="<%=esc(token)%>">
@@ -40,6 +41,26 @@ local esc=tools.html_escape
         <select id="history-host-interval" name="host_interval_seconds">
           <% for _,v in ipairs({"30","60","120","300"}) do %>
           <option value="<%=v%>" <% if history.host_interval_seconds==v then %>selected<% end %>><%=v%> seconds</option>
+          <% end %>
+        </select>
+      </div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="history-optical-enabled">Optical and temperature history</label>
+      <div class="cbi-value-field">
+        <select id="history-optical-enabled" name="optical_enabled">
+          <option value="0" <% if history.optical_enabled=="0" then %>selected<% end %>>Disabled</option>
+          <option value="1" <% if history.optical_enabled=="1" then %>selected<% end %>>Enabled, local RAM only</option>
+        </select>
+        <p class="aott-hint">Independent, read-only optical EEPROM and CPU thermal sampling. Disabled by default. No additional command processes, flash history or Internet checks.</p>
+      </div>
+    </div>
+    <div class="cbi-value">
+      <label class="cbi-value-title" for="history-optical-interval">Optical sample interval</label>
+      <div class="cbi-value-field">
+        <select id="history-optical-interval" name="optical_interval_seconds">
+          <% for _,v in ipairs({"60","120","300"}) do %>
+          <option value="<%=v%>" <% if history.optical_interval_seconds==v then %>selected<% end %>><%=v%> seconds</option>
           <% end %>
         </select>
       </div>
@@ -113,6 +134,28 @@ local esc=tools.html_escape
     <p id="coverage-message" class="coverage" role="status">No measured history has been loaded.</p>
   </section>
 
+  <section class="aott-panel" aria-label="Optical and device temperature history">
+    <h3>Optical power and temperature history</h3>
+    <p class="footnote">Only when optical collection is enabled: read-only PRX126 EEPROM diagnostics and kernel thermal sensors. Readings are sampled values from this ONU, not an ISP Internet test. Missing measurements stay unavailable, and history resets at a reboot.</p>
+    <div class="aott-status-grid">
+      <div><span class="stat-label">Latest RX optical power</span><strong id="optical-rx">Unavailable</strong></div>
+      <div><span class="stat-label">Latest TX optical power</span><strong id="optical-tx">Unavailable</strong></div>
+      <div><span class="stat-label">Latest optic temperature</span><strong id="optical-temp">Unavailable</strong></div>
+      <div><span class="stat-label">Latest CPU temperature</span><strong id="optical-cpu">Unavailable</strong></div>
+      <div><span class="stat-label">Lowest retained RX power</span><strong id="optical-rx-low">Unavailable</strong></div>
+      <div><span class="stat-label">Highest retained optic temperature</span><strong id="optical-temp-high">Unavailable</strong></div>
+    </div>
+    <p id="optical-coverage" class="footnote" role="status">Optical collection is disabled, unavailable or has no validated samples.</p>
+    <p class="footnote">RX optical power trend (dBm), with missed intervals shown as gaps.</p>
+    <svg id="history-optical-rx-chart" role="img" aria-label="No sampled RX optical power" viewBox="0 0 640 150" preserveAspectRatio="xMidYMid meet"></svg>
+    <p class="footnote">Optic temperature trend (°C), with missed intervals shown as gaps.</p>
+    <svg id="history-optical-temp-chart" role="img" aria-label="No sampled optic temperature" viewBox="0 0 640 150" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Uptime</th><th>RX dBm</th><th>TX dBm</th><th>Optic °C</th><th>CPU0 °C</th><th>CPU1 °C</th><th>Bias mA</th><th>Voltage V</th></tr></thead>
+      <tbody id="history-optical-rows"></tbody>
+    </table></div>
+  </section>
+
   <section class="aott-panel" aria-label="Sampled Ethernet errors and drops">
     <h3>Host Ethernet errors and dropped packets</h3>
     <p class="footnote">These are summed counter increases across only validated host-sample intervals retained in the selected range. They are not lifetime totals or ISP-side error counts. Missing counters, counter resets, and unobserved intervals remain unavailable rather than zero.</p>
@@ -144,7 +187,7 @@ local esc=tools.html_escape
 
   <section class="aott-panel">
     <h3>Bounded exports</h3>
-    <p class="footnote">Exports contain at most 100 latest-epoch samples and events, with no boot UUID, PON credentials, MAC addresses, log payloads, or destination addresses.</p>
+    <p class="footnote">Exports contain at most 100 latest-epoch samples and events, including only validated optical numbers and host counter deltas. No raw EEPROM, boot UUID, PON credentials, MAC addresses, log payloads or destination addresses.</p>
     <div class="download-row">
       <button type="button" id="history-json" disabled>Export JSON</button>
       <button type="button" id="history-csv" disabled>Export CSV</button>

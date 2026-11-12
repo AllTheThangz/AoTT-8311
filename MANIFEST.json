@@ -338,16 +338,16 @@
       "sha256": "808001ba4f673f93107a6de5ccd51fecb1ede94379db7ef9a3eac28dc03167e1"
     },
     {
-      "bytes": 8892,
+      "bytes": 9601,
       "executable": false,
       "path": "usr/lib/lua/8311/history_config.lua",
-      "sha256": "54b1fd1a3322d715e275b5f3c19991963fff7a7e3c77ed39b239a81c2653c773"
+      "sha256": "29902b47f6bfcf45116d2c894e5474c88fc34eb1e6cae0fad4c62699c7cdb3d0"
     },
     {
-      "bytes": 13649,
+      "bytes": 14482,
       "executable": false,
       "path": "usr/lib/lua/8311/history_export.lua",
-      "sha256": "7c3ee422dd1226c8fd5fcbf8735129a7930f95f9e254b887ddf0d9e19094f9c7"
+      "sha256": "779aace5a1eef5364ce6dac4d6923e3b859839b2d565a604111c32933e2cfafe"
     },
     {
       "bytes": 4066,
@@ -368,10 +368,16 @@
       "sha256": "51f861066d446a80e695b17f9e931ef052c2d623a61f7b0523cc8c114d2279f3"
     },
     {
-      "bytes": 8521,
+      "bytes": 9277,
       "executable": false,
       "path": "usr/lib/lua/8311/history_native_probe.lua",
-      "sha256": "aa5e89651cc33e09587377773f88a57c894b8908f894dbe359d8b11f7ba8a9aa"
+      "sha256": "a4e8d99c407e873876981f6e24697fe1d2371540c8be5f7d92e6dfe5d95db227"
+    },
+    {
+      "bytes": 2943,
+      "executable": false,
+      "path": "usr/lib/lua/8311/history_optical_probe.lua",
+      "sha256": "96331143d741d28676c5ce5e3f41305320d85e77fdb21cd861fc6021ea6e5404"
     },
     {
       "bytes": 14179,
@@ -392,10 +398,10 @@
       "sha256": "26a81bd771ae16a6a8f41774364a1fdb0394220e8ebc376f0f3e56855217e124"
     },
     {
-      "bytes": 19929,
+      "bytes": 21327,
       "executable": false,
       "path": "usr/lib/lua/8311/history_sampler.lua",
-      "sha256": "e2f923ded0890083e0ede55b9d244d413bf85fbb0bbef2b15e0b334225c7b614"
+      "sha256": "bea659a20e7ee10d21af541895eff9f7fbfa4986973965ab209fd1bacc0d5b85"
     },
     {
       "bytes": 11415,
@@ -404,10 +410,10 @@
       "sha256": "25953573a683e1db8eea575da2e193ba55f8c321f83ed68fb71fd33c99dc8089"
     },
     {
-      "bytes": 9006,
+      "bytes": 10098,
       "executable": false,
       "path": "usr/lib/lua/8311/history_snapshot_shape.lua",
-      "sha256": "418849c18c9dced43c12a95ca83d30ec3ef2788ec00c98838b9681c16065000e"
+      "sha256": "92911df66c43d2ab6389cff071747641f7503e043a051c5d80757411d68b0714"
     },
     {
       "bytes": 3008,
@@ -626,10 +632,10 @@
       "sha256": "36adc365d036f3ebd88a1ab0d3c8e8c925273e55195414b112251f43bfe2312e"
     },
     {
-      "bytes": 94655,
+      "bytes": 94849,
       "executable": false,
       "path": "usr/lib/lua/luci/controller/8311.lua",
-      "sha256": "b41bd6d21af9a0f7458cde515cd63debcaf3517fd1feb823c5799afdabcb3123"
+      "sha256": "9c686635e19f56b0557a55f72f3ebf8960ae8e5c366c1aeaca0ca94a42625761"
     },
     {
       "bytes": 6721,
@@ -656,10 +662,10 @@
       "sha256": "2798097d5f63da79b4699d004987c7f505f6867ac8cbcb38467fe903146ed213"
     },
     {
-      "bytes": 10353,
+      "bytes": 13820,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/history.htm",
-      "sha256": "47174cee9e19ab8641709ad94e18777c703cb0703f1f00a1c1e55cab9bed570a"
+      "sha256": "d54cfca0a98902d4dd8b81f1fc3c0f21029fdc8eca837718d9a5aad2c7648f46"
     },
     {
       "bytes": 8848,
@@ -800,10 +806,10 @@
       "sha256": "666481846ecf888f4900f04bb076829e6b2a8d1265f6ab7d677e3c89d088a54e"
     },
     {
-      "bytes": 3191,
+      "bytes": 3659,
       "executable": true,
       "path": "usr/libexec/8311-history-worker.lua",
-      "sha256": "af2af603b04ce9b738e621b6be86b2937f357008746317680edab3d36f04293f"
+      "sha256": "e3ade364892fe93ff8297fd7df6159322eb81d804c99c9105346c28b5d3d9c12"
     },
     {
       "bytes": 145,
@@ -1058,10 +1064,16 @@
       "sha256": "a90e8cf958d4730160d48ed5476530cf9d26f6ac5670681a4ee6253da0be5bab"
     },
     {
-      "bytes": 22508,
+      "bytes": 7427,
+      "executable": false,
+      "path": "www/luci-static/resources/view/aott-history-optics.js",
+      "sha256": "22818e1eb22d2c2ff3fe0a49d51ee96760ba50faed5c99fc376af95eada8e78b"
+    },
+    {
+      "bytes": 24243,
       "executable": false,
       "path": "www/luci-static/resources/view/aott-history.js",
-      "sha256": "5835c7e8c44cb066c73fe5f1a1f6253a7fcfdc0f6b62c8866d97424d32aa25c4"
+      "sha256": "ee500473fb2072303b24eb62e3343acf0c1c295d47092857915f9e51f514e076"
     }
   ],
   "product": "AoTT-8311",

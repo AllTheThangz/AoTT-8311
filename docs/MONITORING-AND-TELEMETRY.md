@@ -1,5 +1,15 @@
 # Vendor-neutral monitoring and logging integration
 
+**V3r4 optical source update (2026-11-12):** An independent optional
+60/120/300-second RAM-only channel is available in the existing History
+worker for read-only PRX126 EEPROM DDM and CPU thermal measurements.
+Configuration defaults to disabled. LuCI shows bounded optical power and
+temperature trends and redacted numerical JSON/CSV data. It introduces
+neither a new native process nor persistent NAND histories or a claim of
+ISP availability. See
+[V3r4 optical/thermal history](V3R4-OPTICAL-THERMAL-HISTORY.md).
+
+
 **V3r4 source update (2026-11-12):** The optional single RAM-only history
 collector now parses PRX126 RX FCS, overflow and RX/TX drop counters as exact
 unsigned decimal strings and publishes only validated, reset-safe per-interval

@@ -40,14 +40,19 @@ local provider={
 }
 local next_pon=0
 local next_host=0
+local next_optical=0
 local publication=nil
 local consecutive_failures=0
 
 while true do
     local now=uptime()
     if not now then stop("monotonic_time_unavailable") end
-    local selected={pon=now>=next_pon,host=now>=next_host}
-    if selected.pon or selected.host then
+    local selected={
+        pon=now>=next_pon,
+        host=now>=next_host,
+        optical=runtime.optical_enabled and now>=next_optical or false,
+    }
+    if selected.pon or selected.host or selected.optical then
         local sample,availability=native.read_selected(provider,selected)
         if sample then
             local accepted,ingest_why=sampler.ingest_selected(state,sample)
@@ -55,6 +60,9 @@ while true do
             consecutive_failures=0
             if selected.pon then next_pon=sample.uptime+runtime.pon_interval_seconds end
             if selected.host then next_host=sample.uptime+runtime.host_interval_seconds end
+            if selected.optical then
+                next_optical=sample.uptime+runtime.optical_interval_seconds
+            end
             local published,publish_why=snapshot.publish(owner,state)
             if not published then stop(publish_why) end
             if not publication then
@@ -66,6 +74,9 @@ while true do
             io.stderr:write("aott-history: probe unavailable: "..tostring(availability).."\n")
             next_pon=now+math.min(runtime.pon_interval_seconds,60)
             next_host=now+math.min(runtime.host_interval_seconds,60)
+            if runtime.optical_enabled then
+                next_optical=now+math.min(runtime.optical_interval_seconds,60)
+            end
             if consecutive_failures>=4 and publication then
                 snapshot.revoke(publication)
                 publication=nil
@@ -74,7 +85,8 @@ while true do
         end
     end
     local current=uptime() or now
-    local due=math.min(next_pon,next_host)
+    local due=math.min(next_pon,next_host,
+        runtime.optical_enabled and next_optical or math.huge)
     local wait=math.max(1,math.min(5,due-current))
     local seconds=math.floor(wait)
     nixio.nanosleep(seconds,(wait-seconds)*1000000000)

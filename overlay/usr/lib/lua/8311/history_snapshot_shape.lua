@@ -42,6 +42,10 @@ local SAMPLE={
     pon_state=true,host_link_speed_mbps=true,
     pon_observation=true,host_link_observation=true,
     elapsed_seconds=true,rx_mbps=true,tx_mbps=true,
+    optical_observation=true,
+    rx_power_dbm=true,tx_power_dbm=true,optic_temp_c=true,
+    module_voltage_v=true,tx_bias_ma=true,
+    cpu0_temp_c=true,cpu1_temp_c=true,
     rx_fcs_error_delta=true,rx_overflow_delta=true,
     rx_drop_delta=true,tx_drop_delta=true,
 }
@@ -167,6 +171,22 @@ local function sample_ok(x)
         if not optional_number(x,key,1000000000,true) then return false end
         if x[key]~=nil then has_integrity=true end
     end
+    if not optional_enum(x,"optical_observation",OBSERVED) then
+        return false
+    end
+    local optical=false
+    for key,bounds in pairs({
+        rx_power_dbm={-45,15},tx_power_dbm={-45,15},
+        optic_temp_c={-40,110},module_voltage_v={2,4},
+        tx_bias_ma={0,200},cpu0_temp_c={-35,130},
+        cpu1_temp_c={-35,130},
+    }) do
+        if x[key]~=nil then
+            if not finite(x[key],bounds[1],bounds[2]) then return false end
+            optical=true
+        end
+    end
+    if optical and x.optical_observation~="observed" then return false end
     if x.rx_mbps~=nil or x.tx_mbps~=nil or has_integrity then
         if x.status~="valid_interval" or
            not finite(x.elapsed_seconds,0.001,3600) then return false end
@@ -197,7 +217,7 @@ function M.validate(data)
        data.max_export_items~=100 or
        data.history_is_volatile~=true or
        data.actual_isp_uptime_unverified~=true or
-       data.optics_history_unavailable~=true or
+       type(data.optics_history_unavailable)~="boolean" or
        data.raw_sample_export_is_bounded~=true or
        data.raw_event_export_is_bounded~=true or
        data.raw_tail_independent_of_selected_range~=true or
@@ -223,8 +243,15 @@ function M.validate(data)
        not only_array(data.events,100) then
         return nil,"invalid_history_arrays"
     end
+    local optics_present=false
     for _,entry in ipairs(data.samples) do
         if not sample_ok(entry) then return nil,"invalid_history_sample" end
+        if entry.optical_observation=="observed" and
+           (entry.rx_power_dbm~=nil or entry.tx_power_dbm~=nil or
+            entry.optic_temp_c~=nil) then optics_present=true end
+    end
+    if data.optics_history_unavailable==optics_present then
+        return nil,"inconsistent_optical_history_claim"
     end
     for _,entry in ipairs(data.events) do
         if not event_ok(entry) then return nil,"invalid_history_event" end

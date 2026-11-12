@@ -1,5 +1,18 @@
 # AoTT-8311 roadmap and current development stages
 
+## V3r4 opt-in optical and thermal history, November 12, 2026
+
+The existing single RAM-only History worker now has independent, configurable
+optical and CPU thermal sampling (default OFF, 60/120/300 seconds when opted
+in), based on the fixed PRX126 read-only SFF-8472 diagnostic bytes. Historical
+RX/TX power, optic/CPU temperatures, laser bias and module voltage are
+range-validated and exported only as numeric values. LuCI adds dual trends,
+recent observations and bounded exports. Optical-only ticks spawn no native
+command processes; missing samples and reboot gaps remain explicit. This is
+source-tested and still needs its own board-level acceptance. No new V3r4
+deployment trial is authorized. See
+[optical and thermal work](V3R4-OPTICAL-THERMAL-HISTORY.md).
+
 ## V3r4 current source-only residential diagnostics, November 12, 2026
 
 The V3r4 draft continues without a new deployment trial. Recent development

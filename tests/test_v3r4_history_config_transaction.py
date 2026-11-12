@@ -22,7 +22,7 @@ class V3R4HistoryConfigTransactionTests(unittest.TestCase):
         )
         self.assertEqual(proc.returncode,0,proc.stderr)
         self.assertIn("AOTT_V3R4_HISTORY_SETTINGS_TRANSACTION_PASS",proc.stdout)
-        self.assertIn("checks=116",proc.stdout)
+        self.assertIn("checks=145",proc.stdout)
 
     def test_host_lua_transaction_failures(self):
         if not shutil.which("lua5.1"):self.skipTest("Lua 5.1 unavailable")
