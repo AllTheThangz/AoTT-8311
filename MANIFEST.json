@@ -638,10 +638,10 @@
       "sha256": "436b0fa4cdb1865d2dae49ae49d4651963d0503c04831ee4278b536c2f6923af"
     },
     {
-      "bytes": 22532,
+      "bytes": 23438,
       "executable": false,
       "path": "usr/lib/lua/luci/view/8311/config.htm",
-      "sha256": "b26cd4a68ff19ccf94694456a6463df6c7c8afe01e0445a9b6e4756466849f8e"
+      "sha256": "9fe081266a98d8c92cfd568843e945d45abb2d9d16c106fb53c81cc4ba211b25"
     },
     {
       "bytes": 9109,
@@ -1044,6 +1044,12 @@
       "executable": false,
       "path": "www/luci-static/resources/view/8311-v2r1.js",
       "sha256": "932a9ea78854385187af3f18b6b5d146a8940123e75ab8278b56c30908198a87"
+    },
+    {
+      "bytes": 14592,
+      "executable": false,
+      "path": "www/luci-static/resources/view/8311-verification-overview.js",
+      "sha256": "69372383e45d12a7efa9c587f8e43d093559f86e731ae49b93c7a6d0e864c712"
     },
     {
       "bytes": 104283,
