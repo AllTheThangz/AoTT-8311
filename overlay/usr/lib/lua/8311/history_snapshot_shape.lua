@@ -42,6 +42,8 @@ local SAMPLE={
     pon_state=true,host_link_speed_mbps=true,
     pon_observation=true,host_link_observation=true,
     elapsed_seconds=true,rx_mbps=true,tx_mbps=true,
+    rx_fcs_error_delta=true,rx_overflow_delta=true,
+    rx_drop_delta=true,tx_drop_delta=true,
 }
 local EVENT={
     epoch_index=true,at_uptime=true,kind=true,
@@ -159,7 +161,13 @@ local function sample_ok(x)
             return false
         end
     end
-    if x.rx_mbps~=nil or x.tx_mbps~=nil then
+    local has_integrity=false
+    for _,key in ipairs({"rx_fcs_error_delta","rx_overflow_delta",
+                         "rx_drop_delta","tx_drop_delta"}) do
+        if not optional_number(x,key,1000000000,true) then return false end
+        if x[key]~=nil then has_integrity=true end
+    end
+    if x.rx_mbps~=nil or x.tx_mbps~=nil or has_integrity then
         if x.status~="valid_interval" or
            not finite(x.elapsed_seconds,0.001,3600) then return false end
     end

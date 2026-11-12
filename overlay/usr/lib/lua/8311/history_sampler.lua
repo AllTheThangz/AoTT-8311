@@ -71,6 +71,10 @@ local function clean(sample)
     value.eth={
         RxGoodBytes=byte_counter(counters.RxGoodBytes),
         TxGoodBytes=byte_counter(counters.TxGoodBytes),
+        RxFCSErrorPkts=byte_counter(counters.RxFCSErrorPkts),
+        RxOverflowError=byte_counter(counters.RxOverflowError),
+        RxDroppedPkts=byte_counter(counters.RxDroppedPkts),
+        TxDroppedPkts=byte_counter(counters.TxDroppedPkts),
     }
     return value
 end
@@ -381,6 +385,7 @@ function M.ingest_selected(state,input)
     if host_due then state.selected_failed_host=fail_host end
 
     local rates,rate_error=nil,nil
+    local integrity=nil
     if fail_pon or fail_host then
         state.selected_rate_previous=nil
         if not boundary then status="observation_unavailable" end
@@ -388,6 +393,31 @@ function M.ingest_selected(state,input)
         local old=state.selected_rate_previous
         if old and not boundary then
             rates,rate_error=math_model.eth_rates(old,current)
+            -- Host counters and byte rates share the same native sample
+            -- interval. Reset, wrap, missing values and reboot boundaries
+            -- are unavailable rather than a fabricated zero increment.
+            if rates then
+                local mapping={
+                    {"RxFCSErrorPkts","rx_fcs_error_delta"},
+                    {"RxOverflowError","rx_overflow_delta"},
+                    {"RxDroppedPkts","rx_drop_delta"},
+                    {"TxDroppedPkts","tx_drop_delta"},
+                }
+                integrity={}
+                for _,row in ipairs(mapping) do
+                    local prior=old.eth and old.eth[row[1]]
+                    local latest=current.eth and current.eth[row[1]]
+                    if prior~=nil and latest~=nil then
+                        local d=math_model.counter_delta(prior,latest)
+                        if d and #d<=10 then
+                            local n=tonumber(d)
+                            if n and n<=1000000000 then
+                                integrity[row[2]]=n
+                            end
+                        end
+                    end
+                end
+            end
         end
         -- Only actual sampled counters may form a future baseline.
         if current.eth and (current.eth.RxGoodBytes~=nil or
@@ -423,6 +453,9 @@ function M.ingest_selected(state,input)
         sample.tx_unavailable=rates.tx_mbps_unavailable
         sample.rate_source=rates.source
         sample.direction=rates.direction
+        if integrity then
+            for key,value in pairs(integrity) do sample[key]=value end
+        end
     else
         sample.rate_unavailable=rate_error or "no_comparable_interval"
     end

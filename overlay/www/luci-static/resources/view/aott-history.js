@@ -97,6 +97,14 @@
     };
     safeScalar(src, ["pon_state", "host_link_speed_mbps", "elapsed_seconds",
                      "rx_mbps", "tx_mbps"], out);
+    const integrity=["rx_fcs_error_delta","rx_overflow_delta",
+                     "rx_drop_delta","tx_drop_delta"];
+    for (const key of integrity) {
+      if (src[key]!==undefined && src[key]!==null) {
+        if (!int(src[key],1000000000)) return null;
+        out[key]=src[key];
+      }
+    }
     if (["observed", "unavailable", "not_sampled"].includes(src.pon_observation)) {
       out.pon_observation = src.pon_observation;
     }
@@ -107,6 +115,7 @@
       delete out.elapsed_seconds;
       delete out.rx_mbps;
       delete out.tx_mbps;
+      if (integrity.some(key=>out[key]!==undefined)) return null;
     }
     return out;
   }
@@ -263,6 +272,12 @@
     text("chart-caption", plotted+
       " plotted rate readings from at most 100 retained samples. Gaps are not connected.");
   }
+  function integrityInterval(row,cutoff) {
+    return valid(row.at_uptime) && row.at_uptime>=cutoff &&
+      row.status==="valid_interval" &&
+      valid(row.elapsed_seconds,3600) && row.elapsed_seconds>0 &&
+      row.at_uptime-row.elapsed_seconds>=cutoff;
+  }
   function viewSamples(samples,cutoff) {
     const rows = id("history-sample-rows");
     rows.replaceChildren();
@@ -270,7 +285,7 @@
     if (!eligible.length) {
       const tr=document.createElement("tr");
       const td=document.createElement("td");
-      td.colSpan=5;td.textContent="No samples retained for this range";
+      td.colSpan=8;td.textContent="No samples retained for this range";
       tr.appendChild(td);rows.appendChild(tr);return;
     }
     eligible.slice().reverse().forEach(function (item) {
@@ -287,6 +302,10 @@
       const tx=rateInWindow(item,"tx_mbps",cutoff);
       cell(tr,rx===null ? "Unavailable" : rx.toFixed(2));
       cell(tr,tx===null ? "Unavailable" : tx.toFixed(2));
+      for (const key of ["rx_fcs_error_delta","rx_drop_delta","tx_drop_delta"]) {
+        cell(tr,!integrityInterval(item,cutoff) ||
+             !int(item[key],1000000000) ? "Unavailable" : String(item[key]));
+      }
       rows.appendChild(tr);
     });
   }
@@ -350,6 +369,35 @@
       " of the requested period. "+
       (range.terminated_at_epoch_boundary ? "History stops at a reboot, link source change, or long gap. " : "")+
       "The full requested time range is not verified.");
+    // Count only retained, comparable host-counter intervals. Missing
+    // counter sources and counter resets must not become false zeros.
+    const integrityFields=[
+      ["rx_fcs_error_delta","history-rx-fcs"],
+      ["rx_overflow_delta","history-rx-overflow"],
+      ["rx_drop_delta","history-rx-drop"],
+      ["tx_drop_delta","history-tx-drop"]
+    ];
+    let observed=0;
+    const totals={};
+    const counts={};
+    integrityFields.forEach(([key])=>{totals[key]=0;counts[key]=0;});
+    for (const item of current.samples) {
+      if (!integrityInterval(item,cutoff)) continue;
+      observed++;
+      for (const [key] of integrityFields) {
+        if (int(item[key],1000000000)) {
+          totals[key]+=item[key];counts[key]++;
+        }
+      }
+    }
+    for (const [key,id] of integrityFields) {
+      text(id,counts[key]>0 ? totals[key].toLocaleString() : "Unavailable");
+    }
+    const coverage=integrityFields.map(([key,id])=>
+      id.replace("history-","").replace(/-/g," ")+" "+counts[key]+"/"+observed).join("; ");
+    text("history-integrity-coverage",observed+" comparable retained host "+
+      "interval(s); counter coverage: "+coverage+
+      ". Missing intervals are not counted as zero. Sampled deltas, not lifetime totals.");
     draw(current.samples,cutoff);
     viewSamples(current.samples,cutoff);
     viewEvents(current.events,cutoff);
@@ -370,6 +418,9 @@
       });
       text("wan-state","Not verified");
       text("optics-state","Not collected");
+      for (const id of ["history-rx-fcs","history-rx-overflow",
+                        "history-rx-drop","history-tx-drop"]) text(id,"Unavailable");
+      text("history-integrity-coverage","No validated integrity counters.");
       text("chart-caption","No validated history data is loaded.");
       text("coverage-message","No measured history has been loaded.");
       id("history-chart").replaceChildren();
@@ -397,7 +448,9 @@
       ? Math.max(0,range.latest_uptime-RANGE_SECONDS[activeRange]) : 0;
     const columns=[
       "record_type","at_uptime","source","status","pon_state",
-      "host_link_speed_mbps","rx_mbps","tx_mbps","event_kind","from","to",
+      "host_link_speed_mbps","rx_mbps","tx_mbps",
+      "rx_fcs_error_delta","rx_overflow_delta",
+      "rx_drop_delta","tx_drop_delta","event_kind","from","to",
       "observation_window_seconds"
     ];
     const lines=[columns.join(",")];
@@ -405,10 +458,12 @@
       const rx=rateInWindow(v,"rx_mbps",cutoff);
       const tx=rateInWindow(v,"tx_mbps",cutoff);
       lines.push(["sample",v.at_uptime,v.source,v.status,
-        v.pon_state,v.host_link_speed_mbps,rx,tx,"","","",""].map(quote).join(","));
+        v.pon_state,v.host_link_speed_mbps,rx,tx,
+        v.rx_fcs_error_delta,v.rx_overflow_delta,v.rx_drop_delta,
+        v.tx_drop_delta,"","","",""].map(quote).join(","));
     });
     current.events.filter(v => v.at_uptime>=cutoff).forEach(function (v) {
-      lines.push(["event",v.at_uptime,"","","","","","",v.kind,
+      lines.push(["event",v.at_uptime,"","","","","","","","","","",v.kind,
         v.from,v.to,v.observation_window_seconds].map(quote).join(","));
     });
     const result=lines.join("\r\n")+"\r\n";

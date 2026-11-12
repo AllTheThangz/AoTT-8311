@@ -1,5 +1,6 @@
--- H-011 one-shot, source-only PRX126 observation adapter.
--- Explicitly not loaded by firmware overlay, cron, procd, LuCI or a daemon.
+-- H-011/H-021 PRX126 observation adapter.
+-- Used only by the opt-in, foreground RAM-only history worker. No new
+-- native sampler process, flash-history write or subscriber WAN probe.
 -- The fixed native wrapper uses only read-only commands and bounded output.
 local history = require "8311.history_sampler"
 local pon_model = require "8311.effective_pon_state"
@@ -56,7 +57,9 @@ local function parse_ethtool(raw)
     local counters, seen = {}, {}
     for line in (raw .. "\n"):gmatch("(.-)\n") do
         local key, value = line:match("^%s*([%w_]+):%s*(%d+)%s*$")
-        if key == "RxGoodBytes" or key == "TxGoodBytes" then
+        if key == "RxGoodBytes" or key == "TxGoodBytes" or
+           key == "RxFCSErrorPkts" or key == "RxOverflowError" or
+           key == "RxDroppedPkts" or key == "TxDroppedPkts" then
             if seen[key] then return nil, "ambiguous_eth_counter" end
             seen[key] = true
             -- A counter outside unsigned-64 range is never rounded or

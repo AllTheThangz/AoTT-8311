@@ -113,11 +113,23 @@ local esc=tools.html_escape
     <p id="coverage-message" class="coverage" role="status">No measured history has been loaded.</p>
   </section>
 
+  <section class="aott-panel" aria-label="Sampled Ethernet errors and drops">
+    <h3>Host Ethernet errors and dropped packets</h3>
+    <p class="footnote">These are summed counter increases across only validated host-sample intervals retained in the selected range. They are not lifetime totals or ISP-side error counts. Missing counters, counter resets, and unobserved intervals remain unavailable rather than zero.</p>
+    <div class="aott-status-grid">
+      <div><span class="stat-label">RX FCS errors</span><strong id="history-rx-fcs">Unavailable</strong></div>
+      <div><span class="stat-label">RX overflows</span><strong id="history-rx-overflow">Unavailable</strong></div>
+      <div><span class="stat-label">RX dropped packets</span><strong id="history-rx-drop">Unavailable</strong></div>
+      <div><span class="stat-label">TX dropped packets</span><strong id="history-tx-drop">Unavailable</strong></div>
+    </div>
+    <p id="history-integrity-coverage" class="footnote" role="status">No sampled error or drop counters have been validated.</p>
+  </section>
+
   <div class="two-panel">
     <section class="aott-panel">
       <h3>Recent observations</h3>
       <div class="table-scroll"><table>
-        <thead><tr><th>Uptime</th><th>PON</th><th>Host link</th><th>RX Mbps</th><th>TX Mbps</th></tr></thead>
+        <thead><tr><th>Uptime</th><th>PON</th><th>Host link</th><th>RX Mbps</th><th>TX Mbps</th><th>RX FCS Δ</th><th>RX drop Δ</th><th>TX drop Δ</th></tr></thead>
         <tbody id="history-sample-rows"></tbody>
       </table></div>
     </section>

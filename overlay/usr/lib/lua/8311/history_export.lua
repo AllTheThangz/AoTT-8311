@@ -113,6 +113,10 @@ local function sample(raw,cutoff)
         num(row,"elapsed_seconds",raw.elapsed_seconds,3600)
         num(row,"rx_mbps",raw.rx_mbps,1e12)
         num(row,"tx_mbps",raw.tx_mbps,1e12)
+        count(row,"rx_fcs_error_delta",raw.rx_fcs_error_delta,1000000000)
+        count(row,"rx_overflow_delta",raw.rx_overflow_delta,1000000000)
+        count(row,"rx_drop_delta",raw.rx_drop_delta,1000000000)
+        count(row,"tx_drop_delta",raw.tx_drop_delta,1000000000)
     end
     return row
 end

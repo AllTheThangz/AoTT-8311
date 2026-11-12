@@ -1,5 +1,15 @@
 # Vendor-neutral monitoring and logging integration
 
+**V3r4 source update (2026-11-12):** The optional single RAM-only history
+collector now parses PRX126 RX FCS, overflow and RX/TX drop counters as exact
+unsigned decimal strings and publishes only validated, reset-safe per-interval
+increments. The History GUI and JSON/CSV exports distinguish missing readings
+from measured zero. History configuration saves independently verify explicit
+UCI readback and worker ownership before claiming success or clean rollback.
+This increment is source-only and does not add persistent flash history or
+independent Internet-path probes. See
+[V3r4 residential history diagnostics](V3R4-RESIDENTIAL-HISTORY-ERRORS-AND-RECOVERY.md).
+
 **r9 integration:** This guide describes the r8 monitoring implementation retained in [the r9 firmware candidate](V2R9-INTEGRATED-RELEASE.md). The token digest domain and persistence schema are deliberately unchanged. References to r8 implementation milestones below record their original development and qualification context.
 
 This document defines the planned AoTT-8311 v2r8 monitoring interface. It is a **design and integration guide**, not a claim that its proposed GUI controls are implemented in v2r7.
