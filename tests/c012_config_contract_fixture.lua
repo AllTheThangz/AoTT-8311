@@ -5,6 +5,8 @@ local lua_root=assert(config_path:match("^(.*)/8311/config%.lua$"),"overlay Lua 
 package.path=lua_root.."/?.lua;"..package.path
 local calls, saved, fail_mode, missing_readback = {}, {}, nil, false
 local activation_fail=false
+local activation_error_mode=nil
+local activation_recovery_pending=false
 local function copy(t)
     local out={}
     for k,v in pairs(t) do out[k]=v end
@@ -15,9 +17,17 @@ local function setter(kind)
     return function(args)
         calls[#calls+1]={kind=kind,id=args[1],value=args[2]}
         if fail_mode=="before" then return false end
+        if fail_mode=="rollback_mismatch" and args[2]=="old-fixture-host" then
+            saved[(kind=="base" and "" or "8311_")..args[1]]="drifted-after-rollback"
+            return true
+        end
         saved[(kind=="base" and "" or "8311_")..args[1]]=args[2]
         if fail_mode=="after" then return false end
         if fail_mode=="after_once" then fail_mode=nil; return false end
+        if fail_mode=="postwrite_exception" then fail_mode=nil; error("untrusted setter error") end
+        if fail_mode=="rollback_exception" and args[2]=="old-fixture-host" then
+            error("untrusted rollback error")
+        end
         return true
     end
 end
@@ -113,6 +123,18 @@ package.preload["8311.config_activation"]=function()
                     order[#order+1]=change.item.id
                 end
             end
+            if activation_error_mode and #order>0 then
+                local mode=activation_error_mode
+                activation_error_mode=nil
+                if mode=="no_receipt" then
+                    return nil,"live_activation_fixture_preflight_failed"
+                elseif mode=="malformed_receipt" then
+                    return true
+                elseif mode=="exception" then
+                    error("fixture sensitive detail should not enter a response")
+                end
+                error("Unsupported fixture activation error")
+            end
             if activation_fail and #order>0 then
                 activation_fail=false
                 return {
@@ -121,8 +143,17 @@ package.preload["8311.config_activation"]=function()
                     error="synthetic_activation_failure",
                 }
             end
+            local states={}
+            for _,id in ipairs(order) do
+                states[id]={
+                    configured_verified=true,
+                    runtime_effect_proven=not activation_recovery_pending,
+                    runtime_pending=activation_recovery_pending,
+                }
+            end
+            activation_recovery_pending=false
             return {
-                schema=1,success=true,order=order,
+                schema=1,success=true,order=order,fields=states,
                 requires_new_authenticated_request=false,
                 rollback_attempted=false,
             }
@@ -374,6 +405,8 @@ local function fresh()
     fail_mode=nil
     missing_readback=false
     activation_fail=false
+    activation_error_mode=nil
+    activation_recovery_pending=false
     local s=assert(config.snapshot(canonical))
     local f=baseline_form(s)
     return s,f
@@ -444,6 +477,40 @@ assert(not result.success and result.rollback_attempted and
        not result.rollback_succeeded and result.durability_unknown,
        "Unavailable rollback readback must remain durability-unknown")
 
+-- A native setter may mutate storage and then throw. The outer writer
+-- must still restore and read back every attempted startup value.
+snap,form=fresh()
+saved["8311_hostname"]="old-fixture-host"
+snap=assert(config.snapshot(canonical))
+form=baseline_form(snap)
+form.hostname="new-fixture-host"
+plan=assert(config.prepare(snap,form))
+fail_mode="postwrite_exception"
+result=config.apply(snap,plan)
+assert(not result.success and result.rollback_attempted and
+       result.rollback_succeeded and not result.durability_unknown,
+       "Native post-write exception escaped verified rollback")
+assert(saved["8311_hostname"]=="old-fixture-host" and #result.verified==0,
+       "Native post-write exception leaked a newly saved startup value")
+
+-- A restoration setter exception itself is contained, not presented as a
+-- fully restored transaction or leaked into the user-visible receipt.
+snap,form=fresh()
+saved["8311_hostname"]="old-fixture-host"
+snap=assert(config.snapshot(canonical))
+form=baseline_form(snap)
+form.hostname="new-fixture-host"
+plan=assert(config.prepare(snap,form))
+activation_error_mode="no_receipt"
+fail_mode="rollback_exception"
+result=config.apply(snap,plan)
+assert(not result.success and not result.saved_rollback_succeeded and
+       result.durability_unknown and result.runtime_state_unknown,
+       "Rollback exception was incorrectly marked successful")
+assert(not result.errors.request:find("untrusted rollback error",1,true),
+       "Native rollback error string escaped to public response")
+fail_mode=nil
+
 -- A native setter that reports success but stores the wrong value must fail.
 snap,form=fresh()
 form.hostname="good-lab-host"
@@ -484,6 +551,106 @@ assert(saved["8311_hostname"]=="old-fixture-host",
 assert(#result.verified==0 and not result.partial and not result.durability_unknown,
        "Fully rolled-back activation failure was misclassified as partial/unknown")
 activation_fail=false
+
+-- A successful recovery function is not necessarily proof that a runtime
+-- consumer was restored. Pending language/reload effects remain unknown.
+snap,form=fresh()
+saved["8311_hostname"]="old-fixture-host"
+snap=assert(config.snapshot(canonical))
+form=baseline_form(snap)
+form.hostname="new-fixture-host"
+plan=assert(config.prepare(snap,form))
+activation_fail=true
+activation_recovery_pending=true
+result=config.apply(snap,plan)
+assert(not result.success and result.saved_rollback_succeeded and
+       result.runtime_rollback_succeeded==false,
+       "Pending native recovery incorrectly marked fully verified")
+assert(result.runtime_recovery and result.runtime_recovery.success and
+       result.runtime_recovery.fields.hostname.runtime_pending,
+       "Fixture must exercise successful-but-pending native recovery")
+assert(result.partial and result.runtime_state_unknown and
+       not result.durability_unknown and saved["8311_hostname"]=="old-fixture-host",
+       "Saved recovery and unknown runtime were not reported separately")
+
+-- P0-09: a nil activation receipt arrives only AFTER the boot environment
+-- has already been saved. It must restore and read back all saved keys.
+snap,form=fresh()
+saved["8311_hostname"]="old-fixture-host"
+snap=assert(config.snapshot(canonical))
+form=baseline_form(snap)
+form.hostname="new-fixture-host"
+form.ntp_servers="time2.example"
+plan=assert(config.prepare(snap,form))
+assert(#plan.changes==2,"Fixture does not exercise full multi-field rollback")
+activation_error_mode="no_receipt"
+calls={}
+result=config.apply(snap,plan)
+assert(not result.success and result.activation_failed and result.saved_rollback_attempted,
+       "Missing activation receipt did not mark transaction failure")
+assert(result.saved_rollback_succeeded and result.persistence_rollback.succeeded,
+       "Missing activation receipt did not verify boot-environment restoration")
+assert(result.rollback_attempted and not result.rollback_succeeded and
+       result.runtime_state_unknown and result.partial and not result.durability_unknown,
+       "Saved readback was confused with proof of native runtime restoration")
+assert(result.activation_error=="live_activation_fixture_preflight_failed",
+       "Safe activation error identifier not retained")
+assert(saved["8311_hostname"]=="old-fixture-host" and
+       (saved["8311_ntp_servers"] or "")=="" and #result.verified==0,
+       "Rejected multi-field activation left startup values installed")
+assert(#calls==4,"Both persisted values must be restored in reverse order")
+
+-- A thrown native Lua exception gets the same fail-closed restoration and
+-- cannot leak its raw error message (which may contain secrets).
+snap,form=fresh()
+saved["8311_hostname"]="old-fixture-host"
+snap=assert(config.snapshot(canonical))
+form=baseline_form(snap)
+form.hostname="new-fixture-host"
+plan=assert(config.prepare(snap,form))
+activation_error_mode="exception"
+result=config.apply(snap,plan)
+assert(not result.success and result.saved_rollback_succeeded and
+       result.activation_error=="live_activation_exception",
+       "Unhandled activation exception was not sanitized and rolled back")
+assert(saved["8311_hostname"]=="old-fixture-host",
+       "Unhandled activation exception left new boot value installed")
+assert(not result.errors.request:find("sensitive detail",1,true),
+       "Unhandled exception leaked sensitive details to result")
+
+-- A malformed native activation response (truthy but not a receipt table)
+-- must not throw after durable boot-environment persistence.
+snap,form=fresh()
+saved["8311_hostname"]="old-fixture-host"
+snap=assert(config.snapshot(canonical))
+form=baseline_form(snap)
+form.hostname="new-fixture-host"
+plan=assert(config.prepare(snap,form))
+activation_error_mode="malformed_receipt"
+result=config.apply(snap,plan)
+assert(not result.success and result.saved_rollback_succeeded and
+       result.activation_error=="live_activation_unavailable",
+       "Malformed native activation receipt was accepted")
+assert(saved["8311_hostname"]=="old-fixture-host" and result.runtime_state_unknown,
+       "Malformed native activation receipt persisted an unverified setting")
+
+-- A setter reporting success while failing restoration is NOT a successful
+-- rollback, regardless of whether it returned true to the caller.
+snap,form=fresh()
+saved["8311_hostname"]="old-fixture-host"
+snap=assert(config.snapshot(canonical))
+form=baseline_form(snap)
+form.hostname="new-fixture-host"
+plan=assert(config.prepare(snap,form))
+activation_error_mode="no_receipt"
+fail_mode="rollback_mismatch"
+result=config.apply(snap,plan)
+assert(not result.success and not result.saved_rollback_succeeded and
+       result.durability_unknown and result.runtime_state_unknown,
+       "Failed post-activation saved readback must be classified as unknown")
+assert(saved["8311_hostname"]=="drifted-after-rollback" and
+       #result.verified==0,"Unverified restore was reported as a success")
+fail_mode=nil
 
 print(("C-012 native schema configuration fixtures: %d fields; routes live=%d management=%d boot=%d credential=%d pon=%d; %d ordinary verified writes; %d sensitive fields; rollback guards PASS"):format(
     checked,route_counts.live,route_counts.management,route_counts.boot,

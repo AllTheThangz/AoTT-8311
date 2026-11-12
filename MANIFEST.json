@@ -200,16 +200,16 @@
       "sha256": "1eb46f0c1f70bc217efa8bec94187f4ad9c3f790606e0db582b6d4df1ec504e3"
     },
     {
-      "bytes": 27441,
+      "bytes": 29550,
       "executable": false,
       "path": "usr/lib/lua/8311/config.lua",
-      "sha256": "4accd91fdf7a5aa0dd71bc973408062038ec7da221fc967eed7c2ccd69f1105b"
+      "sha256": "3df48e8d7da9b96e0d0f97a710b5e254695a263c231f933a61135bf512a95cf4"
     },
     {
-      "bytes": 24982,
+      "bytes": 27565,
       "executable": false,
       "path": "usr/lib/lua/8311/config_activation.lua",
-      "sha256": "3d63cf764fac46974e55589aea6c882c1291500c14a9882da0b9340d45575b88"
+      "sha256": "cd4fb0659e2fc7fdb0cc0880e670d79eaa76a959202f3ccadeb16b9a2de31973"
     },
     {
       "bytes": 2695,

@@ -80,11 +80,12 @@ def source_facts(root: Path) -> dict:
     facts = {
         "config_delegates_to_live_activation_layer": (
             'pcall(require,"8311.config_activation")' in config and
-            "activation.apply(prepared.changes)" in config
+            "pcall(activation.apply, prepared.changes)" in config
         ),
         "transaction_restores_saved_environment_on_failure": (
             "restore_environment(snapshot,prepared.changes)" in config and
-            "saved_rollback_succeeded" in config
+            "saved_rollback_succeeded" in config and
+            "runtime_state_unknown=true" in config
         ),
         "activation_scope_contains_all_four_candidates": all(
             token in activation for token in (

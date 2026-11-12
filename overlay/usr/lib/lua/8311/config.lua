@@ -379,9 +379,10 @@ local function restore_environment(snapshot,changes)
 		local item=change.item
 		local old=snapshot.values[key(item)] or ""
 		local setter=item.base and tools.fw_setenv or tools.fw_setenv_8311
-		local ok=setter{storage_id(item),old}
-		local readback=tools.fwenv_read_all()
-		if ok and readback and (readback[key(item)] or "")==old then
+		local invoked,ok=pcall(setter,{storage_id(item),old})
+		local read_ok,readback=pcall(tools.fwenv_read_all)
+		if invoked and ok and read_ok and type(readback)=="table" and
+		   (readback[key(item)] or "")==old then
 			receipt.restored[#receipt.restored+1]=item.id
 		else
 			receipt.succeeded=false
@@ -433,9 +434,10 @@ function M.apply(snapshot, prepared)
 		attempted[#attempted+1]=change
 		local item = change.item
 		local setter = item.base and tools.fw_setenv or tools.fw_setenv_8311
-		local ok = setter{storage_id(item), change.raw}
-		local readback = tools.fwenv_read_all()
-		if not ok or not readback or (readback[key(item)] or "") ~= change.raw then
+		local invoked,ok=pcall(setter,{storage_id(item),change.raw})
+		local read_ok,readback=pcall(tools.fwenv_read_all)
+		if not invoked or not ok or not read_ok or type(readback)~="table" or
+		   (readback[key(item)] or "") ~= change.raw then
 			local rollback=restore_environment(snapshot,attempted)
 			result.success=false
 			result.persistence_rollback=rollback
@@ -505,11 +507,39 @@ function M.apply(snapshot, prepared)
 		return result
 	end
 
-	local activated, why = activation.apply(prepared.changes)
-	if not activated then
+	-- Environment persistence has already completed before this call.
+	-- A nil activation receipt or an unexpected Lua exception MUST NOT
+	-- return while leaving the proposed startup values installed. Restore
+	-- every saved value under the existing environment lock, and report
+	-- native/UCI runtime state as unknown because activation never supplied
+	-- a trustworthy receipt of what it touched.
+	local invoked, activated, why = pcall(activation.apply, prepared.changes)
+	if not invoked or type(activated)~="table" then
+		local saved=restore_environment(snapshot,prepared.changes)
 		result.success=false
-		result.activation_error=why or "Live activation could not start"
-		result.durability_unknown=false
+		result.verified={}
+		result.activation_failed=true
+		-- Do not reflect arbitrary exception strings into HTTP or job logs.
+		if invoked and type(why)=="string" and #why<=80 and
+		   why:match("^[a-z0-9_]+$") then
+			result.activation_error=why
+		else
+			result.activation_error=invoked and
+				"live_activation_unavailable" or "live_activation_exception"
+		end
+		result.saved_rollback_attempted=true
+		result.saved_rollback_succeeded=saved.succeeded
+		result.persistence_rollback=saved
+		result.rollback_attempted=true
+		-- A successful boot-environment restoration is NOT proof that
+		-- activation left all native runtime consumers unchanged.
+		result.rollback_succeeded=false
+		result.runtime_state_unknown=true
+		result.partial=true
+		result.durability_unknown=not saved.succeeded
+		result.errors.request=saved.succeeded and
+			"Live activation did not complete; saved startup values were restored and verified, but live runtime state is unverified" or
+			"Live activation did not complete; saved rollback could not be fully verified and live runtime state is unverified"
 		return result
 	end
 	result.activation=activated
@@ -524,6 +554,20 @@ function M.apply(snapshot, prepared)
 	-- every boot-environment value, including next-startup-only fields.
 	local live={}
 	for _,id in ipairs(activated.order or {}) do live[id]=true end
+	local function fully_verified_runtime(receipt)
+		if type(receipt)~="table" or receipt.success~=true or
+		   type(receipt.order)~="table" or type(receipt.fields)~="table" then
+			return false
+		end
+		for _,id in ipairs(receipt.order) do
+			local field=receipt.fields[id]
+			if type(field)~="table" or field.configured_verified~=true or
+			   field.runtime_effect_proven~=true or field.runtime_pending==true then
+				return false
+			end
+		end
+		return true
+	end
 	local saved=restore_environment(snapshot,prepared.changes)
 	local runtime_recovery=true
 	local recovery=nil
@@ -538,8 +582,9 @@ function M.apply(snapshot, prepared)
 				}
 			end
 		end
-		recovery=activation.apply(recovery_changes)
-		runtime_recovery=type(recovery)=="table" and recovery.success==true
+		local ran,reply=pcall(activation.apply,recovery_changes)
+		recovery=ran and reply or nil
+		runtime_recovery=fully_verified_runtime(recovery)
 	end
 	result.success=false
 	result.verified={}

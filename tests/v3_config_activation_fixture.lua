@@ -48,6 +48,10 @@ local function make_adapter()
     function a.set_config(id,value)
         calls[#calls+1]="set:"..id..":"..tostring(value)
         if fail["set:"..id] then return false end
+        if fail["rollback_noop:"..id] and value=="old-onu" then
+            -- A setter claims success but leaves the new configuration.
+            return true
+        end
         if id=="timezone" and type(value)=="string" then
             configured[id]=activation.timezone_uci(value)
         else
@@ -95,8 +99,16 @@ local function make_adapter()
     function a.runtime(id,desired)
         calls[#calls+1]="runtime:"..id
         if id=="lang" then return nil,nil,"next_authenticated_luci_request" end
-        if fail["runtime:"..id] then
-            return false,"synthetic-mismatch","fixture_runtime"
+        local injected=fail["runtime:"..id]
+        if injected then
+            if type(injected)=="number" then
+                if injected>0 then
+                    fail["runtime:"..id]=injected-1
+                    return false,"synthetic-mismatch","fixture_runtime"
+                end
+            else
+                return false,"synthetic-mismatch","fixture_runtime"
+            end
         end
         return runtime[id]==(id=="timezone" and activation.timezone_uci(desired) or desired),
                runtime[id],"fixture_runtime"
@@ -207,9 +219,44 @@ same(mismatch.success,false,"runtime_mismatch_fails")
 same(mismatch.error,"runtime_effect_mismatch","runtime_mismatch_reason")
 same(mismatch.failed_field,"hostname","runtime_mismatch_field")
 same(mismatch.rollback_attempted,true,"runtime_rollback_attempted")
-same(mismatch.rollback_succeeded,true,"runtime_rollback_succeeded")
+same(mismatch.rollback_succeeded,false,"persistent_runtime_probe_does_not_prove_rollback")
+same(mismatch.rollback_configured_verified,true,"configured_rollback_verified")
+same(mismatch.rollback_runtime_verified,false,"unverified_runtime_rollback")
+same(mismatch.runtime_state_unknown,true,"runtime_state_accurate_unknown")
 same(c.hostname,"old-onu","runtime_rollback_hostname")
 same(c.timezone,"America/New York","runtime_rollback_timezone")
+
+-- A bounded initial runtime mismatch followed by a genuinely restored
+-- consumer proves rollback, unlike a bare successful reload exit code.
+a,c,r,calls,fail=make_adapter()
+fail["runtime:hostname"]=7
+local recovered=assert(activation.apply({
+    {item={id="hostname"},effective="new-onu"}
+},a))
+same(recovered.success,false,"bounded_runtime_mismatch_fails_forward_apply")
+same(recovered.error,"runtime_effect_mismatch","bounded_mismatch_reason")
+same(recovered.rollback_commands_succeeded,true,"rollback_commands_success")
+same(recovered.rollback_configured_verified,true,"rollback_config_readback")
+same(recovered.rollback_runtime_verified,true,"rollback_active_consumer")
+same(recovered.rollback_succeeded,true,"genuinely_restored_runtime_receipt")
+same(c.hostname,"old-onu","restored_hostname_config")
+same(r.hostname,"old-onu","restored_hostname_runtime")
+
+-- A setter can lie about restoration. Successful set/commit/reload commands
+-- without a matching getter must never be called a verified rollback.
+a,c,r,calls,fail=make_adapter()
+fail["runtime:hostname"]=true
+fail["rollback_noop:hostname"]=true
+local lied=assert(activation.apply({
+    {item={id="hostname"},effective="new-onu"}
+},a))
+same(lied.success,false,"stale_restore_remains_failure")
+same(lied.rollback_commands_succeeded,true,"lying_setter_commands_report_success")
+same(lied.rollback_configured_verified,false,"readback_detects_lying_setter")
+same(lied.rollback_succeeded,false,"lying_setter_not_accepted")
+same(#lied.rollback_details.configured_mismatch_fields,1,"mismatch_field_reported")
+same(lied.rollback_details.configured_mismatch_fields[1],"hostname","mismatch_field_name")
+same(c.hostname,"new-onu","stale_configuration_was_not_restored")
 
 -- A commit failure also rolls staged UCI values back.
 a,c,r,calls,fail=make_adapter()

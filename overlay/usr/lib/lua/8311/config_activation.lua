@@ -403,26 +403,76 @@ local function live_adapter(plan)
     return A
 end
 
+-- Native rollback is not considered successful merely because UCI setters,
+-- commit/reload commands or daemon restarts returned true. Verify BOTH the
+-- configured getter and the active consumer, and expose unknown/pending state
+-- without returning source values or secrets to the caller.
 local function rollback(adapter,prior,plan)
-    local ok=true
-    for _,id in ipairs(plan.fields) do
-        if adapter.set_config(id,prior[id])~=true then ok=false end
+    local receipt={
+        commands_succeeded=true,configured_verified=true,runtime_verified=true,
+        configured_mismatch_fields={},runtime_unverified_fields={},
+        succeeded=false,
+    }
+    local function command(fn,...)
+        local ran,result=pcall(fn,...)
+        if not ran or result~=true then receipt.commands_succeeded=false end
     end
-    if plan.desired.lang~=nil and adapter.commit("luci")~=true then ok=false end
-    if (plan.system_reload or plan.ntp_reload) and adapter.commit("system")~=true then ok=false end
-    if plan.uhttpd_reload and adapter.commit("uhttpd")~=true then ok=false end
-    if plan.optic_commit and adapter.commit("optic")~=true then ok=false end
-    if plan.sfp_reload and adapter.commit("sfp_eeprom")~=true then ok=false end
-    if plan.system_reload and adapter.reload("system")~=true then ok=false end
-    if plan.ntp_reload and adapter.reload("sysntpd")~=true then ok=false end
-    if plan.uhttpd_reload and adapter.reload("uhttpd")~=true then ok=false end
-    if plan.pingd_restart and adapter.reload("pingd")~=true then ok=false end
-    if plan.rarpd_restart and adapter.reload("rarpd")~=true then ok=false end
-    if plan.rxlos_restart and adapter.reload("rxlos")~=true then ok=false end
-    if plan.vlansd_restart and adapter.reload("vlansd")~=true then ok=false end
-    if plan.sfp_reload and adapter.reload("sfp_eeprom")~=true then ok=false end
-    if plan.env_daemon_restart then ok=false end
-    return ok
+    for _,id in ipairs(plan.fields) do
+        command(adapter.set_config,id,prior[id])
+    end
+    if plan.desired.lang~=nil then command(adapter.commit,"luci") end
+    if plan.system_reload or plan.ntp_reload then command(adapter.commit,"system") end
+    if plan.uhttpd_reload then command(adapter.commit,"uhttpd") end
+    if plan.optic_commit then command(adapter.commit,"optic") end
+    if plan.sfp_reload then command(adapter.commit,"sfp_eeprom") end
+    if plan.system_reload then command(adapter.reload,"system") end
+    if plan.ntp_reload then command(adapter.reload,"sysntpd") end
+    if plan.uhttpd_reload then command(adapter.reload,"uhttpd") end
+    if plan.pingd_restart then command(adapter.reload,"pingd") end
+    if plan.rarpd_restart then command(adapter.reload,"rarpd") end
+    if plan.rxlos_restart then command(adapter.reload,"rxlos") end
+    if plan.vlansd_restart then command(adapter.reload,"vlansd") end
+    if plan.sfp_reload then command(adapter.reload,"sfp_eeprom") end
+
+    for _,id in ipairs(plan.fields) do
+        local value=prior[id]
+        local expected=id=="timezone" and timezone_uci(value) or value
+        if id=="lang" and expected=="" then expected="auto" end
+        local fetched,configured=pcall(adapter.read_config,id)
+        -- nil is also returned when a probe fails. Without a known
+        -- previous value, we cannot distinguish deletion from failure.
+        if value==nil or not fetched or configured~=expected then
+            receipt.configured_verified=false
+            receipt.configured_mismatch_fields[#receipt.configured_mismatch_fields+1]=id
+        end
+        local verified=false
+        if type(value)=="string" then
+            for attempt=1,7 do
+                local ran,active=pcall(adapter.runtime,id,value)
+                if ran and active==true then
+                    verified=true
+                    break
+                end
+                -- nil denotes next-request/reboot-pending or unavailable,
+                -- not an independently verified runtime effect.
+                if not ran or active==nil then break end
+                if attempt<7 then
+                    local waited=pcall(adapter.wait)
+                    if not waited then break end
+                end
+            end
+        end
+        if not verified then
+            receipt.runtime_verified=false
+            receipt.runtime_unverified_fields[#receipt.runtime_unverified_fields+1]=id
+        end
+    end
+    -- Boot-environment controlled daemons cannot be replayed from this
+    -- UCI-only rollback function. Their effect remains unverified.
+    if plan.env_daemon_restart then receipt.runtime_verified=false end
+    receipt.succeeded=receipt.commands_succeeded and receipt.configured_verified and
+        receipt.runtime_verified
+    return receipt
 end
 
 function M.apply(changes,adapter)
@@ -463,7 +513,13 @@ function M.apply(changes,adapter)
         result.error=reason
         result.failed_field=id
         result.rollback_attempted=true
-        result.rollback_succeeded=rollback(adapter,rollback_prior,plan)
+        local restored=rollback(adapter,rollback_prior,plan)
+        result.rollback_succeeded=restored.succeeded
+        result.rollback_commands_succeeded=restored.commands_succeeded
+        result.rollback_configured_verified=restored.configured_verified
+        result.rollback_runtime_verified=restored.runtime_verified
+        result.rollback_details=restored
+        result.runtime_state_unknown=not restored.runtime_verified
         return result
     end
 
